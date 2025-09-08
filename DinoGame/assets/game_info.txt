@@ -1,0 +1,11 @@
+"GameInfo"
+{
+	"window"
+	{
+		"name" "Dino Game"
+		"width" 1280
+		"height" 720
+	}
+	"menuLevel" "dino_menu"
+	"pauseLevel" "dino_pause"
+}

@@ -1,0 +1,14 @@
+"LevelInfo"
+{
+	"background" "clear"
+}
+
+"Resume Button"
+{
+	"class" "ui_button"
+}
+
+"Settings Button"
+{
+	"class" "ui_button"
+}

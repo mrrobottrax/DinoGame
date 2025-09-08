@@ -1,0 +1,14 @@
+"LevelInfo"
+{
+	"background" 0xFFFFFF
+}
+
+"Start Button"
+{
+	"class" "ui_button"
+}
+
+"Settings Button"
+{
+	"class" "ui_button"
+}
