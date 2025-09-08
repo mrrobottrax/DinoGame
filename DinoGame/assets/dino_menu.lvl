@@ -6,9 +6,11 @@
 "Start Button"
 {
 	"class" "ui_button"
+	"sounds" asset:"button_sounds.txt"
 }
 
 "Settings Button"
 {
 	"class" "ui_button"
+	"sounds" asset:"button_sounds.txt"
 }
