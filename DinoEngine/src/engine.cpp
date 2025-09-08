@@ -114,8 +114,8 @@ void Engine::load_game() {
 
   pAssetManager->set_default_context(&pAssetManager->gameContext);
 
-  Asset *gameInfoAsset = pAssetManager->precache_raw("game_info.txt");
-  Asset *gamePreloadAsset = pAssetManager->precache_raw("game_preload.txt");
+  Asset *gameInfoAsset = pAssetManager->precache("game_info.txt");
+  Asset *gamePreloadAsset = pAssetManager->precache("game_preload.txt");
 
   pAssetManager->asset_barrier(gameInfoAsset);
   pAssetManager->asset_barrier(gamePreloadAsset);

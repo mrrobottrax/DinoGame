@@ -3,14 +3,23 @@
 	"background" 0xFFFFFF
 }
 
-"Start Button"
+"Main Menu"
 {
-	"class" "ui_button"
-	"sounds" asset:"button_sounds.txt"
+	"class" "ui_menu"
+
+	"Start Button"
+	{
+		"class" "ui_button"
+		"onclick" "game_start"
+		@include("button_sounds.txt")
+	}
+
+	"Settings Button"
+	{
+		"class" "ui_button"
+		"onclick" "open \"Settings Menu\""
+		@include("button_sounds.txt")
+	}
 }
 
-"Settings Button"
-{
-	"class" "ui_button"
-	"sounds" asset:"button_sounds.txt"
-}
+@include("settings_overlay.lvl")

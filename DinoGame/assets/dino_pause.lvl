@@ -3,12 +3,23 @@
 	"background" "clear"
 }
 
-"Resume Button"
+"Pause Menu"
 {
-	"class" "ui_button"
+	"active" false
+
+	"Resume Button"
+	{
+		"class" "ui_button"
+		"onclick" "game_resume"
+		@include("button_sounds.txt")
+	}
+
+	"Settings Button"
+	{
+		"class" "ui_button"
+		"onclick" "open \"Settings Menu\""
+		@include("button_sounds.txt")
+	}
 }
 
-"Settings Button"
-{
-	"class" "ui_button"
-}
+@include("settings_overlay.lvl")

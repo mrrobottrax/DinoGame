@@ -39,7 +39,7 @@ static void completion_routine(_In_ DWORD dwErrorCode,
   }
 }
 
-Asset *AssetManager::precache_raw(const char *path) {
+Asset *AssetManager::precache(const char *path) {
   Asset *pAsset;
   if (get_asset(path, &pAsset)) {
     pAsset->context = m_pDefaultContext;

@@ -1,0 +1,5 @@
+"sounds"
+{
+	"select" "button_select.ogg"
+	"hover" "button_hover.ogg"
+}

@@ -38,7 +38,7 @@ public:
   AssetManager();
   ~AssetManager();
 
-  Asset *precache_raw(const char *path);
+  Asset *precache(const char *path);
   void asset_barrier(Asset *pAsset);
   void unload_assets(const AssetContext *pContext);
   void set_default_context(const AssetContext *pContext) {

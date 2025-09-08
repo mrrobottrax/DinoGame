@@ -1,5 +1,0 @@
-"Button Sounds"
-{
-	"select" asset:"button_select.ogg"
-	"hover" asset:"button_hover.ogg"
-}
