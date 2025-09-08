@@ -32,7 +32,7 @@ struct Asset {
 
   // larger with malloc
   unsigned int length;
-  alignas(8) unsigned char data;
+  alignas(8) char data;
 };
 
 class AssetManager {

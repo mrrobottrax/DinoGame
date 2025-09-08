@@ -121,32 +121,28 @@ void Engine::load_game() {
   pAssetManager->asset_barrier(gameInfoAsset);
   pAssetManager->asset_barrier(gamePreloadAsset);
 
-  SharedPtr<KVObject> gameInfoKv =
-      KeyValues::parse(&gameInfoAsset->data, gameInfoAsset->length);
-  SharedPtr<KVObject> gamePreloadKv =
-      KeyValues::parse(&gamePreloadAsset->data, gamePreloadAsset->length);
+  KVObject gameInfoKv =
+      KVObject::parse(&gameInfoAsset->data, gameInfoAsset->length);
+  KVObject gamePreloadKv =
+      KVObject::parse(&gamePreloadAsset->data, gamePreloadAsset->length);
 
   // read game info file
   GameInfo gameInfo{};
-  gameInfo.menuLevel = gameInfoKv->read("menuLevel")->to_int();
-  gameInfo.pauseLevel = gameInfoKv->read("pauseLevel")->to_string();
+  gameInfo.menuLevel = gameInfoKv["menuLevel"].cstr();
+  gameInfo.pauseLevel = gameInfoKv["pauseLevel"].cstr();
 
-  SharedPtr<KVObject> windowKv = gameInfoKv->read("window");
-  gameInfo.window.height = windowKv->read("height")->to_int();
-  gameInfo.window.width = windowKv->read("width")->to_int();
-  gameInfo.window.name = windowKv->read("name")->to_string();
+  KVObject &windowKv = gameInfoKv["window"];
+  gameInfo.window.height = windowKv["height"].to_uint();
+  gameInfo.window.width = windowKv["width"].to_uint();
+  gameInfo.window.name = windowKv["name"].cstr();
 
   // read preload file
-  KVObject preload = gamePreloadKv->read("preload");
-  for (int i = 0, l = preload->length(); i < l; ++i) {
-    String path = preload->at(i)->to_string();
-    pAssetManager->precache(path.cstr());
+  KVObject &preload = gamePreloadKv["preload"];
+  for (int i = 0, l = (int)preload.length(); i < l; ++i) {
+    pAssetManager->precache(preload[i].cstr());
   }
 
   pAssetManager->context_barrier(&pAssetManager->gameContext);
-
-  pAssetManager->unload(gameInfoAsset);
-  pAssetManager->unload(gamePreloadAsset);
 
   console_log("Game Name: %s", gameInfo.window.name);
   console_log("Game Width: %u", gameInfo.window.width);
@@ -155,6 +151,9 @@ void Engine::load_game() {
 
   pWindowManager->update_window(&gameInfo.window);
   pInputManager->register_raw_input(pWindowManager->hWnd);
+
+  pAssetManager->unload(gameInfoAsset);
+  pAssetManager->unload(gamePreloadAsset);
 }
 
 void Engine::unload_game() {

@@ -87,6 +87,7 @@
     <ClCompile Include="src\asset_manager.cpp" />
     <ClCompile Include="src\engine.cpp" />
     <ClCompile Include="src\input_manager.cpp" />
+    <ClCompile Include="src\keyvalues.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
