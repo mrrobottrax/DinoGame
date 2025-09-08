@@ -5,20 +5,30 @@
 
 "Pause Menu"
 {
-	"active" false
+	class ui_menu
+
+	"background" 0x00000018
 
 	"Resume Button"
 	{
 		"class" "ui_button"
 		"onclick" "game_resume"
-		@include("button_sounds.txt")
+		@include("button_sounds.lvl")
+
+		"pivot" (0.5, 0.5)
+		"anchor" (0.5, 0.5)
+		"offset" (0, 1)
 	}
 
 	"Settings Button"
 	{
 		"class" "ui_button"
 		"onclick" "open \"Settings Menu\""
-		@include("button_sounds.txt")
+		@include("button_sounds.lvl")
+
+		"pivot" (0.5, 0.5)
+		"anchor" (0.5, 0.5)
+		"offset" (0, 1)
 	}
 }
 

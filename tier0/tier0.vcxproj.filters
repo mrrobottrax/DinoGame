@@ -33,6 +33,15 @@
     <ClInclude Include="include\memory.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\shared_ptr.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\semantics.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\custom_string.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\pch.cpp">

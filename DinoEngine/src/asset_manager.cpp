@@ -90,6 +90,7 @@ Asset *AssetManager::precache(const char *path) {
   pAsset->status = ASSET_LOADING;
   pAsset->hFile = hFile;
   pAsset->context = m_pDefaultContext;
+  pAsset->length = fileSize;
   pAsset->overlapped.hEvent =
       CreateEventExW(NULL, NULL, CREATE_EVENT_MANUAL_RESET, EVENT_ALL_ACCESS);
 
@@ -118,7 +119,19 @@ void AssetManager::asset_barrier(Asset *pAsset) {
   }
 }
 
-void AssetManager::unload_assets(const AssetContext *pContext) {
+void AssetManager::context_barrier(const AssetContext *pContext) {
+  Entry *pTables[] = {m_pEntries1, m_pEntries2};
+  for (int j = 0; j < _countof(pTables); ++j) {
+    for (unsigned int i = 0; i < m_capacityPerTable; ++i) {
+      Entry &entry = pTables[j][i];
+      if (entry.pAsset != nullptr && entry.pAsset->context == pContext) {
+        asset_barrier(entry.pAsset);
+      }
+    }
+  }
+}
+
+void AssetManager::unload_context(const AssetContext *pContext) {
   Entry *pTables[] = {m_pEntries1, m_pEntries2};
   for (int j = 0; j < _countof(pTables); ++j) {
     for (unsigned int i = 0; i < m_capacityPerTable; ++i) {
@@ -129,6 +142,8 @@ void AssetManager::unload_assets(const AssetContext *pContext) {
     }
   }
 }
+
+bool AssetManager::unload(Asset *pAsset) { return remove_asset(pAsset->path); }
 
 void AssetManager::alloc_entries(Entry **ppEntries, unsigned int capacity) {
   *ppEntries = (Entry *)malloc(capacity * sizeof(Entry));
@@ -256,6 +271,8 @@ void AssetManager::insert_asset(const char *path, Asset *pAsset) {
       .path = newPath,
       .pAsset = pAsset,
   };
+
+  pAsset->path = newPath;
 
   for (int c = 0; c < k_maxRehashes; ++c) {
     for (int i = 0; i < k_maxKicks; ++i) {

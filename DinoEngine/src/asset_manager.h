@@ -25,11 +25,13 @@ public:
 
 struct Asset {
   const AssetContext *context;
+  const char *path;
   OVERLAPPED overlapped;
   HANDLE hFile;
   EAssetStatus status;
 
   // larger with malloc
+  unsigned int length;
   alignas(8) unsigned char data;
 };
 
@@ -40,7 +42,9 @@ public:
 
   Asset *precache(const char *path);
   void asset_barrier(Asset *pAsset);
-  void unload_assets(const AssetContext *pContext);
+  void context_barrier(const AssetContext *pContext);
+  void unload_context(const AssetContext *pContext);
+  bool unload(Asset *pAsset);
   void set_default_context(const AssetContext *pContext) {
     m_pDefaultContext = pContext;
   }

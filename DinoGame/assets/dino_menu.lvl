@@ -6,19 +6,28 @@
 "Main Menu"
 {
 	"class" "ui_menu"
+	active true
 
 	"Start Button"
 	{
 		"class" "ui_button"
 		"onclick" "game_start"
-		@include("button_sounds.txt")
+		@include("button_sounds.lvl")
+
+		"pivot" (0.5, 0.5)
+		"anchor" (0.5, 0.5)
+		"offset" (0, 1)
 	}
 
 	"Settings Button"
 	{
 		"class" "ui_button"
 		"onclick" "open \"Settings Menu\""
-		@include("button_sounds.txt")
+		@include("button_sounds.lvl")
+
+		"pivot" (0.5, 0.5)
+		"anchor" (0.5, 0.5)
+		"offset" (0, 0)
 	}
 }
 

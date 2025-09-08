@@ -100,6 +100,7 @@
     <ClInclude Include="src\game_info.h" />
     <ClInclude Include="src\engine.h" />
     <ClInclude Include="src\input_manager.h" />
+    <ClInclude Include="src\keyvalues.h" />
     <ClInclude Include="src\pch.h" />
     <ClInclude Include="src\window_manager.h" />
   </ItemGroup>

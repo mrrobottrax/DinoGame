@@ -3,6 +3,7 @@
 #include "asset_manager.h"
 #include "engine.h"
 #include "input_manager.h"
+#include "keyvalues.h"
 #include "window_manager.h"
 
 Engine::~Engine() {
@@ -120,7 +121,32 @@ void Engine::load_game() {
   pAssetManager->asset_barrier(gameInfoAsset);
   pAssetManager->asset_barrier(gamePreloadAsset);
 
+  SharedPtr<KVObject> gameInfoKv =
+      KeyValues::parse(&gameInfoAsset->data, gameInfoAsset->length);
+  SharedPtr<KVObject> gamePreloadKv =
+      KeyValues::parse(&gamePreloadAsset->data, gamePreloadAsset->length);
+
+  // read game info file
   GameInfo gameInfo{};
+  gameInfo.menuLevel = gameInfoKv->read("menuLevel")->to_int();
+  gameInfo.pauseLevel = gameInfoKv->read("pauseLevel")->to_string();
+
+  SharedPtr<KVObject> windowKv = gameInfoKv->read("window");
+  gameInfo.window.height = windowKv->read("height")->to_int();
+  gameInfo.window.width = windowKv->read("width")->to_int();
+  gameInfo.window.name = windowKv->read("name")->to_string();
+
+  // read preload file
+  KVObject preload = gamePreloadKv->read("preload");
+  for (int i = 0, l = preload->length(); i < l; ++i) {
+    String path = preload->at(i)->to_string();
+    pAssetManager->precache(path.cstr());
+  }
+
+  pAssetManager->context_barrier(&pAssetManager->gameContext);
+
+  pAssetManager->unload(gameInfoAsset);
+  pAssetManager->unload(gamePreloadAsset);
 
   console_log("Game Name: %s", gameInfo.window.name);
   console_log("Game Width: %u", gameInfo.window.width);
@@ -135,7 +161,7 @@ void Engine::unload_game() {
   if (m_gameModule != NULL) {
     console_log("Unloading game...");
 
-    pAssetManager->unload_assets(&pAssetManager->gameContext);
+    pAssetManager->unload_context(&pAssetManager->gameContext);
 
     FreeLibrary(m_gameModule);
     m_gameModule = NULL;

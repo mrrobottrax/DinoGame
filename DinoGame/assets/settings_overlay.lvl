@@ -1,5 +1,7 @@
 "Settings Menu"
 {
-	"active" false
+	"class" "ui_menu"
 	"isOverlay" true
+
+	"order" 100
 }
