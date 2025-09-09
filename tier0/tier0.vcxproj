@@ -136,22 +136,24 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="include\console.h" />
-    <ClInclude Include="include\exception.h" />
+    <ClInclude Include="include\error.h" />
     <ClInclude Include="include\hash.h" />
-    <ClInclude Include="include\memory.h" />
+    <ClInclude Include="src\console_private.h" />
+    <ClInclude Include="src\memory.h" />
     <ClInclude Include="include\tier0.h" />
     <ClInclude Include="include\ucrt.h" />
     <ClInclude Include="src\pch.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\console.cpp" />
-    <ClCompile Include="src\exception.cpp" />
+    <ClCompile Include="src\error.cpp" />
     <ClCompile Include="src\hash.cpp" />
     <ClCompile Include="src\memory.cpp" />
     <ClCompile Include="src\pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="src\t0.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

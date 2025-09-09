@@ -1,8 +1,6 @@
 #include "pch.h"
 
-#include "engine.h"
-#include "input_manager.h"
-#include "window_manager.h"
+#include "WindowSystem.h"
 
 constexpr wchar_t k_windowClassName[] = L"Dino Window";
 constexpr COLORREF k_bgColor = 0x00181818;
@@ -41,23 +39,7 @@ static LRESULT CALLBACK window_proc(HWND hWnd, UINT uMsg, WPARAM wParam,
   return 0;
 }
 
-void WindowManager::update_window(const WindowInfo *pWindowInfo) {
-  if (hWnd == NULL) {
-    create_window(pWindowInfo);
-  }
-
-  // set window name
-  int wcLen =
-      MultiByteToWideChar(CP_UTF8, 0, pWindowInfo->name, -1, NULL, 0);
-  wchar_t *wcName = (wchar_t *)malloc(wcLen * sizeof(wchar_t));
-  MultiByteToWideChar(CP_UTF8, 0, pWindowInfo->name, -1, wcName, wcLen);
-
-  SetWindowTextW(hWnd, wcName);
-
-  free(wcName);
-}
-
-void WindowManager::create_window(const WindowInfo *pWindowInfo) {
+error_t WindowSystem::init(const char *name, int width, int height) {
   // create window class
   if (s_wndClass.hInstance == nullptr) {
     WNDCLASS wc = {};
@@ -86,10 +68,9 @@ void WindowManager::create_window(const WindowInfo *pWindowInfo) {
   DWORD style = WS_OVERLAPPEDWINDOW | WS_VISIBLE;
   DWORD exStyle = WS_EX_NOREDIRECTIONBITMAP;
 
-  RECT rect = {0, 0, (int)pWindowInfo->width,
-               (int)pWindowInfo->height};
+  RECT rect = {0, 0, (int)width, (int)height};
   if (!AdjustWindowRectEx(&rect, style, FALSE, exStyle)) {
-    throw WindowsException("Failed to adjust rect");
+    THROW_WIN("Failed to adjust rect");
   }
 
   int w = min(rect.right - rect.left, maxWidth);
@@ -99,23 +80,26 @@ void WindowManager::create_window(const WindowInfo *pWindowInfo) {
   int y = (maxHeight - h) / 2;
 
   // convert name to wc
-  int wcLen =
-      MultiByteToWideChar(CP_UTF8, 0, pWindowInfo->name, -1, NULL, 0);
+  int wcLen = MultiByteToWideChar(CP_UTF8, 0, name, -1, NULL, 0);
   wchar_t *wcName = (wchar_t *)malloc(wcLen * sizeof(wchar_t));
-  MultiByteToWideChar(CP_UTF8, 0, pWindowInfo->name, -1, wcName, wcLen);
+  MultiByteToWideChar(CP_UTF8, 0, name, -1, wcName, wcLen);
 
-  hWnd = CreateWindowEx(exStyle, k_windowClassName, wcName, style, x, y, w, h,
-                        NULL, NULL, GetModuleHandle(NULL), NULL);
+  m_hWnd = CreateWindowEx(exStyle, k_windowClassName, wcName, style, x, y, w, h,
+                          NULL, NULL, GetModuleHandle(NULL), NULL);
 
   free(wcName);
 
-  if (hWnd == NULL) {
-    throw WindowsException("Failed to create window");
+  if (m_hWnd == NULL) {
+    THROW_WIN("Failed to create window");
   }
 
-  DwmSetWindowAttribute(hWnd, DWMWA_CAPTION_COLOR, &k_bgColor,
+  DwmSetWindowAttribute(m_hWnd, DWMWA_CAPTION_COLOR, &k_bgColor,
                         sizeof(k_bgColor));
   DWM_WINDOW_CORNER_PREFERENCE preference = DWMWCP_DONOTROUND;
-  DwmSetWindowAttribute(hWnd, DWMWA_WINDOW_CORNER_PREFERENCE, &preference,
+  DwmSetWindowAttribute(m_hWnd, DWMWA_WINDOW_CORNER_PREFERENCE, &preference,
                         sizeof(preference));
+
+  return SUCCESS;
 }
+
+error_t WindowSystem::stop() { return T0_SUCCESS; }

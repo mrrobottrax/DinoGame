@@ -1,7 +1,0 @@
-{
-	"name" "Settings Menu"
-	"class" "ui_menu"
-	"isOverlay" true
-
-	"order" 100
-}

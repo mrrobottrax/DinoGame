@@ -1,11 +1,11 @@
 #include "pch.h"
 
 #include "console.h"
-#include "exception.h"
+#include "error.h"
 
-void console_create() {
+error_t console_create() {
   if (!AllocConsole()) {
-    throw WindowsException("AllocConsole failed");
+    THROW_WIN("AllocConsole failed");
   }
 
   FILE *stream;
@@ -13,8 +13,12 @@ void console_create() {
   freopen_s(&stream, "CONOUT$", "r", stdin);
   freopen_s(&stream, "CONOUT$", "w", stderr);
 
-  setlocale(LC_ALL, ".UTF8");
   SetConsoleOutputCP(CP_UTF8);
+
+  return T0_SUCCESS;
 }
 
-void console_free() { FreeConsole(); }
+error_t console_free() {
+  FreeConsole();
+  return T0_SUCCESS;
+}
