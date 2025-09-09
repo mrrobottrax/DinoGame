@@ -1,10 +1,12 @@
 #pragma once
 
-#include "game_info.h"
+#include "game_callbacks.h"
 
 class WindowManager;
 class InputManager;
 class AssetManager;
+
+#define GAME_PTR(name) name##_ptr_t name = nullptr;
 
 class Engine {
 private:
@@ -12,6 +14,9 @@ private:
   HMODULE m_gameModule;
 
 public:
+  GAME_PTR(get_game_info)
+  GAME_PTR(load_game_menu)
+
   // systems
   WindowManager *pWindowManager;
   InputManager *pInputManager;

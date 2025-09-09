@@ -7,7 +7,7 @@ constexpr int k_maxRehashes = 64;
 
 AssetManager::AssetManager() {
   m_nEntries = 0;
-  m_capacityPerTable = 1024;
+  m_capacityPerTable = 1;
 
   alloc_entries(&m_pEntries1, m_capacityPerTable);
   alloc_entries(&m_pEntries2, m_capacityPerTable);
@@ -42,7 +42,6 @@ static void completion_routine(_In_ DWORD dwErrorCode,
 Asset *AssetManager::precache(const char *path) {
   Asset *pAsset;
   if (get_asset(path, &pAsset)) {
-    pAsset->context = m_pDefaultContext;
     return pAsset;
   }
 
@@ -89,7 +88,6 @@ Asset *AssetManager::precache(const char *path) {
   pAsset = new (buffer) Asset{};
   pAsset->status = ASSET_LOADING;
   pAsset->hFile = hFile;
-  pAsset->context = m_pDefaultContext;
   pAsset->length = fileSize;
   pAsset->overlapped.hEvent =
       CreateEventExW(NULL, NULL, CREATE_EVENT_MANUAL_RESET, EVENT_ALL_ACCESS);
@@ -116,30 +114,6 @@ void AssetManager::asset_barrier(Asset *pAsset) {
   if (WaitForSingleObjectEx(pAsset->overlapped.hEvent, INFINITE, TRUE) ==
       WAIT_FAILED) {
     throw WindowsException("Failed to wait for object");
-  }
-}
-
-void AssetManager::context_barrier(const AssetContext *pContext) {
-  Entry *pTables[] = {m_pEntries1, m_pEntries2};
-  for (int j = 0; j < _countof(pTables); ++j) {
-    for (unsigned int i = 0; i < m_capacityPerTable; ++i) {
-      Entry &entry = pTables[j][i];
-      if (entry.pAsset != nullptr && entry.pAsset->context == pContext) {
-        asset_barrier(entry.pAsset);
-      }
-    }
-  }
-}
-
-void AssetManager::unload_context(const AssetContext *pContext) {
-  Entry *pTables[] = {m_pEntries1, m_pEntries2};
-  for (int j = 0; j < _countof(pTables); ++j) {
-    for (unsigned int i = 0; i < m_capacityPerTable; ++i) {
-      Entry &entry = pTables[j][i];
-      if (entry.pAsset != nullptr && entry.pAsset->context == pContext) {
-        remove_asset(entry.path);
-      }
-    }
   }
 }
 

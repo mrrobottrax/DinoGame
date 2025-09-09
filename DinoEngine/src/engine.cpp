@@ -3,7 +3,6 @@
 #include "asset_manager.h"
 #include "engine.h"
 #include "input_manager.h"
-#include "keyvalues.h"
 #include "window_manager.h"
 
 Engine::~Engine() {
@@ -28,6 +27,8 @@ void Engine::init() {
   pAssetManager = new AssetManager{};
 
   load_game();
+
+  load_game_menu();
 }
 
 void Engine::stop() {
@@ -92,7 +93,7 @@ void Engine::loop() {
 constexpr const char k_failedToLoad[] = "Failed to load game function \"%s\"";
 
 #define GET_CALLBACK(func)                                                     \
-  func = (func##_ptr)GetProcAddress(m_gameModule, k_##func##_name);            \
+  func = (func##_ptr_t)GetProcAddress(m_gameModule, k_##func##_name);          \
   if (func == nullptr) {                                                       \
     console_log_error(k_failedToLoad, #func);                                  \
     unload_game();                                                             \
@@ -113,54 +114,22 @@ void Engine::load_game() {
   }
   free(wcDll);
 
-  pAssetManager->set_default_context(&pAssetManager->gameContext);
+  GET_CALLBACK(get_game_info);
+  GET_CALLBACK(load_game_menu);
 
-  Asset *gameInfoAsset = pAssetManager->precache("game_info.txt");
-  Asset *gamePreloadAsset = pAssetManager->precache("game_preload.txt");
-
-  pAssetManager->asset_barrier(gameInfoAsset);
-  pAssetManager->asset_barrier(gamePreloadAsset);
-
-  KVObject gameInfoKv =
-      KVObject::parse(&gameInfoAsset->data, gameInfoAsset->length);
-  KVObject gamePreloadKv =
-      KVObject::parse(&gamePreloadAsset->data, gamePreloadAsset->length);
-
-  // read game info file
-  GameInfo gameInfo{};
-  gameInfo.menuLevel = gameInfoKv["menuLevel"]->cstr();
-  gameInfo.pauseLevel = gameInfoKv["pauseLevel"]->cstr();
-
-  KVObject &windowKv = *gameInfoKv["window"];
-  gameInfo.window.height = windowKv["height"]->to_uint();
-  gameInfo.window.width = windowKv["width"]->to_uint();
-  gameInfo.window.name = windowKv["name"]->cstr();
-
-  // read preload file
-  KVObject &preload = *gamePreloadKv["preload"];
-  for (int i = 0, l = (int)preload.length(); i < l; ++i) {
-    pAssetManager->precache(preload[i]->cstr());
-  }
-
-  pAssetManager->context_barrier(&pAssetManager->gameContext);
+  GameInfo gameInfo = get_game_info();
 
   console_log("Game Name: %s", gameInfo.window.name);
   console_log("Game Width: %u", gameInfo.window.width);
   console_log("Game Height: %u", gameInfo.window.height);
-  console_log("Menu Level: %s", gameInfo.menuLevel);
 
   pWindowManager->update_window(&gameInfo.window);
   pInputManager->register_raw_input(pWindowManager->hWnd);
-
-  pAssetManager->unload(gameInfoAsset);
-  pAssetManager->unload(gamePreloadAsset);
 }
 
 void Engine::unload_game() {
   if (m_gameModule != NULL) {
     console_log("Unloading game...");
-
-    pAssetManager->unload_context(&pAssetManager->gameContext);
 
     FreeLibrary(m_gameModule);
     m_gameModule = NULL;

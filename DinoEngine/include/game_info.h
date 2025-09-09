@@ -8,7 +8,4 @@ struct WindowInfo {
 
 struct GameInfo {
   WindowInfo window;
-
-  const char *menuLevel;
-  const char *pauseLevel;
 };

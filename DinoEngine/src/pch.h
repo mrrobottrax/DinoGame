@@ -1,7 +1,9 @@
 #pragma once
 
-#define GAME_API extern "C" _declspec(dllimport)
-#define DINO_API extern "C" _declspec(dllexport)
+#define DINO_ENGINE
+
+#define GAME_API _declspec(dllimport)
+#define DINO_API _declspec(dllexport)
 
 #include "tier0.h"
 

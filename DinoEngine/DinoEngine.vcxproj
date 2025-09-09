@@ -47,7 +47,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;EXPORT_FROM_EXE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
@@ -68,7 +68,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;EXPORT_FROM_EXE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
@@ -86,22 +86,25 @@
   <ItemGroup>
     <ClCompile Include="src\asset_manager.cpp" />
     <ClCompile Include="src\engine.cpp" />
+    <ClCompile Include="src\entity.cpp" />
     <ClCompile Include="src\input_manager.cpp" />
-    <ClCompile Include="src\keyvalues.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="src\ui.cpp" />
     <ClCompile Include="src\window_manager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\dino_engine.h" />
+    <ClInclude Include="include\ui.h" />
     <ClInclude Include="src\asset_manager.h" />
-    <ClInclude Include="src\game_info.h" />
+    <ClInclude Include="include\game_callbacks.h" />
+    <ClInclude Include="include\game_info.h" />
     <ClInclude Include="src\engine.h" />
+    <ClInclude Include="include\entity.h" />
     <ClInclude Include="src\input_manager.h" />
-    <ClInclude Include="src\keyvalues.h" />
     <ClInclude Include="src\pch.h" />
     <ClInclude Include="src\window_manager.h" />
   </ItemGroup>
@@ -109,6 +112,9 @@
     <ProjectReference Include="..\tier0\tier0.vcxproj">
       <Project>{6c45eb36-f46a-474f-9ad5-f3a50d90579a}</Project>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="cpp.hint" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

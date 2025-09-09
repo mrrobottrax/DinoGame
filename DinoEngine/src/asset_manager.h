@@ -6,25 +6,7 @@ enum EAssetStatus : byte {
   ASSET_LOADED,
 };
 
-class AssetContext {
-private:
-  char *m_name;
-
-public:
-  AssetContext(const char *name) {
-    size_t len = strnlen_s(name, 512);
-    m_name = (char *)malloc(len + 1);
-    memcpy_s(m_name, len + 1, name, len + 1);
-  }
-
-  ~AssetContext() {
-    free(m_name);
-    m_name = nullptr;
-  }
-};
-
 struct Asset {
-  const AssetContext *context;
   const char *path;
   OVERLAPPED overlapped;
   HANDLE hFile;
@@ -42,18 +24,9 @@ public:
 
   Asset *precache(const char *path);
   void asset_barrier(Asset *pAsset);
-  void context_barrier(const AssetContext *pContext);
-  void unload_context(const AssetContext *pContext);
   bool unload(Asset *pAsset);
-  void set_default_context(const AssetContext *pContext) {
-    m_pDefaultContext = pContext;
-  }
-
-  const AssetContext gameContext{"game"};
 
 private:
-  const AssetContext *m_pDefaultContext;
-
   struct Entry {
     char *path;
     Asset *pAsset;
