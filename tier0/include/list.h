@@ -33,6 +33,10 @@ public:
 
   void add(const T &val) {
     if (m_count + 1 > m_capacity) {
+      if (m_capacity == 0) {
+        m_capacity = 1;
+      }
+
       reserve(m_capacity * 2);
     }
 

@@ -14,12 +14,14 @@ class KVObject {
 
   class KVDict {
     struct Entry {
-      const char *key;
+      char *key;
       KVObject *pValue;
       Entry *pNext;
-      unsigned int keyLength;
 
-      ~Entry() { delete pNext; }
+      ~Entry() {
+        delete pNext;
+        free(key);
+      }
     };
 
     unsigned int m_capacity;
@@ -31,7 +33,7 @@ class KVObject {
     ~KVDict();
 
     KVObject *get(const char *key);
-    void insert(const char *key, unsigned int keyLength, KVObject *pValue);
+    void insert(char *key, KVObject *pValue);
 
   private:
     void resize(unsigned int capacity);
@@ -106,12 +108,12 @@ public:
     return m_uint64Val;
   }
   int to_int() const {
-    if (m_type != KV_INT || m_type != KV_UINT)
+    if (m_type != KV_INT && m_type != KV_UINT)
       return 0;
     return (int)m_int64Val;
   }
   unsigned int to_uint() const {
-    if (m_type != KV_INT || m_type != KV_UINT)
+    if (m_type != KV_INT && m_type != KV_UINT)
       return 0;
     return (unsigned int)m_uint64Val;
   }

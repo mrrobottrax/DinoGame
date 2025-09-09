@@ -122,7 +122,10 @@ KVObject KVObject::parse(const char *file, unsigned int length) {
         pNew->m_type = KV_STRING;
 
       if (pObjStack[stackDepth]->m_type == KV_OBJECT) {
-        pObjStack[stackDepth]->m_pDictVal->insert(keyStart, keyLength, pNew);
+        char *newKey = (char *)malloc(sizeof(keyLength) + 1);
+        strncpy_s(newKey, (size_t)keyLength + 1, keyStart, keyLength);
+        newKey[keyLength] = '\0';
+        pObjStack[stackDepth]->m_pDictVal->insert(newKey, pNew);
       } else if (pObjStack[stackDepth]->m_type == KV_LIST) {
         pObjStack[stackDepth]->m_pListVal->add(pNew);
       } else {
@@ -188,7 +191,7 @@ KVObject KVObject::parse(const char *file, unsigned int length) {
 }
 
 KVObject::KVDict::KVDict() {
-  m_capacity = 16;
+  m_capacity = 1;
   m_count = 0;
   m_pEntries = new Entry[m_capacity]{};
 }
@@ -207,9 +210,10 @@ void KVObject::KVDict::resize(unsigned int capacity) {
     Entry *pEntry = &pOld[i];
     while (pEntry) {
       if (pEntry->key) {
-        insert(pEntry->key, (unsigned int)strnlen_s(pEntry->key, k_maxKeyLen),
-               pEntry->pValue);
+        insert(pEntry->key, pEntry->pValue);
       }
+      pEntry->key = nullptr;
+      pEntry->pValue = nullptr;
       pEntry = pEntry->pNext;
     }
   }
@@ -224,7 +228,7 @@ KVObject *KVObject::KVDict::get(const char *key) {
 
   Entry *pEntry = &m_pEntries[i];
   while (pEntry) {
-    if (strncmp(key, pEntry->key, pEntry->keyLength) == 0) {
+    if (strncmp(key, pEntry->key, k_maxKeyLen) == 0) {
       return pEntry->pValue;
     }
 
@@ -234,13 +238,14 @@ KVObject *KVObject::KVDict::get(const char *key) {
   return nullptr;
 }
 
-void KVObject::KVDict::insert(const char *key, unsigned int keyLength,
-                              KVObject *pValue) {
+void KVObject::KVDict::insert(char *key, KVObject *pValue) {
   if (m_count + 1 >= m_capacity) {
     resize(m_capacity * 2);
   }
 
-  unsigned int i = murmur3_32(key, keyLength, 0x9747b28c) % m_capacity;
+  unsigned int i =
+      murmur3_32(key, (unsigned int)strnlen_s(key, k_maxKeyLen), 0x9747b28c) %
+      m_capacity;
 
   Entry *pEntry = &m_pEntries[i];
 
@@ -249,7 +254,7 @@ void KVObject::KVDict::insert(const char *key, unsigned int keyLength,
       break;
     }
 
-    if (strncmp(pEntry->key, key, keyLength) == 0) {
+    if (strncmp(pEntry->key, key, k_maxKeyLen) == 0) {
       return;
     }
 
@@ -261,7 +266,6 @@ void KVObject::KVDict::insert(const char *key, unsigned int keyLength,
   }
 
   pEntry->key = key;
-  pEntry->keyLength = keyLength;
   pEntry->pValue = pValue;
 
   ++m_count;
