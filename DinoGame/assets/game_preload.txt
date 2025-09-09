@@ -1,4 +1,4 @@
 "preload" [
-	"button_sounds.lvl",
-	"settings_overlay.lvl",
+	"button_sounds.lvl"
+	"settings_overlay.lvl"
 ]

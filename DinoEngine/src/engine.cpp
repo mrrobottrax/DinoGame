@@ -128,18 +128,18 @@ void Engine::load_game() {
 
   // read game info file
   GameInfo gameInfo{};
-  gameInfo.menuLevel = gameInfoKv["menuLevel"].cstr();
-  gameInfo.pauseLevel = gameInfoKv["pauseLevel"].cstr();
+  gameInfo.menuLevel = gameInfoKv["menuLevel"]->cstr();
+  gameInfo.pauseLevel = gameInfoKv["pauseLevel"]->cstr();
 
-  KVObject &windowKv = gameInfoKv["window"];
-  gameInfo.window.height = windowKv["height"].to_uint();
-  gameInfo.window.width = windowKv["width"].to_uint();
-  gameInfo.window.name = windowKv["name"].cstr();
+  KVObject &windowKv = *gameInfoKv["window"];
+  gameInfo.window.height = windowKv["height"]->to_uint();
+  gameInfo.window.width = windowKv["width"]->to_uint();
+  gameInfo.window.name = windowKv["name"]->cstr();
 
   // read preload file
-  KVObject &preload = gamePreloadKv["preload"];
+  KVObject &preload = *gamePreloadKv["preload"];
   for (int i = 0, l = (int)preload.length(); i < l; ++i) {
-    pAssetManager->precache(preload[i].cstr());
+    pAssetManager->precache(preload[i]->cstr());
   }
 
   pAssetManager->context_barrier(&pAssetManager->gameContext);

@@ -1,6 +1,6 @@
 "window"
 {
-	"name" "Dino Game"
+	name "Dino Game"
 	"width" 1280
 	"height" 720
 }

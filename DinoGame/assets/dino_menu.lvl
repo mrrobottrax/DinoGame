@@ -1,10 +1,9 @@
-"LevelInfo"
-{
-	"background" 0xFFFFFF
-}
+"background" 0xFFFFFF
 
-"Main Menu"
+"objects" [
+
 {
+	name "Main Menu"
 	"class" "ui_menu"
 	active true
 
@@ -32,3 +31,5 @@
 }
 
 @include("settings_overlay.lvl")
+
+]

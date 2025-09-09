@@ -1,10 +1,9 @@
-"LevelInfo"
-{
-	"background" "clear"
-}
+"background" "clear"
 
-"Pause Menu"
+"objects" [
+
 {
+	name "Pause Menu"
 	class ui_menu
 
 	"background" 0x00000018
@@ -33,3 +32,5 @@
 }
 
 @include("settings_overlay.lvl")
+
+]

@@ -138,7 +138,9 @@
     <ClInclude Include="include\console.h" />
     <ClInclude Include="include\exception.h" />
     <ClInclude Include="include\hash.h" />
+    <ClInclude Include="include\list.h" />
     <ClInclude Include="include\memory.h" />
+    <ClInclude Include="include\semantics.h" />
     <ClInclude Include="include\tier0.h" />
     <ClInclude Include="include\ucrt.h" />
     <ClInclude Include="src\pch.h" />

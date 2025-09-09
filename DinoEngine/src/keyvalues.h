@@ -4,13 +4,10 @@ class KVObject {
   enum EType {
     KV_INT,
     KV_UINT,
-    KV_INT64,
-    KV_UINT64,
-    KV_FLOAT,
     KV_DOUBLE,
     KV_STRING,
     KV_OBJECT,
-    KV_ARRAY,
+    KV_LIST,
   };
 
   EType m_type;
@@ -20,6 +17,9 @@ class KVObject {
       const char *key;
       KVObject *pValue;
       Entry *pNext;
+      unsigned int keyLength;
+
+      ~Entry() { delete pNext; }
     };
 
     unsigned int m_capacity;
@@ -31,85 +31,105 @@ class KVObject {
     ~KVDict();
 
     KVObject *get(const char *key);
-    void insert(const char *key, KVObject *pValue);
+    void insert(const char *key, unsigned int keyLength, KVObject *pValue);
 
   private:
     void resize(unsigned int capacity);
   };
 
   union {
-    int m_intVal;
-    unsigned int m_uintVal;
     long long m_int64Val;
     unsigned long long m_uint64Val;
-    float m_floatVal;
     double m_doubleVal;
     struct {
       unsigned int m_stringLen;
       const char *m_stringVal;
     };
-    struct {
-      unsigned int m_arrLen;
-      KVObject *m_arrVal;
-    };
-    KVDict m_dictVal;
+    List<KVObject *> *m_pListVal;
+    KVDict *m_pDictVal;
   };
 
 private:
-  KVObject() : m_arrVal(0), m_arrLen(0), m_type(KV_ARRAY) {};
+  KVObject() : m_int64Val(0), m_type(KV_LIST) {};
 
 public:
   KVObject(const KVObject &other) = delete;
   KVObject(KVObject &&other) noexcept : KVObject() {
     memcpy_s(this, sizeof(KVObject), &other, sizeof(KVObject));
-    other.m_type = KV_ARRAY;
-    other.m_arrLen = 0;
-    other.m_arrVal = nullptr;
+    other.m_type = KV_LIST;
+    other.m_pListVal = nullptr;
   }
   KVObject &operator=(const KVObject &other) = delete;
   KVObject &operator=(KVObject &&other) = delete;
 
   ~KVObject() {
-    if (m_type == KV_ARRAY) {
-      delete[] m_arrVal;
+    if (m_type == KV_LIST) {
+      delete m_pListVal;
+    } else if (m_type == KV_OBJECT) {
+      delete m_pDictVal;
     }
   }
 
-  KVObject &operator[](const char *key) {
+  KVObject *operator[](const char *key) {
     if (m_type == KV_OBJECT) {
-      return *m_dictVal.get(key);
+      return m_pDictVal->get(key);
     }
 
-    return *(KVObject *)0;
+    return nullptr;
   }
-  KVObject &operator[](size_t index) {
-    if (m_type == KV_ARRAY) {
-      if (index >= m_arrLen) {
-        return *(KVObject *)0;
-      }
-      return m_arrVal[index];
+  KVObject *operator[](unsigned int index) {
+    if (m_type == KV_LIST) {
+      return (*m_pListVal)[index];
     }
 
-    return *(KVObject *)0;
+    return nullptr;
   }
 
   size_t length() const {
     switch (m_type) {
-    case KV_ARRAY:
-      return m_arrLen;
+    case KV_LIST:
+      return m_pListVal->count();
     case KV_STRING:
       return m_stringLen;
     }
     return 0;
   }
 
-  long long to_int64() const { return m_int64Val; }
-  unsigned long long to_uint64() const { return m_uint64Val; }
-  int to_int() const { return m_intVal; }
-  unsigned int to_uint() const { return m_uintVal; }
-  float to_float() const { return m_floatVal; }
-  double to_double() const { return m_doubleVal; }
-  const char *cstr() const { return m_stringVal; }
+  long long to_int64() const {
+    if (m_type != KV_INT)
+      return 0;
+    return m_int64Val;
+  }
+  unsigned long long to_uint64() const {
+    if (m_type != KV_UINT)
+      return 0;
+    return m_uint64Val;
+  }
+  int to_int() const {
+    if (m_type != KV_INT || m_type != KV_UINT)
+      return 0;
+    return (int)m_int64Val;
+  }
+  unsigned int to_uint() const {
+    if (m_type != KV_INT || m_type != KV_UINT)
+      return 0;
+    return (unsigned int)m_uint64Val;
+  }
+  float to_float() const {
+    if (m_type != KV_DOUBLE)
+      return 0;
+    return (float)m_doubleVal;
+  }
+  double to_double() const {
+    if (m_type != KV_DOUBLE)
+      return 0;
+    return m_doubleVal;
+  }
+  const char *cstr() const {
+    if (m_type != KV_STRING)
+      return 0;
+    return m_stringVal;
+  }
 
   static KVObject parse(const char *file, unsigned int length);
 };
