@@ -2,9 +2,9 @@
 
 class Engine {
 public:
-  error_t init();
-  error_t loop();
-  error_t stop();
+  void init();
+  void loop();
+  void stop();
 };
 
 inline Engine *g_pEngine;

@@ -9,5 +9,5 @@
 #include "console.h"
 #include "hash.h"
 
-error_t t0_init();
-error_t t0_stop();
+void t0_init();
+void t0_stop();

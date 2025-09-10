@@ -2,8 +2,76 @@
 
 #include "console.h"
 #include "error.h"
+#include "error_private.h"
 
 __declspec(thread) static char *s_lastError = nullptr;
+
+static void write_minidump() {
+  console_log("Writing minidump...");
+  HANDLE hFile = CreateFile(L"crash.dmp", GENERIC_WRITE, 0, nullptr,
+                            CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
+  if (hFile == INVALID_HANDLE_VALUE) {
+    console_log_error("Failed to write minidump");
+    return;
+  }
+
+  MiniDumpWriteDump(GetCurrentProcess(), GetCurrentProcessId(), hFile,
+                    (MINIDUMP_TYPE)(MiniDumpWithDataSegs |
+                                    MiniDumpWithIndirectlyReferencedMemory |
+                                    MiniDumpScanMemory),
+                    nullptr, nullptr, nullptr);
+
+  CloseHandle(hFile);
+}
+
+static void print_stack() {
+  constexpr size_t kMaxDepth = 100;
+  console_println("\n!! STACK TRACE !!\nNote: Only includes up to depth %llu",
+                  kMaxDepth);
+
+  void *stack[kMaxDepth];
+  USHORT frames = CaptureStackBackTrace(2, kMaxDepth, stack, NULL);
+
+  HANDLE process = GetCurrentProcess();
+  SymInitialize(process, NULL, TRUE);
+  SymSetOptions(SYMOPT_LOAD_LINES | SYMOPT_UNDNAME);
+
+  SYMBOL_INFO *symbol = (SYMBOL_INFO *)calloc(sizeof(SYMBOL_INFO) + 256, 1);
+  symbol->MaxNameLen = 255;
+  symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
+
+  IMAGEHLP_LINE64 line = {};
+  line.SizeOfStruct = sizeof(IMAGEHLP_LINE64);
+  DWORD displacement = 0;
+
+  for (USHORT i = 0; i < frames; ++i) {
+    DWORD64 address = (DWORD64)(stack[i]);
+
+    if (SymFromAddr(process, address, 0, symbol)) {
+      if (SymGetLineFromAddr64(process, address, &displacement, &line)) {
+        console_println("%s (%s:%lu)", symbol->Name, line.FileName,
+                        line.LineNumber);
+      } else {
+        console_println("%s (no line info)", symbol->Name);
+      }
+    } else {
+      console_println("Unknown symbol at address 0x%llx", address);
+    }
+  }
+
+  console_line();
+
+  free(symbol);
+}
+
+static void error_popup() {
+  int wcLen = MultiByteToWideChar(CP_UTF8, 0, s_lastError, -1, NULL, 0);
+  wchar_t *wcErr = (wchar_t *)malloc(sizeof(wchar_t) * wcLen);
+  MultiByteToWideChar(CP_UTF8, 0, s_lastError, -1, wcErr, wcLen);
+  MessageBoxExW(NULL, wcErr, L"Error", MB_OK | MB_ICONERROR, 0);
+
+  free(wcErr);
+}
 
 static void set_error_va(const char *format, va_list args) {
   free_error();
@@ -30,17 +98,6 @@ static void set_error_va(const char *format, va_list args) {
     }
     va_end(args_vsnprintf);
   }
-}
-
-void set_error() { free_error(); }
-
-void set_error(const char *format, ...) {
-  va_list args;
-  va_start(args, format);
-
-  set_error_va(format, args);
-
-  va_end(args);
 }
 
 static char *add_windows_message_to_format(const char *format, DWORD error) {
@@ -77,9 +134,24 @@ static char *add_windows_message_to_format(const char *format, DWORD error) {
   return finalFormat;
 }
 
-void set_windows_error() { set_windows_error("Unknown"); }
+void crash(const char *format, ...) {
+  va_list args;
+  va_start(args, format);
 
-void set_windows_error(const char *format, ...) {
+  set_error_va(format, args);
+
+  va_end(args);
+
+  write_minidump();
+  print_stack();
+  error_popup();
+  system("pause");
+  exit(1);
+}
+
+void crash() { crash("Unknown"); }
+
+void crash_windows(const char *format, ...) {
   va_list args;
   va_start(args, format);
 
@@ -88,17 +160,31 @@ void set_windows_error(const char *format, ...) {
   free(finalFormat);
 
   va_end(args);
+
+  write_minidump();
+  print_stack();
+  error_popup();
+  system("pause");
+  exit(1);
 }
 
-void set_windows_error(HRESULT result) {
+void crash_windows() { crash_windows("Unknown"); }
+
+void crash_windows(HRESULT result) {
   DWORD error = HRESULT_CODE(result);
 
   char *finalFormat = add_windows_message_to_format("Unknown Error", error);
-  set_error(finalFormat);
+  crash(finalFormat);
   free(finalFormat);
+
+  write_minidump();
+  print_stack();
+  error_popup();
+  system("pause");
+  exit(1);
 }
 
-void set_windows_error(HRESULT result, const char *format, ...) {
+void crash_windows(HRESULT result, const char *format, ...) {
   DWORD error = HRESULT_CODE(result);
 
   va_list args;
@@ -109,71 +195,15 @@ void set_windows_error(HRESULT result, const char *format, ...) {
   free(finalFormat);
 
   va_end(args);
-}
 
-const char *get_error() { return s_lastError; }
+  write_minidump();
+  print_stack();
+  error_popup();
+  system("pause");
+  exit(1);
+}
 
 void free_error() {
   free(s_lastError);
   s_lastError = nullptr;
-}
-
-static void write_minidump() {
-  console_log("Writing minidump...");
-  HANDLE hFile = CreateFile(L"crash.dmp", GENERIC_WRITE, 0, nullptr,
-                            CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
-  if (hFile == INVALID_HANDLE_VALUE) {
-    console_log_error("Failed to write minidump");
-    return;
-  }
-
-  MiniDumpWriteDump(GetCurrentProcess(), GetCurrentProcessId(), hFile,
-                    (MINIDUMP_TYPE)(MiniDumpWithDataSegs |
-                                    MiniDumpWithIndirectlyReferencedMemory |
-                                    MiniDumpScanMemory),
-                    nullptr, nullptr, nullptr);
-
-  CloseHandle(hFile);
-}
-
-void print_stack() {
-  write_minidump();
-
-  constexpr size_t kMaxDepth = 100;
-  console_println("\n!! STACK TRACE !!\nNote: Only includes up to depth %llu",
-                  kMaxDepth);
-
-  void *stack[kMaxDepth];
-  USHORT frames = CaptureStackBackTrace(1, kMaxDepth, stack, NULL);
-
-  HANDLE process = GetCurrentProcess();
-  SymInitialize(process, NULL, TRUE);
-  SymSetOptions(SYMOPT_LOAD_LINES | SYMOPT_UNDNAME);
-
-  SYMBOL_INFO *symbol = (SYMBOL_INFO *)calloc(sizeof(SYMBOL_INFO) + 256, 1);
-  symbol->MaxNameLen = 255;
-  symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
-
-  IMAGEHLP_LINE64 line = {};
-  line.SizeOfStruct = sizeof(IMAGEHLP_LINE64);
-  DWORD displacement = 0;
-
-  for (USHORT i = 0; i < frames; ++i) {
-    DWORD64 address = (DWORD64)(stack[i]);
-
-    if (SymFromAddr(process, address, 0, symbol)) {
-      if (SymGetLineFromAddr64(process, address, &displacement, &line)) {
-        console_println("%s (%s:%lu)", symbol->Name, line.FileName,
-                        line.LineNumber);
-      } else {
-        console_println("%s (no line info)", symbol->Name);
-      }
-    } else {
-      console_println("Unknown symbol at address 0x%llx", address);
-    }
-  }
-
-  console_line();
-
-  free(symbol);
 }

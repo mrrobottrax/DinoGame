@@ -145,6 +145,7 @@
     <ClInclude Include="include\hash.h" />
     <ClInclude Include="include\platform.h" />
     <ClInclude Include="src\console_private.h" />
+    <ClInclude Include="src\error_private.h" />
     <ClInclude Include="src\memory.h" />
     <ClInclude Include="include\tier0.h" />
     <ClInclude Include="include\ucrt.h" />

@@ -10,10 +10,10 @@ static CRITICAL_SECTION s_logLock;
 static char *s_fileBuffer;
 static size_t s_fileBufferLen = 1024;
 
-error_t console_create() {
+void console_create() {
   // create console
   if (!AllocConsole()) {
-    THROW_WIN("AllocConsole failed");
+    CRASH_WIN("AllocConsole failed");
   }
 
   FILE *stream;
@@ -28,17 +28,15 @@ error_t console_create() {
       L"log.txt", GENERIC_WRITE, FILE_SHARE_READ, nullptr, CREATE_ALWAYS,
       FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, nullptr);
   if (s_hLogFile == INVALID_HANDLE_VALUE) {
-    THROW_WIN("Failed to create log file");
+    CRASH_WIN("Failed to create log file");
   }
 
   InitializeCriticalSection(&s_logLock);
 
   s_fileBuffer = (char *)malloc(s_fileBufferLen);
   if (s_fileBuffer == nullptr) {
-    THROW("Failed to allocate file buffer");
+    CRASH("Failed to allocate file buffer");
   }
-
-  return T0_SUCCESS;
 }
 
 void console_free_filebuffer() {
@@ -46,7 +44,7 @@ void console_free_filebuffer() {
   s_fileBuffer = nullptr;
 }
 
-error_t console_free() {
+void console_free() {
   EnterCriticalSection(&s_logLock);
   CloseHandle(s_hLogFile);
   LeaveCriticalSection(&s_logLock);
@@ -54,7 +52,6 @@ error_t console_free() {
   console_free_filebuffer();
 
   FreeConsole();
-  return T0_SUCCESS;
 }
 
 void console_line() { console_print("\n"); }

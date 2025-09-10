@@ -39,7 +39,7 @@ static LRESULT CALLBACK window_proc(HWND hWnd, UINT uMsg, WPARAM wParam,
   return 0;
 }
 
-error_t WindowSystem::init(const char *name, int width, int height) {
+void WindowSystem::init(const char *name, int width, int height) {
   // create window class
   if (s_wndClass.hInstance == nullptr) {
     WNDCLASS wc = {};
@@ -70,7 +70,7 @@ error_t WindowSystem::init(const char *name, int width, int height) {
 
   RECT rect = {0, 0, (int)width, (int)height};
   if (!AdjustWindowRectEx(&rect, style, FALSE, exStyle)) {
-    THROW_WIN("Failed to adjust rect");
+    CRASH_WIN("Failed to adjust rect");
   }
 
   int w = min(rect.right - rect.left, maxWidth);
@@ -90,7 +90,7 @@ error_t WindowSystem::init(const char *name, int width, int height) {
   free(wcName);
 
   if (m_hWnd == NULL) {
-    THROW_WIN("Failed to create window");
+    CRASH_WIN("Failed to create window");
   }
 
   DwmSetWindowAttribute(m_hWnd, DWMWA_CAPTION_COLOR, &kBgColor,
@@ -98,8 +98,6 @@ error_t WindowSystem::init(const char *name, int width, int height) {
   DWM_WINDOW_CORNER_PREFERENCE preference = DWMWCP_DONOTROUND;
   DwmSetWindowAttribute(m_hWnd, DWMWA_WINDOW_CORNER_PREFERENCE, &preference,
                         sizeof(preference));
-
-  return SUCCESS;
 }
 
-error_t WindowSystem::stop() { return T0_SUCCESS; }
+void WindowSystem::stop() {}

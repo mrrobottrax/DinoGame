@@ -45,6 +45,9 @@
     <ClInclude Include="include\base.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\error_private.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\pch.cpp">
