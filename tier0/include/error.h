@@ -40,6 +40,8 @@ enum {
                   "\r\nLine: " STRINGIZE(__LINE__) "\r\n" __VA_ARGS__);        \
   }
 
+#ifndef NO_ASSERTS
+
 #define ASSERT_WIN(result, ...)                                                \
   {                                                                            \
     if (SUCCEEDED(result)) {                                                   \
@@ -48,7 +50,7 @@ enum {
         __debugbreak();                                                        \
       }                                                                        \
       crash_windows(result,                                                    \
-                    "Assertion Failed\r\nFile: " __FILE__                      \
+                    "Windows Assertion Failed\r\nFile: " __FILE__              \
                     "\r\nLine: " STRINGIZE(__LINE__) "\r\n" __VA_ARGS__);      \
     }                                                                          \
   }
@@ -60,17 +62,21 @@ enum {
       if (IsDebuggerPresent()) {                                               \
         __debugbreak();                                                        \
       }                                                                        \
-      crash("Assertion Failed\r\nFile: " __FILE__                              \
+      crash("Assertion Failed: " #expression "\r\nFile: " __FILE__             \
             "\r\nLine: " STRINGIZE(__LINE__) "\r\n" __VA_ARGS__);              \
     }                                                                          \
   }
 
-#ifndef NO_ASSERTS
-
+#ifndef NO_SLOW_ASSERTS
 #define ASSERT_SLOW(...) ASSERT(__VA_ARGS__)
+#else
+#define ASSERT_SLOW(...)
+#endif
 
 #else
 
-#define ASSERT_SLOW(expression, ...)
+#define ASSERT_WIN(...)
+#define ASSERT(...)
+#define ASSERT_SLOW(...)
 
 #endif
