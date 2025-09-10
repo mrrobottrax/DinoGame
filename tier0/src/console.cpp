@@ -78,7 +78,7 @@ void console_print_va(const char format[], va_list args) {
       if (s_fileBuffer == nullptr) {
         printf("[CRASH] Failed to allocate memory");
         LeaveCriticalSection(&s_logLock);
-        exit(T0_OUT_OF_MEMORY);
+        CRASH_IMMEDIATE();
       }
     }
 
@@ -93,7 +93,7 @@ void console_print_va(const char format[], va_list args) {
     if (!WriteFile(s_hLogFile, s_fileBuffer, (DWORD)lenRequired, NULL, NULL)) {
       printf("[CRASH] Failed to write to log!!");
       LeaveCriticalSection(&s_logLock);
-      exit(T0_OUT_OF_MEMORY);
+      CRASH_IMMEDIATE();
     }
     LeaveCriticalSection(&s_logLock);
   }
@@ -123,6 +123,7 @@ void console_println_va(const char format[], va_list args) {
 }
 
 void console_log(const char format[], ...) {
+  EnterCriticalSection(&s_logLock);
   console_print("[LOG] ");
 
   va_list args;
@@ -131,9 +132,11 @@ void console_log(const char format[], ...) {
   va_end(args);
 
   console_print("\n");
+  LeaveCriticalSection(&s_logLock);
 }
 
 void console_log_warn(const char format[], ...) {
+  EnterCriticalSection(&s_logLock);
   console_print("[WARNING] ");
 
   va_list args;
@@ -142,9 +145,11 @@ void console_log_warn(const char format[], ...) {
   va_end(args);
 
   console_print("\n");
+  LeaveCriticalSection(&s_logLock);
 }
 
 void console_log_error(const char format[], ...) {
+  EnterCriticalSection(&s_logLock);
   console_print("[ERROR] ");
 
   va_list args;
@@ -153,4 +158,5 @@ void console_log_error(const char format[], ...) {
   va_end(args);
 
   console_print("\n");
+  LeaveCriticalSection(&s_logLock);
 }

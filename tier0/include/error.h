@@ -31,6 +31,14 @@ enum {
           "\r\nLine: " STRINGIZE(__LINE__) "\r\n" __VA_ARGS__);                \
   }
 
+#define CRASH_IMMEDIATE()                                                      \
+  {                                                                            \
+    if (IsDebuggerPresent()) {                                                 \
+      __debugbreak();                                                          \
+    }                                                                          \
+    TerminateProcess(GetCurrentProcess(), 1);                                  \
+  }
+
 #define CRASH_WIN(...)                                                         \
   {                                                                            \
     if (IsDebuggerPresent()) {                                                 \

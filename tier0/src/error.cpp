@@ -5,6 +5,7 @@
 #include "error_private.h"
 
 __declspec(thread) static char *s_lastError = nullptr;
+static CRITICAL_SECTION s_crashLock;
 
 static void write_minidump() {
   console_log("Writing minidump...");
@@ -29,8 +30,16 @@ static void print_stack() {
   console_println("\n!! STACK TRACE !!\nNote: Only includes up to depth %llu",
                   kMaxDepth);
 
+  console_println("Thread ID: %u", GetCurrentThreadId());
+
+  PWSTR threadDesc = nullptr;
+  if (SUCCEEDED(GetThreadDescription(GetCurrentThread(), &threadDesc)) &&
+      threadDesc && threadDesc[0] != L'\0') {
+    console_println("Thread Description: %ls", threadDesc);
+  }
+
   void *stack[kMaxDepth];
-  USHORT frames = CaptureStackBackTrace(2, kMaxDepth, stack, NULL);
+  USHORT frames = CaptureStackBackTrace(0, kMaxDepth, stack, NULL);
 
   HANDLE process = GetCurrentProcess();
   SymInitialize(process, NULL, TRUE);
@@ -81,6 +90,7 @@ static void set_error_va(const char *format, va_list args) {
   size_t required = _vscprintf(format, args_required);
   va_end(args_required);
 
+  console_line();
   console_println("!! CRASH !!");
 
   s_lastError = (char *)malloc(required + 1);
@@ -134,7 +144,58 @@ static char *add_windows_message_to_format(const char *format, DWORD error) {
   return finalFormat;
 }
 
+void error_handling_init() {
+  InitializeCriticalSection(&s_crashLock);
+  SetThreadDescription(GetCurrentThread(), L"Main Thread");
+}
+
+static void suspend_all_threads_except_self() {
+  DWORD currentThreadId = GetCurrentThreadId();
+  DWORD currentProcessId = GetCurrentProcessId();
+
+  HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0);
+  if (snapshot == INVALID_HANDLE_VALUE)
+    return;
+
+  THREADENTRY32 te;
+  te.dwSize = sizeof(te);
+
+  if (Thread32First(snapshot, &te)) {
+    do {
+      if (te.th32OwnerProcessID == currentProcessId &&
+          te.th32ThreadID != currentThreadId) {
+        HANDLE hThread =
+            OpenThread(THREAD_SUSPEND_RESUME, FALSE, te.th32ThreadID);
+        if (hThread) {
+          SuspendThread(hThread);
+          CloseHandle(hThread);
+        }
+      }
+    } while (Thread32Next(snapshot, &te));
+  }
+
+  CloseHandle(snapshot);
+}
+
+static void crash_start() {
+  EnterCriticalSection(&s_crashLock);
+
+  suspend_all_threads_except_self();
+  write_minidump();
+}
+
+static void crash_end() {
+  print_stack();
+  error_popup();
+  system("pause");
+  TerminateProcess(GetCurrentProcess(), 10);
+
+  // Never executes, kept for symmetry :)
+  LeaveCriticalSection(&s_crashLock);
+}
+
 void crash(const char *format, ...) {
+  crash_start();
   va_list args;
   va_start(args, format);
 
@@ -142,16 +203,13 @@ void crash(const char *format, ...) {
 
   va_end(args);
 
-  write_minidump();
-  print_stack();
-  error_popup();
-  system("pause");
-  exit(1);
+  crash_end();
 }
 
 void crash() { crash("Unknown"); }
 
 void crash_windows(const char *format, ...) {
+  crash_start();
   va_list args;
   va_start(args, format);
 
@@ -161,30 +219,24 @@ void crash_windows(const char *format, ...) {
 
   va_end(args);
 
-  write_minidump();
-  print_stack();
-  error_popup();
-  system("pause");
-  exit(1);
+  crash_end();
 }
 
 void crash_windows() { crash_windows("Unknown"); }
 
 void crash_windows(HRESULT result) {
+  crash_start();
   DWORD error = HRESULT_CODE(result);
 
   char *finalFormat = add_windows_message_to_format("Unknown Error", error);
   crash(finalFormat);
   free(finalFormat);
 
-  write_minidump();
-  print_stack();
-  error_popup();
-  system("pause");
-  exit(1);
+  crash_end();
 }
 
 void crash_windows(HRESULT result, const char *format, ...) {
+  crash_start();
   DWORD error = HRESULT_CODE(result);
 
   va_list args;
@@ -196,11 +248,7 @@ void crash_windows(HRESULT result, const char *format, ...) {
 
   va_end(args);
 
-  write_minidump();
-  print_stack();
-  error_popup();
-  system("pause");
-  exit(1);
+  crash_end();
 }
 
 void free_error() {

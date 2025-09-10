@@ -10,6 +10,8 @@
 void t0_init() {
   setlocale(LC_ALL, ".UTF8");
 
+  error_handling_init();
+
   console_create();
   memory_start_debug();
 }
