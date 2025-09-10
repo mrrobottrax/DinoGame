@@ -1,8 +1,7 @@
 #pragma once
 
-#include <Windows.h>
-#include <dwmapi.h>
-
+#include "base.h"
+#include "platform.h"
 #include "ucrt.h"
 
 #include "error.h"

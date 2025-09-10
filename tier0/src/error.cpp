@@ -6,16 +6,20 @@
 __declspec(thread) static char *s_lastError = nullptr;
 
 static void set_error_va(const char *format, va_list args) {
+  free_error();
+
   va_list args_required;
   va_copy(args_required, args);
   size_t required = _vscprintf(format, args_required);
   va_end(args_required);
 
+  console_println("!! CRASH !!");
+
   s_lastError = (char *)malloc(required + 1);
   if (s_lastError) {
     va_list args_log;
     va_copy(args_log, args);
-    console_log_error_va(format, args_log);
+    console_println_va(format, args_log);
     va_end(args_log);
 
     va_list args_vsnprintf;
@@ -28,9 +32,9 @@ static void set_error_va(const char *format, va_list args) {
   }
 }
 
-void set_error(const char *format, ...) {
-  free_error();
+void set_error() { free_error(); }
 
+void set_error(const char *format, ...) {
   va_list args;
   va_start(args, format);
 
@@ -39,20 +43,18 @@ void set_error(const char *format, ...) {
   va_end(args);
 }
 
-void set_windows_error(const char *format, ...) {
-  DWORD err = GetLastError();
-
+static char *add_windows_message_to_format(const char *format, DWORD error) {
   LPWSTR wideErr = nullptr;
   DWORD wideErrLen = FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM |
                                         FORMAT_MESSAGE_IGNORE_INSERTS |
                                         FORMAT_MESSAGE_ALLOCATE_BUFFER,
-                                    NULL, err, 0, (LPWSTR)&wideErr, 0, NULL);
+                                    NULL, error, 0, (LPWSTR)&wideErr, 0, NULL);
 
   char *mbErr = nullptr;
   size_t mbErrLen = 0;
   if (wideErr != nullptr) {
-    mbErrLen = WideCharToMultiByte(CP_UTF8, 0, wideErr, wideErrLen + 1,
-                                   NULL, 0, NULL, NULL);
+    mbErrLen = WideCharToMultiByte(CP_UTF8, 0, wideErr, wideErrLen + 1, NULL, 0,
+                                   NULL, NULL);
 
     mbErr = (char *)malloc(mbErrLen);
     WideCharToMultiByte(CP_UTF8, 0, wideErr, wideErrLen + 1, mbErr,
@@ -72,10 +74,39 @@ void set_windows_error(const char *format, ...) {
   strncpy_s(finalFormat + len, affixLen + mbErrLen + 1, affix, affixLen);
   strncpy_s(finalFormat + len + affixLen, mbErrLen + 1, mbErr, mbErrLen);
 
+  return finalFormat;
+}
+
+void set_windows_error() { set_windows_error("Unknown"); }
+
+void set_windows_error(const char *format, ...) {
   va_list args;
   va_start(args, format);
 
+  char *finalFormat = add_windows_message_to_format(format, GetLastError());
   set_error_va(finalFormat, args);
+  free(finalFormat);
+
+  va_end(args);
+}
+
+void set_windows_error(HRESULT result) {
+  DWORD error = HRESULT_CODE(result);
+
+  char *finalFormat = add_windows_message_to_format("Unknown Error", error);
+  set_error(finalFormat);
+  free(finalFormat);
+}
+
+void set_windows_error(HRESULT result, const char *format, ...) {
+  DWORD error = HRESULT_CODE(result);
+
+  va_list args;
+  va_start(args, format);
+
+  char *finalFormat = add_windows_message_to_format(format, error);
+  set_error_va(finalFormat, args);
+  free(finalFormat);
 
   va_end(args);
 }
@@ -85,4 +116,64 @@ const char *get_error() { return s_lastError; }
 void free_error() {
   free(s_lastError);
   s_lastError = nullptr;
+}
+
+static void write_minidump() {
+  console_log("Writing minidump...");
+  HANDLE hFile = CreateFile(L"crash.dmp", GENERIC_WRITE, 0, nullptr,
+                            CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
+  if (hFile == INVALID_HANDLE_VALUE) {
+    console_log_error("Failed to write minidump");
+    return;
+  }
+
+  MiniDumpWriteDump(GetCurrentProcess(), GetCurrentProcessId(), hFile,
+                    (MINIDUMP_TYPE)(MiniDumpWithDataSegs |
+                                    MiniDumpWithIndirectlyReferencedMemory |
+                                    MiniDumpScanMemory),
+                    nullptr, nullptr, nullptr);
+
+  CloseHandle(hFile);
+}
+
+void print_stack() {
+  write_minidump();
+
+  constexpr size_t kMaxDepth = 100;
+  console_println("\n!! STACK TRACE !!\nNote: Only includes up to depth %llu",
+                  kMaxDepth);
+
+  void *stack[kMaxDepth];
+  USHORT frames = CaptureStackBackTrace(1, kMaxDepth, stack, NULL);
+
+  HANDLE process = GetCurrentProcess();
+  SymInitialize(process, NULL, TRUE);
+  SymSetOptions(SYMOPT_LOAD_LINES | SYMOPT_UNDNAME);
+
+  SYMBOL_INFO *symbol = (SYMBOL_INFO *)calloc(sizeof(SYMBOL_INFO) + 256, 1);
+  symbol->MaxNameLen = 255;
+  symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
+
+  IMAGEHLP_LINE64 line = {};
+  line.SizeOfStruct = sizeof(IMAGEHLP_LINE64);
+  DWORD displacement = 0;
+
+  for (USHORT i = 0; i < frames; ++i) {
+    DWORD64 address = (DWORD64)(stack[i]);
+
+    if (SymFromAddr(process, address, 0, symbol)) {
+      if (SymGetLineFromAddr64(process, address, &displacement, &line)) {
+        console_println("%s (%s:%lu)", symbol->Name, line.FileName,
+                        line.LineNumber);
+      } else {
+        console_println("%s (no line info)", symbol->Name);
+      }
+    } else {
+      console_println("Unknown symbol at address 0x%llx", address);
+    }
+  }
+
+  console_line();
+
+  free(symbol);
 }

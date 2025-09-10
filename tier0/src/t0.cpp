@@ -8,17 +8,19 @@
 
 error_t t0_init() {
   setlocale(LC_ALL, ".UTF8");
+
+  CHECK(console_create());
   memory_start_debug();
-  if (error_t error = console_create() != T0_SUCCESS) {
-    return error;
-  }
 
   return SUCCESS;
 }
 
 error_t t0_stop() {
+  free_error();
+
+  console_free_filebuffer();
   memory_check_leaks();
-  console_free();
+  CHECK(console_free());
 
   return SUCCESS;
 }

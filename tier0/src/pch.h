@@ -1,5 +1,5 @@
 #pragma once
 
+#include "base.h"
 #include "ucrt.h"
-
-#include "Windows.h"
+#include "platform.h"

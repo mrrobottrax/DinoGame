@@ -2,8 +2,8 @@
 
 #include "WindowSystem.h"
 
-constexpr wchar_t k_windowClassName[] = L"Dino Window";
-constexpr COLORREF k_bgColor = 0x00181818;
+constexpr wchar_t kWindowClassName[] = L"Dino Window";
+constexpr COLORREF kBgColor = 0x00181818;
 
 static WNDCLASS s_wndClass;
 static HCURSOR s_cursor;
@@ -45,7 +45,7 @@ error_t WindowSystem::init(const char *name, int width, int height) {
     WNDCLASS wc = {};
     wc.lpfnWndProc = window_proc;
     wc.hInstance = GetModuleHandle(NULL);
-    wc.lpszClassName = k_windowClassName;
+    wc.lpszClassName = kWindowClassName;
     // wc.hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH);
     wc.style = CS_HREDRAW | CS_VREDRAW;
     wc.hIcon = NULL;
@@ -84,7 +84,7 @@ error_t WindowSystem::init(const char *name, int width, int height) {
   wchar_t *wcName = (wchar_t *)malloc(wcLen * sizeof(wchar_t));
   MultiByteToWideChar(CP_UTF8, 0, name, -1, wcName, wcLen);
 
-  m_hWnd = CreateWindowEx(exStyle, k_windowClassName, wcName, style, x, y, w, h,
+  m_hWnd = CreateWindowEx(exStyle, kWindowClassName, wcName, style, x, y, w, h,
                           NULL, NULL, GetModuleHandle(NULL), NULL);
 
   free(wcName);
@@ -93,8 +93,8 @@ error_t WindowSystem::init(const char *name, int width, int height) {
     THROW_WIN("Failed to create window");
   }
 
-  DwmSetWindowAttribute(m_hWnd, DWMWA_CAPTION_COLOR, &k_bgColor,
-                        sizeof(k_bgColor));
+  DwmSetWindowAttribute(m_hWnd, DWMWA_CAPTION_COLOR, &kBgColor,
+                        sizeof(kBgColor));
   DWM_WINDOW_CORNER_PREFERENCE preference = DWMWCP_DONOTROUND;
   DwmSetWindowAttribute(m_hWnd, DWMWA_WINDOW_CORNER_PREFERENCE, &preference,
                         sizeof(preference));
