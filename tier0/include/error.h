@@ -88,3 +88,70 @@ enum {
 #define ASSERT_SLOW(...)
 
 #endif
+
+// Assert that a lock is really not needed.
+// This class will throw if the lock ever turns out to be needed.
+// NOTE: To be cheap, this does not use memory barriers. But this only has to
+// work once so it's fine.
+class UnnecessaryLock {
+#ifndef NO_ASSERTS
+  volatile bool m_locked;
+
+public:
+  void Acquire(const char *file, size_t line) {
+    if (!m_locked) {
+    } else {
+      if (IsDebuggerPresent()) {
+        __debugbreak();
+      }
+      crash("Unnecessary Lock was necessary.\r\nFile: %s\r\nLine: %zu", file,
+            line);
+    }
+    m_locked = true;
+  }
+
+  void Release(const char *file, size_t line) {
+    if (m_locked) {
+    } else {
+      if (IsDebuggerPresent()) {
+        __debugbreak();
+      }
+      crash("Unnecessary Lock was necessary.\r\nFile: %s\r\nLine: %zu", file,
+            line);
+    }
+    m_locked = false;
+  }
+#endif
+};
+
+class UnnecessaryLockJanitor {
+#ifndef NO_ASSERTS
+  UnnecessaryLock *m_pLock;
+  const char *m_file;
+  size_t m_line;
+
+public:
+  explicit UnnecessaryLockJanitor(UnnecessaryLock &lock, const char *file,
+                                  size_t line)
+      : m_pLock(&lock), m_file(file), m_line(line) {
+    m_pLock->Acquire(m_file, m_line);
+  }
+
+  ~UnnecessaryLockJanitor() { m_pLock->Release(m_file, m_line); }
+#endif
+};
+
+#ifndef NO_ASSERTS
+
+#define BEGIN_ASSERT_LOCK_NOT_NECESSARY(L) (L).Acquire(__FILE__, __LINE__)
+#define END_ASSERT_LOCK_NOT_NECESSARY(L) (L).Release(__FILE__, __LINE__)
+#define ASSERT_LOCK_NOT_NECESSARY(J, L)                                        \
+  UnnecessaryLockJanitor J(L, __FILE__, __LINE__)
+
+#else
+
+#define BEGIN_ASSERT_LOCK_NOT_NECESSARY(L)
+#define END_ASSERT_LOCK_NOT_NECESSARY(L)
+#define ASSERT_LOCK_NOT_NECESSARY(J, L)
+
+#endif
