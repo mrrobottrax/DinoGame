@@ -7,6 +7,11 @@
 __declspec(thread) static char *s_lastError = nullptr;
 static CRITICAL_SECTION s_crashLock;
 
+static void free_error() {
+  free(s_lastError);
+  s_lastError = nullptr;
+}
+
 static void write_minidump() {
   console_log("Writing minidump...");
   HANDLE hFile = CreateFile(L"crash.dmp", GENERIC_WRITE, 0, nullptr,
@@ -149,6 +154,11 @@ void error_handling_init() {
   SetThreadDescription(GetCurrentThread(), L"Main Thread");
 }
 
+void error_handling_stop() {
+  DeleteCriticalSection(&s_crashLock);
+  free_error();
+}
+
 static void suspend_all_threads_except_self() {
   DWORD currentThreadId = GetCurrentThreadId();
   DWORD currentProcessId = GetCurrentProcessId();
@@ -249,9 +259,4 @@ void crash_windows(HRESULT result, const char *format, ...) {
   va_end(args);
 
   crash_end();
-}
-
-void free_error() {
-  free(s_lastError);
-  s_lastError = nullptr;
 }

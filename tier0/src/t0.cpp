@@ -17,7 +17,7 @@ void t0_init() {
 }
 
 void t0_stop() {
-  free_error();
+  error_handling_stop();
 
   console_free_filebuffer();
   memory_check_leaks();
