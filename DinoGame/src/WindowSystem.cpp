@@ -2,11 +2,11 @@
 
 #include "WindowSystem.h"
 
-constexpr wchar_t kWindowClassName[] = L"Dino Window";
-constexpr COLORREF kBgColor = 0x00181818;
+constexpr wchar_t k_WindowClassName[] = L"Dino Window";
+constexpr COLORREF k_BgColor = 0x00181818;
 
-static WNDCLASS s_wndClass;
-static HCURSOR s_cursor;
+static WNDCLASS s_WndClass;
+static HCURSOR s_Cursor;
 
 static LRESULT CALLBACK window_proc(HWND hWnd, UINT uMsg, WPARAM wParam,
                                     LPARAM lParam) {
@@ -26,7 +26,7 @@ static LRESULT CALLBACK window_proc(HWND hWnd, UINT uMsg, WPARAM wParam,
 
   case WM_SETCURSOR:
     if (LOWORD(lParam) == HTCLIENT) {
-      SetCursor(s_cursor);
+      SetCursor(s_Cursor);
     } else {
       return DefWindowProc(hWnd, uMsg, wParam, lParam);
     }
@@ -39,25 +39,26 @@ static LRESULT CALLBACK window_proc(HWND hWnd, UINT uMsg, WPARAM wParam,
   return 0;
 }
 
-void WindowSystem::init(const char *name, int width, int height) {
+void WindowSystem::init(const char *name, int width, int height,
+                        bool resizeable) {
   // create window class
-  if (s_wndClass.hInstance == nullptr) {
+  if (s_WndClass.hInstance == nullptr) {
     WNDCLASS wc = {};
     wc.lpfnWndProc = window_proc;
     wc.hInstance = GetModuleHandle(NULL);
-    wc.lpszClassName = kWindowClassName;
+    wc.lpszClassName = k_WindowClassName;
     // wc.hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH);
     wc.style = CS_HREDRAW | CS_VREDRAW;
     wc.hIcon = NULL;
 
     RegisterClass(&wc);
 
-    s_wndClass = wc;
+    s_WndClass = wc;
   }
 
   // load cursor
-  if (s_cursor == NULL) {
-    s_cursor = (HCURSOR)LoadImage(NULL, IDC_ARROW, IMAGE_CURSOR, 0, 0,
+  if (s_Cursor == NULL) {
+    s_Cursor = (HCURSOR)LoadImage(NULL, IDC_ARROW, IMAGE_CURSOR, 0, 0,
                                   LR_DEFAULTSIZE | LR_SHARED);
   }
 
@@ -65,7 +66,12 @@ void WindowSystem::init(const char *name, int width, int height) {
   int maxWidth = GetSystemMetrics(SM_CXSCREEN);
   int maxHeight = GetSystemMetrics(SM_CYSCREEN);
 
-  DWORD style = WS_OVERLAPPEDWINDOW | WS_VISIBLE;
+  DWORD style = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX |
+                WS_MAXIMIZEBOX | WS_VISIBLE;
+
+  if (resizeable)
+    style |= WS_THICKFRAME;
+
   DWORD exStyle = WS_EX_NOREDIRECTIONBITMAP;
 
   RECT rect = {0, 0, (int)width, (int)height};
@@ -84,7 +90,7 @@ void WindowSystem::init(const char *name, int width, int height) {
   wchar_t *wcName = (wchar_t *)malloc(wcLen * sizeof(wchar_t));
   MultiByteToWideChar(CP_UTF8, 0, name, -1, wcName, wcLen);
 
-  m_hWnd = CreateWindowEx(exStyle, kWindowClassName, wcName, style, x, y, w, h,
+  m_hWnd = CreateWindowEx(exStyle, k_WindowClassName, wcName, style, x, y, w, h,
                           NULL, NULL, GetModuleHandle(NULL), NULL);
 
   free(wcName);
@@ -93,8 +99,8 @@ void WindowSystem::init(const char *name, int width, int height) {
     CRASH_WIN("Failed to create window");
   }
 
-  DwmSetWindowAttribute(m_hWnd, DWMWA_CAPTION_COLOR, &kBgColor,
-                        sizeof(kBgColor));
+  DwmSetWindowAttribute(m_hWnd, DWMWA_CAPTION_COLOR, &k_BgColor,
+                        sizeof(k_BgColor));
   DWM_WINDOW_CORNER_PREFERENCE preference = DWMWCP_DONOTROUND;
   DwmSetWindowAttribute(m_hWnd, DWMWA_WINDOW_CORNER_PREFERENCE, &preference,
                         sizeof(preference));

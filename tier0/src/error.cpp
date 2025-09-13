@@ -5,12 +5,12 @@
 #include "error.h"
 #include "error_private.h"
 
-__declspec(thread) static char *s_lastError = nullptr;
-static CRITICAL_SECTION s_crashLock;
+__declspec(thread) static char *s_LastError = nullptr;
+static CRITICAL_SECTION s_CrashLock;
 
 static void free_error() {
-  free(s_lastError);
-  s_lastError = nullptr;
+  free(s_LastError);
+  s_LastError = nullptr;
 }
 
 static void write_minidump() {
@@ -52,6 +52,8 @@ static void print_stack() {
   SymSetOptions(SYMOPT_LOAD_LINES | SYMOPT_UNDNAME);
 
   SYMBOL_INFO *symbol = (SYMBOL_INFO *)calloc(sizeof(SYMBOL_INFO) + 256, 1);
+  if (symbol == 0)
+    return;
   symbol->MaxNameLen = 255;
   symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
 
@@ -80,9 +82,9 @@ static void print_stack() {
 }
 
 static void error_popup() {
-  int wcLen = MultiByteToWideChar(CP_UTF8, 0, s_lastError, -1, NULL, 0);
+  int wcLen = MultiByteToWideChar(CP_UTF8, 0, s_LastError, -1, NULL, 0);
   wchar_t *wcErr = (wchar_t *)malloc(sizeof(wchar_t) * wcLen);
-  MultiByteToWideChar(CP_UTF8, 0, s_lastError, -1, wcErr, wcLen);
+  MultiByteToWideChar(CP_UTF8, 0, s_LastError, -1, wcErr, wcLen);
   MessageBoxExW(NULL, wcErr, L"Error", MB_OK | MB_ICONERROR, 0);
 
   free(wcErr);
@@ -99,8 +101,11 @@ static void set_error_va(const char *format, va_list args) {
   console_line();
   console_println("!! CRASH !!");
 
-  s_lastError = (char *)malloc(required + 1);
-  if (s_lastError) {
+  if (!format)
+    return;
+
+  s_LastError = (char *)malloc(required + 1);
+  if (s_LastError) {
     va_list args_log;
     va_copy(args_log, args);
     console_println_va(format, args_log);
@@ -108,7 +113,7 @@ static void set_error_va(const char *format, va_list args) {
 
     va_list args_vsnprintf;
     va_copy(args_vsnprintf, args);
-    if (vsnprintf_s(s_lastError, required + 1, _TRUNCATE, format,
+    if (vsnprintf_s(s_LastError, required + 1, _TRUNCATE, format,
                     args_vsnprintf) < 0) {
       console_log_error("Formatting failure");
     }
@@ -143,6 +148,11 @@ static char *add_windows_message_to_format(const char *format, DWORD error) {
 
   size_t len = strnlen_s(format, 4096);
   char *finalFormat = (char *)malloc(len + affixLen + mbErrLen + 1);
+
+  if (mbErr == 0 || finalFormat == 0) {
+    return nullptr;
+  }
+
   strncpy_s(finalFormat, len + affixLen + mbErrLen + 1, format, len);
   strncpy_s(finalFormat + len, affixLen + mbErrLen + 1, affix, affixLen);
   strncpy_s(finalFormat + len + affixLen, mbErrLen + 1, mbErr, mbErrLen);
@@ -151,12 +161,12 @@ static char *add_windows_message_to_format(const char *format, DWORD error) {
 }
 
 void error_handling_init() {
-  InitializeCriticalSection(&s_crashLock);
+  InitializeCriticalSection(&s_CrashLock);
   SetThreadDescription(GetCurrentThread(), L"Main Thread");
 }
 
 void error_handling_stop() {
-  DeleteCriticalSection(&s_crashLock);
+  DeleteCriticalSection(&s_CrashLock);
   free_error();
 }
 
@@ -189,7 +199,7 @@ static void suspend_all_threads_except_self() {
 }
 
 static void crash_start() {
-  EnterCriticalSection(&s_crashLock);
+  EnterCriticalSection(&s_CrashLock);
 
   suspend_all_threads_except_self();
   write_minidump();
@@ -201,9 +211,6 @@ static void crash_end() {
   error_popup();
   system("pause");
   ExitProcess(11);
-
-  // Never executes, kept for symmetry :)
-  LeaveCriticalSection(&s_crashLock);
 }
 
 void crash(const char *format, ...) {

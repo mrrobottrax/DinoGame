@@ -8,13 +8,11 @@ int wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
              _In_ LPWSTR lpCmdLine, _In_ int nShowCmd) {
 
   t0_init();
-  g_pEngine = new Engine();
 
-  g_pEngine->init();
-  g_pEngine->loop();
-  g_pEngine->stop();
+  g_Engine.init();
+  g_Engine.loop();
+  g_Engine.stop();
 
-  delete g_pEngine;
   t0_stop();
 
   return 0;

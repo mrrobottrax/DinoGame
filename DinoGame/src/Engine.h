@@ -7,4 +7,4 @@ public:
   void stop();
 };
 
-inline Engine *g_pEngine;
+inline Engine g_Engine;
