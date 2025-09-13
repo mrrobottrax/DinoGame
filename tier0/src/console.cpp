@@ -7,8 +7,8 @@
 static HANDLE s_hLogFile;
 static CRITICAL_SECTION s_logLock;
 
-static char *s_fileBuffer;
-static size_t s_fileBufferLen = 1024;
+static char *s_logFilePrintfBuffer;
+static size_t s_s_logFilePrintfBufferLen = 1024;
 
 void console_create() {
   // create console
@@ -33,19 +33,20 @@ void console_create() {
 
   InitializeCriticalSection(&s_logLock);
 
-  s_fileBuffer = (char *)malloc(s_fileBufferLen);
-  if (s_fileBuffer == nullptr) {
+  s_logFilePrintfBuffer = (char *)malloc(s_s_logFilePrintfBufferLen);
+  if (s_logFilePrintfBuffer == nullptr) {
     CRASH("Failed to allocate file buffer");
   }
 }
 
 void console_free_filebuffer() {
-  free(s_fileBuffer);
-  s_fileBuffer = nullptr;
+  free(s_logFilePrintfBuffer);
+  s_logFilePrintfBuffer = nullptr;
 }
 
 void console_free() {
   EnterCriticalSection(&s_logLock);
+  FlushFileBuffers(s_hLogFile);
   CloseHandle(s_hLogFile);
   LeaveCriticalSection(&s_logLock);
 
@@ -63,37 +64,40 @@ void console_print_va(const char format[], va_list args) {
 
   vprintf(format, args);
 
-  if (s_hLogFile != NULL && s_fileBuffer) {
+  if (s_hLogFile != NULL && s_logFilePrintfBuffer) {
     size_t lenRequired = _vscprintf(format, args2);
 
     EnterCriticalSection(&s_logLock);
-    if (s_fileBufferLen <= lenRequired + 1) {
-      while (s_fileBufferLen <= lenRequired + 1) {
-        s_fileBufferLen *= 2;
+    if (s_s_logFilePrintfBufferLen <= lenRequired + 1) {
+      while (s_s_logFilePrintfBufferLen <= lenRequired + 1) {
+        s_s_logFilePrintfBufferLen *= 2;
       }
 
-      free(s_fileBuffer);
-      s_fileBuffer = (char *)malloc(s_fileBufferLen);
+      free(s_logFilePrintfBuffer);
+      s_logFilePrintfBuffer = (char *)malloc(s_s_logFilePrintfBufferLen);
 
-      if (s_fileBuffer == nullptr) {
-        printf("[CRASH] Failed to allocate memory");
+      if (s_logFilePrintfBuffer == nullptr) {
+        printf("[CRASH] Failed to allocate memory!");
         LeaveCriticalSection(&s_logLock);
         CRASH_IMMEDIATE();
+        return;
       }
     }
 
-    lenRequired = vsnprintf_s(s_fileBuffer, s_fileBufferLen,
-                              s_fileBufferLen - 1, format, args3);
+    lenRequired = vsnprintf_s(s_logFilePrintfBuffer, s_s_logFilePrintfBufferLen,
+                              s_s_logFilePrintfBufferLen - 1, format, args3);
 
     if (lenRequired > MAXDWORD) {
       console_log("String too long");
       lenRequired = MAXDWORD;
     }
 
-    if (!WriteFile(s_hLogFile, s_fileBuffer, (DWORD)lenRequired, NULL, NULL)) {
-      printf("[CRASH] Failed to write to log!!");
+    if (!WriteFile(s_hLogFile, s_logFilePrintfBuffer, (DWORD)lenRequired, NULL,
+                   NULL)) {
+      printf("[CRASH] Failed to write to log!");
       LeaveCriticalSection(&s_logLock);
       CRASH_IMMEDIATE();
+      return;
     }
     LeaveCriticalSection(&s_logLock);
   }

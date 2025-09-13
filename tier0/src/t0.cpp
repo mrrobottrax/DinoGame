@@ -19,7 +19,8 @@ void t0_init() {
 void t0_stop() {
   error_handling_stop();
 
-  console_free_filebuffer();
+  console_free_filebuffer(); // Seperate so that memory leak checking doesn't
+                             // freak out
   memory_check_leaks();
   console_free();
 }

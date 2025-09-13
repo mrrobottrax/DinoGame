@@ -7,14 +7,6 @@ void crash_windows(const char *format, ...);
 void crash_windows(HRESULT result);
 void crash_windows(HRESULT result, const char *format, ...);
 
-enum {
-  T0_SUCCESS = 0,
-  SUCCESS = 0,
-  T0_ERROR,
-  T0_ERROR_WINDOWS,
-  T0_OUT_OF_MEMORY,
-};
-
 // No runtime impact so static asserts are always active
 #define _ASSERT_GLUE(a, b) a##b
 #define ASSERT_GLUE(a, b) _ASSERT_GLUE(a, b)

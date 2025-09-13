@@ -1,6 +1,7 @@
 #include "pch.h"
 
 #include "console.h"
+#include "console_private.h"
 #include "error.h"
 #include "error_private.h"
 
@@ -196,9 +197,10 @@ static void crash_start() {
 
 static void crash_end() {
   print_stack();
+  console_free();
   error_popup();
   system("pause");
-  TerminateProcess(GetCurrentProcess(), 10);
+  ExitProcess(11);
 
   // Never executes, kept for symmetry :)
   LeaveCriticalSection(&s_crashLock);

@@ -17,6 +17,6 @@ int wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
   delete g_pEngine;
   t0_stop();
 
-  return SUCCESS;
+  return 0;
 }
 #pragma warning(pop)
