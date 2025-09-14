@@ -216,7 +216,7 @@ void crash_windows(const char *format, ...) {
 
 void crash_windows() { crash_windows("Unknown"); }
 
-void crash_windows(HRESULT result) {
+void crash_windows_hresult(HRESULT result) {
   crash_start();
   DWORD error = HRESULT_CODE(result);
 
@@ -227,7 +227,7 @@ void crash_windows(HRESULT result) {
   crash_end();
 }
 
-void crash_windows(HRESULT result, const char *format, ...) {
+void crash_windows_hresult(HRESULT result, const char *format, ...) {
   crash_start();
   DWORD error = HRESULT_CODE(result);
 

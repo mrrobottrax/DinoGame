@@ -9,4 +9,4 @@ public:
   void stop();
 };
 
-inline WindowSystem g_WindowSystem;
+inline WindowSystem g_WindowSystem{};

@@ -121,6 +121,25 @@ void RenderingSystem::init() {
 
   ASSERT_WIN_ALWAYS(pDxgiFactory->MakeWindowAssociation(g_WindowSystem.hWnd,
                                                         DXGI_MWA_NO_ALT_ENTER));
+
+  // create frame data
+  for (size_t i = 0; i < k_FramesInFlight; ++i) {
+    FrameData &fd = m_FrameData[i];
+    ASSERT_WIN_ALWAYS(m_pDevice->CreateCommandAllocator(
+        D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&fd.commandAllocator)));
+
+    ASSERT_WIN_ALWAYS(m_pDevice->CreateCommandList1(
+        0, D3D12_COMMAND_LIST_TYPE_DIRECT, D3D12_COMMAND_LIST_FLAG_NONE,
+        IID_PPV_ARGS(&fd.commandList)));
+
+    ASSERT_WIN_ALWAYS(m_pDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE,
+                                             IID_PPV_ARGS(&fd.fence)));
+
+    fd.fenceEvent = CreateEventEx(NULL, NULL, 0, EVENT_ALL_ACCESS);
+    ASSERT_ALWAYS(fd.fenceEvent != NULL);
+
+    fd.fenceValue = 0;
+  }
 }
 
 void RenderingSystem::stop() {
@@ -137,6 +156,15 @@ void RenderingSystem::stop() {
     fence->SetEventOnCompletion(1, hEvent);
 
     WaitForSingleObject(hEvent, INFINITE);
+  }
+
+  // destroy frame data
+  for (size_t i = 0; i < k_FramesInFlight; ++i) {
+    FrameData &fd = m_FrameData[i];
+    CloseHandle(fd.fenceEvent);
+    fd.fence.Reset();
+    fd.commandList.Reset();
+    fd.commandAllocator.Reset();
   }
 
   m_pSwapChain.Reset();
@@ -194,6 +222,27 @@ void RenderingSystem::create_device(IDXGIFactory6 *pDxgiFactory) {
 }
 
 void RenderingSystem::frame() {
+  UINT iFrame = m_pSwapChain->GetCurrentBackBufferIndex();
+
+  FrameData &fd = m_FrameData[iFrame];
+  if (fd.fence->GetCompletedValue() < fd.fenceValue) {
+    fd.fence->SetEventOnCompletion(fd.fenceValue, fd.fenceEvent);
+    WaitForSingleObject(fd.fenceEvent, INFINITE);
+  }
+
+  ASSERT(fd.commandAllocator);
+  ASSERT(fd.commandList);
+
+  ASSERT_WIN_ALWAYS(fd.commandAllocator->Reset());
+  ASSERT_WIN_ALWAYS(fd.commandList->Reset(fd.commandAllocator.Get(), NULL));
+
+  ASSERT_WIN_ALWAYS(fd.commandList->Close());
+  ID3D12CommandList *ppCommandLists[] = {fd.commandList.Get()};
+  m_pCommandQueue->ExecuteCommandLists(_countof(ppCommandLists),
+                                       ppCommandLists);
+  fd.fenceValue++;
+  ASSERT_WIN_ALWAYS(m_pCommandQueue->Signal(fd.fence.Get(), fd.fenceValue));
+
   DXGI_PRESENT_PARAMETERS presentParameters{
       .DirtyRectsCount = 0,
       .pDirtyRects = nullptr,

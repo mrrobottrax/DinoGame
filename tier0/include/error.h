@@ -4,8 +4,8 @@ void crash();
 void crash(const char *format, ...);
 void crash_windows();
 void crash_windows(const char *format, ...);
-void crash_windows(HRESULT result);
-void crash_windows(HRESULT result, const char *format, ...);
+void crash_windows_hresult(HRESULT result);
+void crash_windows_hresult(HRESULT result, const char *format, ...);
 
 // No runtime impact so static asserts are always active
 #define _ASSERT_GLUE(a, b) a##b
@@ -46,16 +46,18 @@ void crash_windows(HRESULT result, const char *format, ...);
 // Always asserts not stripped out in release builds. Use for critical error
 // checking.
 
-#define ASSERT_WIN_ALWAYS(result, ...)                                         \
+#define ASSERT_WIN_ALWAYS(expression, ...)                                     \
   {                                                                            \
+    HRESULT result = expression;                                               \
     if (SUCCEEDED(result)) {                                                   \
     } else {                                                                   \
       if (IsDebuggerPresent()) {                                               \
         __debugbreak();                                                        \
       }                                                                        \
-      crash_windows(#result,                                                   \
-                    " failed.\r\nFile: " __FILE__                              \
-                    "\r\nLine: " STRINGIZE(__LINE__) "\r\n" __VA_ARGS__);      \
+      crash_windows_hresult(                                                   \
+          result,                                                              \
+          #expression " failed.\r\nFile: " __FILE__                            \
+                      "\r\nLine: " STRINGIZE(__LINE__) "\r\n" __VA_ARGS__);    \
       return;                                                                  \
     }                                                                          \
   }
