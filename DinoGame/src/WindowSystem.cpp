@@ -72,7 +72,7 @@ void WindowSystem::init(const char *name, int width, int height,
   if (resizeable)
     style |= WS_THICKFRAME;
 
-  DWORD exStyle = /*WS_EX_NOREDIRECTIONBITMAP |*/ 0;
+  DWORD exStyle = WS_EX_NOREDIRECTIONBITMAP;
 
   RECT rect = {0, 0, (int)width, (int)height};
   if (!AdjustWindowRectEx(&rect, style, FALSE, exStyle)) {
