@@ -22,11 +22,15 @@ static void write_minidump() {
     return;
   }
 
-  MiniDumpWriteDump(GetCurrentProcess(), GetCurrentProcessId(), hFile,
-                    (MINIDUMP_TYPE)(MiniDumpWithDataSegs |
-                                    MiniDumpWithIndirectlyReferencedMemory |
-                                    MiniDumpScanMemory),
-                    nullptr, nullptr, nullptr);
+  if (!MiniDumpWriteDump(
+          GetCurrentProcess(), GetCurrentProcessId(), hFile,
+          (MINIDUMP_TYPE)(MiniDumpWithDataSegs |
+                          MiniDumpWithIndirectlyReferencedMemory |
+                          MiniDumpScanMemory | MiniDumpWithFullMemory |
+                          MiniDumpWithHandleData | MiniDumpWithThreadInfo),
+          nullptr, nullptr, nullptr)) {
+    console_error("Failed to write minidump 2");
+  }
 
   CloseHandle(hFile);
 }
@@ -170,46 +174,15 @@ void error_handling_stop() {
   free_error();
 }
 
-static void suspend_all_threads_except_self() {
-  DWORD currentThreadId = GetCurrentThreadId();
-  DWORD currentProcessId = GetCurrentProcessId();
-
-  HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0);
-  if (snapshot == INVALID_HANDLE_VALUE)
-    return;
-
-  THREADENTRY32 te;
-  te.dwSize = sizeof(te);
-
-  if (Thread32First(snapshot, &te)) {
-    do {
-      if (te.th32OwnerProcessID == currentProcessId &&
-          te.th32ThreadID != currentThreadId) {
-        HANDLE hThread =
-            OpenThread(THREAD_SUSPEND_RESUME, FALSE, te.th32ThreadID);
-        if (hThread) {
-          SuspendThread(hThread);
-          CloseHandle(hThread);
-        }
-      }
-    } while (Thread32Next(snapshot, &te));
-  }
-
-  CloseHandle(snapshot);
-}
-
 static void crash_start() {
   EnterCriticalSection(&s_CrashLock);
-
-  suspend_all_threads_except_self();
   write_minidump();
 }
 
 static void crash_end() {
   print_stack();
-  console_free();
   error_popup();
-  system("pause");
+  console_free();
   ExitProcess(11);
 }
 

@@ -1,8 +1,8 @@
 #pragma once
 
 class WindowSystem {
-private:
-  HWND m_hWnd;
+public:
+  HWND hWnd;
 
 public:
   void init(const char *name, int width = 1280, int height = 720, bool resizeable = false);

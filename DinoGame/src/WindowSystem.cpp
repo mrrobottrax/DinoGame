@@ -72,7 +72,7 @@ void WindowSystem::init(const char *name, int width, int height,
   if (resizeable)
     style |= WS_THICKFRAME;
 
-  DWORD exStyle = WS_EX_NOREDIRECTIONBITMAP;
+  DWORD exStyle = /*WS_EX_NOREDIRECTIONBITMAP |*/ 0;
 
   RECT rect = {0, 0, (int)width, (int)height};
   if (!AdjustWindowRectEx(&rect, style, FALSE, exStyle)) {
@@ -90,19 +90,19 @@ void WindowSystem::init(const char *name, int width, int height,
   wchar_t *wcName = (wchar_t *)malloc(wcLen * sizeof(wchar_t));
   MultiByteToWideChar(CP_UTF8, 0, name, -1, wcName, wcLen);
 
-  m_hWnd = CreateWindowEx(exStyle, k_WindowClassName, wcName, style, x, y, w, h,
-                          NULL, NULL, GetModuleHandle(NULL), NULL);
+  hWnd = CreateWindowEx(exStyle, k_WindowClassName, wcName, style, x, y, w, h,
+                        NULL, NULL, GetModuleHandle(NULL), NULL);
 
   free(wcName);
 
-  if (m_hWnd == NULL) {
+  if (hWnd == NULL) {
     CRASH_WIN("Failed to create window");
   }
 
-  DwmSetWindowAttribute(m_hWnd, DWMWA_CAPTION_COLOR, &k_BgColor,
+  DwmSetWindowAttribute(hWnd, DWMWA_CAPTION_COLOR, &k_BgColor,
                         sizeof(k_BgColor));
   DWM_WINDOW_CORNER_PREFERENCE preference = DWMWCP_DONOTROUND;
-  DwmSetWindowAttribute(m_hWnd, DWMWA_WINDOW_CORNER_PREFERENCE, &preference,
+  DwmSetWindowAttribute(hWnd, DWMWA_WINDOW_CORNER_PREFERENCE, &preference,
                         sizeof(preference));
 }
 

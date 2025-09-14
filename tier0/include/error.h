@@ -43,6 +43,9 @@ void crash_windows(HRESULT result, const char *format, ...);
     return;                                                                    \
   }
 
+// Always asserts not stripped out in release builds. Use for critical error
+// checking.
+
 #define ASSERT_WIN_ALWAYS(result, ...)                                         \
   {                                                                            \
     if (SUCCEEDED(result)) {                                                   \
@@ -57,11 +60,7 @@ void crash_windows(HRESULT result, const char *format, ...);
     }                                                                          \
   }
 
-#ifndef NO_ASSERTS
-
-#define ASSERT_WIN(...) ASSERT_WIN_ALWAYS(__VA_ARGS__)
-
-#define ASSERT(expression, ...)                                                \
+#define ASSERT_ALWAYS(expression, ...)                                         \
   {                                                                            \
     if (expression) {                                                          \
     } else {                                                                   \
@@ -73,6 +72,12 @@ void crash_windows(HRESULT result, const char *format, ...);
       return;                                                                  \
     }                                                                          \
   }
+
+#ifndef NO_ASSERTS
+
+#define ASSERT_WIN(...) ASSERT_WIN_ALWAYS(__VA_ARGS__)
+
+#define ASSERT(...) ASSERT_ALWAYS(__VA_ARGS__)
 
 #ifndef NO_SLOW_ASSERTS
 #define ASSERT_SLOW(...) ASSERT(__VA_ARGS__)
