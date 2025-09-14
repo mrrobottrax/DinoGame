@@ -122,8 +122,20 @@ void RenderingSystem::init() {
   ASSERT_WIN_ALWAYS(pDxgiFactory->MakeWindowAssociation(g_WindowSystem.hWnd,
                                                         DXGI_MWA_NO_ALT_ENTER));
 
+  D3D12_DESCRIPTOR_HEAP_DESC descriptorHeapDesc{
+      .Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV,
+      .NumDescriptors = k_FramesInFlight,
+      .Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE,
+      .NodeMask = 0,
+  };
+  ASSERT_WIN_ALWAYS(m_pDevice->CreateDescriptorHeap(
+      &descriptorHeapDesc, IID_PPV_ARGS(&m_pFrameBufferDescriptorHeap)));
+
+  m_RtvDescriptorIncrementSize = m_pDevice->GetDescriptorHandleIncrementSize(
+      D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+
   // create frame data
-  for (size_t i = 0; i < k_FramesInFlight; ++i) {
+  for (UINT i = 0; i < k_FramesInFlight; ++i) {
     FrameData &fd = m_FrameData[i];
     ASSERT_WIN_ALWAYS(m_pDevice->CreateCommandAllocator(
         D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&fd.commandAllocator)));
@@ -131,6 +143,22 @@ void RenderingSystem::init() {
     ASSERT_WIN_ALWAYS(m_pDevice->CreateCommandList1(
         0, D3D12_COMMAND_LIST_TYPE_DIRECT, D3D12_COMMAND_LIST_FLAG_NONE,
         IID_PPV_ARGS(&fd.commandList)));
+
+    ASSERT_WIN_ALWAYS(m_pSwapChain->GetBuffer(i, IID_PPV_ARGS(&fd.backbuffer)));
+
+    D3D12_RENDER_TARGET_VIEW_DESC rtViewDesc{
+        .Format = DXGI_FORMAT_R8G8B8A8_UNORM,
+        .ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D,
+        .Texture2D =
+            {
+                .MipSlice = 0,
+                .PlaneSlice = 0,
+            },
+    };
+    D3D12_CPU_DESCRIPTOR_HANDLE handle =
+        m_pFrameBufferDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+    handle.ptr += m_RtvDescriptorIncrementSize * i;
+    m_pDevice->CreateRenderTargetView(fd.backbuffer.Get(), &rtViewDesc, handle);
 
     ASSERT_WIN_ALWAYS(m_pDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE,
                                              IID_PPV_ARGS(&fd.fence)));
@@ -163,12 +191,14 @@ void RenderingSystem::stop() {
     FrameData &fd = m_FrameData[i];
     CloseHandle(fd.fenceEvent);
     fd.fence.Reset();
+    fd.backbuffer.Reset();
     fd.commandList.Reset();
     fd.commandAllocator.Reset();
   }
 
   m_pSwapChain.Reset();
   m_pCommandQueue.Reset();
+  m_pFrameBufferDescriptorHeap.Reset();
 
 #if defined(_DEBUG)
   ComPtr<ID3D12DebugDevice> debugDevice;
@@ -235,6 +265,35 @@ void RenderingSystem::frame() {
 
   ASSERT_WIN_ALWAYS(fd.commandAllocator->Reset());
   ASSERT_WIN_ALWAYS(fd.commandList->Reset(fd.commandAllocator.Get(), NULL));
+
+  D3D12_RESOURCE_BARRIER unknownToRenderTargetBarrier{
+      .Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION,
+      .Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE,
+      .Transition{
+          .pResource = fd.backbuffer.Get(),
+          .Subresource = 0,
+          .StateBefore = D3D12_RESOURCE_STATE_COMMON,
+          .StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET,
+      }};
+  fd.commandList->ResourceBarrier(1, &unknownToRenderTargetBarrier);
+
+  D3D12_CPU_DESCRIPTOR_HANDLE rtvCpuHandle =
+      m_pFrameBufferDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+  rtvCpuHandle.ptr += m_RtvDescriptorIncrementSize * iFrame;
+
+  float color[4] = {1, 0, 0, 1};
+  fd.commandList->ClearRenderTargetView(rtvCpuHandle, color, 0, NULL);
+
+  D3D12_RESOURCE_BARRIER renderTargetToPresentBarrier{
+      .Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION,
+      .Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE,
+      .Transition{
+          .pResource = fd.backbuffer.Get(),
+          .Subresource = 0,
+          .StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET,
+          .StateAfter = D3D12_RESOURCE_STATE_PRESENT,
+      }};
+  fd.commandList->ResourceBarrier(1, &renderTargetToPresentBarrier);
 
   ASSERT_WIN_ALWAYS(fd.commandList->Close());
   ID3D12CommandList *ppCommandLists[] = {fd.commandList.Get()};
