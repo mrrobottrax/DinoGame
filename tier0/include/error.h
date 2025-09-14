@@ -21,6 +21,7 @@ void crash_windows(HRESULT result, const char *format, ...);
     }                                                                          \
     crash("File: " __FILE__                                                    \
           "\r\nLine: " STRINGIZE(__LINE__) "\r\n" __VA_ARGS__);                \
+    return;                                                                    \
   }
 
 #define CRASH_IMMEDIATE()                                                      \
@@ -29,6 +30,7 @@ void crash_windows(HRESULT result, const char *format, ...);
       __debugbreak();                                                          \
     }                                                                          \
     TerminateProcess(GetCurrentProcess(), 1);                                  \
+    return;                                                                    \
   }
 
 #define CRASH_WIN(...)                                                         \
@@ -38,22 +40,26 @@ void crash_windows(HRESULT result, const char *format, ...);
     }                                                                          \
     crash_windows("File: " __FILE__                                            \
                   "\r\nLine: " STRINGIZE(__LINE__) "\r\n" __VA_ARGS__);        \
+    return;                                                                    \
   }
 
-#ifndef NO_ASSERTS
-
-#define ASSERT_WIN(result, ...)                                                \
+#define ASSERT_WIN_ALWAYS(result, ...)                                         \
   {                                                                            \
     if (SUCCEEDED(result)) {                                                   \
     } else {                                                                   \
       if (IsDebuggerPresent()) {                                               \
         __debugbreak();                                                        \
       }                                                                        \
-      crash_windows(result,                                                    \
-                    "Windows Assertion Failed\r\nFile: " __FILE__              \
+      crash_windows(#result,                                                   \
+                    " failed.\r\nFile: " __FILE__                              \
                     "\r\nLine: " STRINGIZE(__LINE__) "\r\n" __VA_ARGS__);      \
+      return;                                                                  \
     }                                                                          \
   }
+
+#ifndef NO_ASSERTS
+
+#define ASSERT_WIN(...) ASSERT_WIN_ALWAYS(__VA_ARGS__)
 
 #define ASSERT(expression, ...)                                                \
   {                                                                            \
@@ -64,6 +70,7 @@ void crash_windows(HRESULT result, const char *format, ...);
       }                                                                        \
       crash("Assertion Failed: " #expression "\r\nFile: " __FILE__             \
             "\r\nLine: " STRINGIZE(__LINE__) "\r\n" __VA_ARGS__);              \
+      return;                                                                  \
     }                                                                          \
   }
 
@@ -90,7 +97,7 @@ class UnnecessaryLock {
   volatile bool m_locked;
 
 public:
-  void Acquire(const char *file, size_t line) {
+  void acquire(const char *file, size_t line) {
     if (!m_locked) {
     } else {
       if (IsDebuggerPresent()) {
@@ -102,7 +109,7 @@ public:
     m_locked = true;
   }
 
-  void Release(const char *file, size_t line) {
+  void release(const char *file, size_t line) {
     if (m_locked) {
     } else {
       if (IsDebuggerPresent()) {
@@ -126,17 +133,17 @@ public:
   explicit UnnecessaryLockJanitor(UnnecessaryLock &lock, const char *file,
                                   size_t line)
       : m_pLock(&lock), m_file(file), m_line(line) {
-    m_pLock->Acquire(m_file, m_line);
+    m_pLock->acquire(m_file, m_line);
   }
 
-  ~UnnecessaryLockJanitor() { m_pLock->Release(m_file, m_line); }
+  ~UnnecessaryLockJanitor() { m_pLock->release(m_file, m_line); }
 #endif
 };
 
 #ifndef NO_ASSERTS
 
-#define BEGIN_ASSERT_LOCK_NOT_NECESSARY(L) (L).Acquire(__FILE__, __LINE__)
-#define END_ASSERT_LOCK_NOT_NECESSARY(L) (L).Release(__FILE__, __LINE__)
+#define BEGIN_ASSERT_LOCK_NOT_NECESSARY(L) (L).acquire(__FILE__, __LINE__)
+#define END_ASSERT_LOCK_NOT_NECESSARY(L) (L).release(__FILE__, __LINE__)
 #define ASSERT_LOCK_NOT_NECESSARY(J, L)                                        \
   UnnecessaryLockJanitor J(L, __FILE__, __LINE__)
 

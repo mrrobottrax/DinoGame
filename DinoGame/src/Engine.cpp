@@ -2,9 +2,13 @@
 
 #include "Engine.h"
 
+#include "RenderingSystem.h"
 #include "WindowSystem.h"
 
-void Engine::init() { g_WindowSystem.init("DinoEngine Test"); }
+void Engine::init() {
+  g_WindowSystem.init("DinoEngine Test");
+  g_RenderingSystem.init();
+}
 
 void Engine::loop() {
   MSG msg;
@@ -20,4 +24,7 @@ void Engine::loop() {
   }
 }
 
-void Engine::stop() { g_WindowSystem.stop(); }
+void Engine::stop() {
+  g_RenderingSystem.stop();
+  g_WindowSystem.stop();
+}

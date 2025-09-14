@@ -147,7 +147,7 @@ void console_log(const char format[], ...) {
   LeaveCriticalSection(&s_LogLock);
 }
 
-void console_log_warn(const char format[], ...) {
+void console_warn(const char format[], ...) {
   EnterCriticalSection(&s_LogLock);
   console_print("[WARNING] ");
 
@@ -160,7 +160,7 @@ void console_log_warn(const char format[], ...) {
   LeaveCriticalSection(&s_LogLock);
 }
 
-void console_log_error(const char format[], ...) {
+void console_error(const char format[], ...) {
   EnterCriticalSection(&s_LogLock);
   console_print("[ERROR] ");
 

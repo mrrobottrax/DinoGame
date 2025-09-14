@@ -18,7 +18,7 @@ static void write_minidump() {
   HANDLE hFile = CreateFile(L"crash.dmp", GENERIC_WRITE, 0, nullptr,
                             CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
   if (hFile == INVALID_HANDLE_VALUE) {
-    console_log_error("Failed to write minidump");
+    console_error("Failed to write minidump");
     return;
   }
 
@@ -115,7 +115,7 @@ static void set_error_va(const char *format, va_list args) {
     va_copy(args_vsnprintf, args);
     if (vsnprintf_s(s_LastError, required + 1, _TRUNCATE, format,
                     args_vsnprintf) < 0) {
-      console_log_error("Formatting failure");
+      console_error("Formatting failure");
     }
     va_end(args_vsnprintf);
   }
