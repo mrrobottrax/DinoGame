@@ -8,6 +8,7 @@ class RenderingSystem {
 public:
   void init();
   void stop();
+  void frame();
 
 private:
   void create_device(IDXGIFactory6* pDxgiFactory);

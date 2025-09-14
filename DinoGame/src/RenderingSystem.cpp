@@ -124,13 +124,30 @@ void RenderingSystem::init() {
 }
 
 void RenderingSystem::stop() {
+  // wait for gpu idle
+  {
+    ComPtr<ID3D12Fence1> fence;
+    ASSERT_WIN_ALWAYS(
+        m_pDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence)));
+    ASSERT_WIN_ALWAYS(m_pCommandQueue->Signal(fence.Get(), 1));
+
+    HANDLE hEvent =
+        CreateEventEx(NULL, L"Final wait fence", 0, EVENT_ALL_ACCESS);
+    ASSERT_ALWAYS(hEvent != NULL);
+    fence->SetEventOnCompletion(1, hEvent);
+
+    WaitForSingleObject(hEvent, INFINITE);
+  }
+
   m_pSwapChain.Reset();
   m_pCommandQueue.Reset();
 
+#if defined(_DEBUG)
   ComPtr<ID3D12DebugDevice> debugDevice;
   ASSERT_WIN(m_pDevice->QueryInterface(IID_PPV_ARGS(&debugDevice)));
   ASSERT_WIN(debugDevice->ReportLiveDeviceObjects(
       D3D12_RLDO_SUMMARY | D3D12_RLDO_DETAIL | D3D12_RLDO_IGNORE_INTERNAL));
+#endif
 }
 
 void RenderingSystem::create_device(IDXGIFactory6 *pDxgiFactory) {
@@ -174,4 +191,15 @@ void RenderingSystem::create_device(IDXGIFactory6 *pDxgiFactory) {
       break;
     }
   }
+}
+
+void RenderingSystem::frame() {
+  DXGI_PRESENT_PARAMETERS presentParameters{
+      .DirtyRectsCount = 0,
+      .pDirtyRects = nullptr,
+      .pScrollRect = nullptr,
+      .pScrollOffset = nullptr,
+  };
+  ASSERT_WIN_ALWAYS(m_pSwapChain->Present1(0, DXGI_PRESENT_ALLOW_TEARING,
+                                           &presentParameters));
 }
