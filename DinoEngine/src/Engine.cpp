@@ -45,8 +45,11 @@ void Engine::init() {
   }
 
   g_GameDllSystem.load_game(m_GameName);
+
   g_WindowSystem.init(g_GameDllSystem.gameInfo.windowName);
   g_RenderingSystem.init();
+
+  g_GameDllSystem.load_main_menu();
 }
 
 void Engine::loop() {

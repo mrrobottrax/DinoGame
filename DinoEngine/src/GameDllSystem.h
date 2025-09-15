@@ -16,6 +16,7 @@ public:
 
   // callbacks
   MCALLBACK(get_game_info);
+  MCALLBACK(load_main_menu);
 };
 
 #undef MCALLBACK
