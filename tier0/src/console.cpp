@@ -58,8 +58,6 @@ void console_free() {
 #endif
 }
 
-void console_line() { console_print("\r\n"); }
-
 void console_print_va(const char format[], va_list args) {
   va_list args2, args3;
   va_copy(args2, args);
@@ -131,7 +129,7 @@ void console_println(const char format[], ...) {
 
 void console_println_va(const char format[], va_list args) {
   console_print_va(format, args);
-  console_print("\n");
+  console_print("\r\n");
 }
 
 void console_log(const char format[], ...) {

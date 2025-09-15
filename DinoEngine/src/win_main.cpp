@@ -9,6 +9,13 @@ int wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 
   t0_init();
 
+  int nArgv;
+  LPWSTR *argv = CommandLineToArgvW(lpCmdLine, &nArgv);
+
+  g_Engine.parse_argv(argv, nArgv);
+
+  LocalFree(argv);
+
   g_Engine.init();
   g_Engine.loop();
   g_Engine.stop();

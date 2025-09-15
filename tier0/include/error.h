@@ -1,11 +1,11 @@
 #pragma once
 
-void crash();
-void crash(const char *format, ...);
-void crash_windows();
-void crash_windows(const char *format, ...);
-void crash_windows_hresult(HRESULT result);
-void crash_windows_hresult(HRESULT result, const char *format, ...);
+T0_API void crash();
+T0_API void crash(const char *format, ...);
+T0_API void crash_windows();
+T0_API void crash_windows(const char *format, ...);
+T0_API void crash_windows_hresult(HRESULT result);
+T0_API void crash_windows_hresult(HRESULT result, const char *format, ...);
 
 // No runtime impact so static asserts are always active
 #define _ASSERT_GLUE(a, b) a##b

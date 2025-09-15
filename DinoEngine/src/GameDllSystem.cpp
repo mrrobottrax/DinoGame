@@ -1,0 +1,21 @@
+#include "pch.h"
+
+#include "GameDllSystem.h"
+
+void GameDllSystem::load_game(const wchar_t *gameName) {
+  m_GameModule =
+      LoadLibraryExW(gameName, NULL, LOAD_LIBRARY_SEARCH_APPLICATION_DIR);
+
+  if (m_GameModule == NULL) {
+    CRASH_WIN("Failed to load game DLL");
+  }
+
+  // get callbacks
+#define GET_CALLBACK(name)                                                     \
+  name = (name##_ptr)GetProcAddress(m_GameModule, name##_name);                \
+  ASSERT_ALWAYS(name != nullptr, "Could not find callback.")
+
+  GET_CALLBACK(get_game_info);
+
+  gameInfo = get_game_info();
+}

@@ -1,5 +1,7 @@
 #include "pch.h"
 
+#include "tier0_control.h"
+
 #include "error.h"
 #include "error_private.h"
 
@@ -7,7 +9,7 @@
 #include "console_private.h"
 #include "memory.h"
 
-void t0_init() {
+T0_API void t0_init() {
   setlocale(LC_ALL, ".UTF8");
 
   error_handling_init();
@@ -16,7 +18,7 @@ void t0_init() {
   memory_start_debug();
 }
 
-void t0_stop() {
+T0_API void t0_stop() {
   error_handling_stop();
 
   console_free_filebuffer(); // Seperate so that memory leak checking doesn't

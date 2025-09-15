@@ -125,6 +125,13 @@ static void set_error_va(const char *format, va_list args) {
   }
 }
 
+static void set_error(const char *format, ...) {
+  va_list args;
+  va_start(args, format);
+  set_error_va(format, args);
+  va_end(args);
+}
+
 static char *add_windows_message_to_format(const char *format, DWORD error) {
   LPWSTR wideErr = nullptr;
   DWORD wideErrLen = FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM |
@@ -221,7 +228,7 @@ void crash_windows_hresult(HRESULT result) {
   DWORD error = HRESULT_CODE(result);
 
   char *finalFormat = add_windows_message_to_format("Unknown Error", error);
-  crash(finalFormat);
+  set_error(finalFormat);
   free(finalFormat);
 
   crash_end();
