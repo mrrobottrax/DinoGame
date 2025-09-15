@@ -284,6 +284,8 @@ void RenderingSystem::frame() {
   float color[4] = {1, 0, 0, 1};
   fd.commandList->ClearRenderTargetView(rtvCpuHandle, color, 0, NULL);
 
+  dgui_add_render_commands(fd.commandList.Get(), rtvCpuHandle);
+
   D3D12_RESOURCE_BARRIER renderTargetToPresentBarrier{
       .Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION,
       .Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE,

@@ -49,7 +49,18 @@ void Engine::init() {
   g_WindowSystem.init(g_GameDllSystem.gameInfo.windowName);
   g_RenderingSystem.init();
 
+  dgui_init();
+
   g_GameDllSystem.load_main_menu();
+}
+
+void Engine::stop() {
+  dgui_stop();
+
+  g_RenderingSystem.stop();
+  g_WindowSystem.stop();
+
+  free(m_GameName);
 }
 
 void Engine::loop() {
@@ -66,11 +77,4 @@ void Engine::loop() {
       g_RenderingSystem.frame();
     }
   }
-}
-
-void Engine::stop() {
-  free(m_GameName);
-
-  g_RenderingSystem.stop();
-  g_WindowSystem.stop();
 }
