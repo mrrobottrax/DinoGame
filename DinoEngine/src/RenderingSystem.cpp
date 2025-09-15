@@ -187,7 +187,7 @@ void RenderingSystem::stop() {
   }
 
   // destroy frame data
-  for (size_t i = 0; i < k_FramesInFlight; ++i) {
+  for (UINT i = 0; i < k_FramesInFlight; ++i) {
     FrameData &fd = m_FrameData[i];
     CloseHandle(fd.fenceEvent);
     fd.fence.Reset();
@@ -284,7 +284,7 @@ void RenderingSystem::frame() {
   float color[4] = {1, 0, 0, 1};
   fd.commandList->ClearRenderTargetView(rtvCpuHandle, color, 0, NULL);
 
-  dgui_add_render_commands(fd.commandList.Get(), rtvCpuHandle);
+  dgui_add_render_commands(fd.commandList.Get());
 
   D3D12_RESOURCE_BARRIER renderTargetToPresentBarrier{
       .Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION,

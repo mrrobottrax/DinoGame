@@ -4,6 +4,11 @@
 
 DGUI_Panel::~DGUI_Panel() { clear_children(); }
 
+void DGUI_Panel::add_render_commands(
+    ID3D12GraphicsCommandList10 *pCommandList) {
+  (void)pCommandList;
+}
+
 void DGUI_Panel::add_child(DGUI_Panel *pPanel) {
   if (m_ChildCount + 1 > m_ChildCapacity) {
     if (m_ChildCapacity == 0) {
@@ -35,6 +40,12 @@ void DGUI_Panel::clear_children() {
   m_ChildCount = 0;
 }
 
-void DGUI_Panel::set_position(int x, int y) {}
+void DGUI_Panel::set_position(int x, int y) {
+  (void)x;
+  (void)y;
+}
 
-void DGUI_Panel::set_size(int w, int h) {}
+void DGUI_Panel::set_size(int w, int h) {
+  (void)w;
+  (void)h;
+}

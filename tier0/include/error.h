@@ -21,7 +21,6 @@ T0_API void crash_windows_hresult(HRESULT result, const char *format, ...);
     }                                                                          \
     crash("File: " __FILE__                                                    \
           "\r\nLine: " STRINGIZE(__LINE__) "\r\n" __VA_ARGS__);                \
-    return;                                                                    \
   }
 
 #define CRASH_IMMEDIATE()                                                      \
@@ -30,7 +29,6 @@ T0_API void crash_windows_hresult(HRESULT result, const char *format, ...);
       __debugbreak();                                                          \
     }                                                                          \
     TerminateProcess(GetCurrentProcess(), 1);                                  \
-    return;                                                                    \
   }
 
 #define CRASH_WIN(...)                                                         \
@@ -40,7 +38,6 @@ T0_API void crash_windows_hresult(HRESULT result, const char *format, ...);
     }                                                                          \
     crash_windows("File: " __FILE__                                            \
                   "\r\nLine: " STRINGIZE(__LINE__) "\r\n" __VA_ARGS__);        \
-    return;                                                                    \
   }
 
 // Always asserts not stripped out in release builds. Use for critical error
@@ -58,7 +55,6 @@ T0_API void crash_windows_hresult(HRESULT result, const char *format, ...);
           result,                                                              \
           #expression " failed.\r\nFile: " __FILE__                            \
                       "\r\nLine: " STRINGIZE(__LINE__) "\r\n" __VA_ARGS__);    \
-      return;                                                                  \
     }                                                                          \
   }
 
@@ -71,7 +67,6 @@ T0_API void crash_windows_hresult(HRESULT result, const char *format, ...);
       }                                                                        \
       crash("Assertion Failed: " #expression "\r\nFile: " __FILE__             \
             "\r\nLine: " STRINGIZE(__LINE__) "\r\n" __VA_ARGS__);              \
-      return;                                                                  \
     }                                                                          \
   }
 
