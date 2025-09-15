@@ -106,7 +106,7 @@
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(ProjectDir)include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)include\t0</AdditionalIncludeDirectories>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <ExceptionHandling>false</ExceptionHandling>
       <TreatWarningAsError>false</TreatWarningAsError>
@@ -129,7 +129,7 @@
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(ProjectDir)include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)include\t0</AdditionalIncludeDirectories>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <ExceptionHandling>false</ExceptionHandling>
       <TreatWarningAsError>true</TreatWarningAsError>
@@ -141,17 +141,17 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="include\base.h" />
-    <ClInclude Include="include\console.h" />
-    <ClInclude Include="include\error.h" />
-    <ClInclude Include="include\hash.h" />
-    <ClInclude Include="include\platform.h" />
-    <ClInclude Include="include\tier0_control.h" />
+    <ClInclude Include="include\t0\base.h" />
+    <ClInclude Include="include\t0\console.h" />
+    <ClInclude Include="include\t0\error.h" />
+    <ClInclude Include="include\t0\hash.h" />
+    <ClInclude Include="include\t0\platform.h" />
+    <ClInclude Include="include\t0\control.h" />
     <ClInclude Include="src\console_private.h" />
     <ClInclude Include="src\error_private.h" />
     <ClInclude Include="src\memory.h" />
     <ClInclude Include="include\tier0.h" />
-    <ClInclude Include="include\ucrt.h" />
+    <ClInclude Include="include\t0\ucrt.h" />
     <ClInclude Include="src\pch.h" />
   </ItemGroup>
   <ItemGroup>

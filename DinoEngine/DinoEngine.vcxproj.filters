@@ -53,10 +53,10 @@
     <ClInclude Include="src\GameDllSystem.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\callbacks.h">
+    <ClInclude Include="include\dino\callbacks.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\platform.h">
+    <ClInclude Include="src\dino_platform.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\UISystem.h">

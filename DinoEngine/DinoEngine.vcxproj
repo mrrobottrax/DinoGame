@@ -107,7 +107,7 @@
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(SolutionDir)DinoEngine\include;$(SolutionDir)DinoGUI\include;$(SolutionDir)tier0\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)include\dino;$(SolutionDir)DinoGUI\include;$(SolutionDir)tier0\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <TreatWarningAsError>false</TreatWarningAsError>
       <ExceptionHandling>false</ExceptionHandling>
     </ClCompile>
@@ -131,7 +131,7 @@
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(SolutionDir)DinoEngine\include;$(SolutionDir)DinoGUI\include;$(SolutionDir)tier0\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)include\dino;$(SolutionDir)DinoGUI\include;$(SolutionDir)tier0\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
       <ExceptionHandling>false</ExceptionHandling>
     </ClCompile>
@@ -154,12 +154,12 @@
     <ClCompile Include="src\WindowSystem.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="include\callbacks.h" />
+    <ClInclude Include="include\dino\callbacks.h" />
     <ClInclude Include="include\dino_engine.h" />
     <ClInclude Include="src\Engine.h" />
     <ClInclude Include="src\GameDllSystem.h" />
     <ClInclude Include="src\pch.h" />
-    <ClInclude Include="src\platform.h" />
+    <ClInclude Include="src\dino_platform.h" />
     <ClInclude Include="src\RenderingSystem.h" />
     <ClInclude Include="src\UISystem.h" />
     <ClInclude Include="src\WindowSystem.h" />

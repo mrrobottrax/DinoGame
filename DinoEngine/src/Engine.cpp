@@ -49,7 +49,7 @@ void Engine::init() {
   g_WindowSystem.init(g_GameDllSystem.gameInfo.windowName);
   g_RenderingSystem.init();
 
-  dgui_init();
+  dgui_init(g_RenderingSystem.get_device());
 
   g_GameDllSystem.load_main_menu();
 }

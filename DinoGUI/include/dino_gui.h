@@ -1,6 +1,8 @@
 #pragma once
 
+#include "dgui/platform.h"
+
 #define DGUI_API _declspec(dllimport)
 
-#include "DGUI_Panel.h"
-#include "global.h"
+#include "dgui/DGUI_Panel.h"
+#include "dgui/global.h"

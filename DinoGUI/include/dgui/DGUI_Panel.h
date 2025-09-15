@@ -1,7 +1,5 @@
 #pragma once
 
-struct ID3D12GraphicsCommandList10;
-
 class DGUI_API DGUI_Panel {
 public:
   DGUI_Panel() {

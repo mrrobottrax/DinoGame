@@ -104,7 +104,7 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalIncludeDirectories>$(SolutionDir)tier0\include;$(ProjectDir)include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)tier0\include;$(ProjectDir)include\dgui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -124,7 +124,7 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <AdditionalIncludeDirectories>$(SolutionDir)tier0\include;$(ProjectDir)include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)tier0\include;$(ProjectDir)include\dgui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -133,10 +133,10 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="include\dino_gui.h" />
-    <ClInclude Include="include\global.h" />
-    <ClInclude Include="include\DGUI_Panel.h" />
+    <ClInclude Include="include\dgui\global.h" />
+    <ClInclude Include="include\dgui\DGUI_Panel.h" />
     <ClInclude Include="src\pch.h" />
-    <ClInclude Include="src\platform.h" />
+    <ClInclude Include="include\dgui\platform.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\global.cpp" />

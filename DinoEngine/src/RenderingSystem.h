@@ -24,6 +24,8 @@ public:
   void stop();
   void frame();
 
+  ID3D12Device9 *get_device() { return m_pDevice.Get(); }
+
 private:
   void create_device(IDXGIFactory6 *pDxgiFactory);
 };

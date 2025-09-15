@@ -21,13 +21,13 @@
     <ClInclude Include="include\dino_gui.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\global.h">
+    <ClInclude Include="include\dgui\global.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\DGUI_Panel.h">
+    <ClInclude Include="include\dgui\DGUI_Panel.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\platform.h">
+    <ClInclude Include="include\dgui\platform.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -6,7 +6,7 @@
 
 static DGUI_Panel s_TopPanel;
 
-void dgui_init() {}
+void dgui_init(ID3D12Device9 *pDevice) {}
 
 void dgui_stop() { dgui_clear_all(); }
 
