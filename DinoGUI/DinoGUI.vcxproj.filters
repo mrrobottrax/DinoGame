@@ -24,7 +24,7 @@
     <ClInclude Include="include\global.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\panel.h">
+    <ClInclude Include="include\DGUI_Panel.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\platform.h">
@@ -38,7 +38,7 @@
     <ClCompile Include="src\global.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\panel.cpp">
+    <ClCompile Include="src\DGUI_Panel.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
