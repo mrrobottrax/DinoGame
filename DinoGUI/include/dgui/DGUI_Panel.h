@@ -14,8 +14,8 @@ public:
 
   void add_child(DGUI_Panel *pPanel);
   void clear_children();
-  void set_position(int x, int y);
-  void set_size(int w, int h);
+  void set_position(unsigned int x, unsigned int y);
+  void set_size(unsigned int w, unsigned int h);
 
   uint32_t get_child_count() { return m_ChildCount; }
   DGUI_Panel *get_child(uint32_t index) {
@@ -27,4 +27,7 @@ private:
   DGUI_Panel **m_Children;
   uint32_t m_ChildCapacity;
   uint32_t m_ChildCount;
+
+  unsigned int m_Position[2];
+  unsigned int m_Dimensions[2];
 };

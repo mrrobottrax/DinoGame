@@ -21,7 +21,7 @@
     <ClInclude Include="include\dino_gui.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\dgui\global.h">
+    <ClInclude Include="include\dgui\dgui.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\dgui\DGUI_Panel.h">
@@ -30,12 +30,15 @@
     <ClInclude Include="include\dgui\platform.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\dgui\screen.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\pch.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\global.cpp">
+    <ClCompile Include="src\dgui.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\DGUI_Panel.cpp">

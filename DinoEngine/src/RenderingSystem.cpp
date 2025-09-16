@@ -286,24 +286,7 @@ void RenderingSystem::frame() {
 
   fd.commandList->OMSetRenderTargets(1, &rtvCpuHandle, TRUE, nullptr);
 
-  D3D12_VIEWPORT viewport{
-      .TopLeftX = 0,
-      .TopLeftY = 0,
-      .Width = 1280,
-      .Height = 720,
-      .MinDepth = 0,
-      .MaxDepth = 1,
-  };
-  fd.commandList->RSSetViewports(1, &viewport);
-  D3D12_RECT scissor{
-      .left = 0,
-      .top = 0,
-      .right = 1280,
-      .bottom = 720,
-  };
-  fd.commandList->RSSetScissorRects(1, &scissor);
-
-  dgui_add_render_commands(fd.commandList.Get());
+  dgui_add_render_commands(fd.commandList.Get(), 1280, 720);
 
   D3D12_RESOURCE_BARRIER renderTargetToPresentBarrier{
       .Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION,

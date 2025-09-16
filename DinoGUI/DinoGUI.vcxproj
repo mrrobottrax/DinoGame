@@ -151,13 +151,14 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="include\dino_gui.h" />
-    <ClInclude Include="include\dgui\global.h" />
+    <ClInclude Include="include\dgui\dgui.h" />
     <ClInclude Include="include\dgui\DGUI_Panel.h" />
     <ClInclude Include="src\pch.h" />
     <ClInclude Include="include\dgui\platform.h" />
+    <ClInclude Include="include\dgui\screen.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\global.cpp" />
+    <ClCompile Include="src\dgui.cpp" />
     <ClCompile Include="src\DGUI_Panel.cpp" />
     <ClCompile Include="src\pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>

@@ -11,6 +11,6 @@ void load_main_menu() {
 
   DGUI_Panel *mainMenuPanel = new DGUI_Panel();
   dgui_get_top_panel()->add_child(mainMenuPanel);
-  mainMenuPanel->set_position(0, 0);
-  mainMenuPanel->set_size(500, 500);
+  mainMenuPanel->set_position(100, 100);
+  mainMenuPanel->set_size(100, 100);
 }

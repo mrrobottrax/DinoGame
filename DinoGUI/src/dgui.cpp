@@ -1,8 +1,9 @@
 #include "pch.h"
 
-#include "global.h"
+#include "dgui.h"
 
 #include "DGUI_Panel.h"
+#include "screen.h"
 
 static DGUI_Panel s_TopPanel;
 static ComPtr<ID3D12PipelineState> s_RectPipelineState;
@@ -172,10 +173,34 @@ static void render_recursive(DGUI_Panel *pPanel,
   }
 }
 
-void dgui_add_render_commands(ID3D12GraphicsCommandList10 *pCommandList) {
+void dgui_add_render_commands(ID3D12GraphicsCommandList10 *pCommandList,
+                              unsigned int w, unsigned int h) {
+  g_ScreenDimensions[0] = w;
+  g_ScreenDimensions[1] = h;
+
   DGUI_Panel *pPanel = dgui_get_top_panel();
-  pCommandList->SetPipelineState(s_RectPipelineState.Get());
+
+  D3D12_VIEWPORT viewport{
+      .TopLeftX = 0,
+      .TopLeftY = 0,
+      .Width = (FLOAT)w,
+      .Height = (FLOAT)h,
+      .MinDepth = 0,
+      .MaxDepth = 1,
+  };
+  pCommandList->RSSetViewports(1, &viewport);
+  D3D12_RECT scissor{
+      .left = 0,
+      .top = 0,
+      .right = (LONG)w,
+      .bottom = (LONG)h,
+  };
+  pCommandList->RSSetScissorRects(1, &scissor);
+
   pCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+
+  pCommandList->SetPipelineState(s_RectPipelineState.Get());
   pCommandList->SetGraphicsRootSignature(s_RectRootSignature.Get());
+
   render_recursive(pPanel, pCommandList);
 }

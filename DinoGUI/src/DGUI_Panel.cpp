@@ -1,11 +1,20 @@
 #include "pch.h"
 
 #include "DGUI_Panel.h"
+#include "screen.h"
 
 DGUI_Panel::~DGUI_Panel() { clear_children(); }
 
 void DGUI_Panel::add_render_commands(
     ID3D12GraphicsCommandList10 *pCommandList) {
+  float matrix[4][4] = {
+      {(float)m_Dimensions[0] / g_ScreenDimensions[0] * 2, 0, 0, 0},
+      {0, (float)m_Dimensions[1] / g_ScreenDimensions[1] * 2, 0, 0},
+      {0, 0, 1, 0},
+      {-1 + (float)m_Position[0] / g_ScreenDimensions[0] * 2,
+       -1 + (float)m_Position[1] / g_ScreenDimensions[1] * 2, 0, 1},
+  };
+  pCommandList->SetGraphicsRoot32BitConstants(0, 16, matrix, 0);
   pCommandList->DrawInstanced(4, 1, 0, 0);
 }
 
@@ -40,12 +49,12 @@ void DGUI_Panel::clear_children() {
   m_ChildCount = 0;
 }
 
-void DGUI_Panel::set_position(int x, int y) {
-  (void)x;
-  (void)y;
+void DGUI_Panel::set_position(unsigned int x, unsigned int y) {
+  m_Position[0] = x;
+  m_Position[1] = y;
 }
 
-void DGUI_Panel::set_size(int w, int h) {
-  (void)w;
-  (void)h;
+void DGUI_Panel::set_size(unsigned int w, unsigned int h) {
+  m_Dimensions[0] = w;
+  m_Dimensions[1] = h;
 }
