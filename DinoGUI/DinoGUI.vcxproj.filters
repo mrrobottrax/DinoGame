@@ -42,4 +42,11 @@
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="shaders\DefaultPixel.hlsl" />
+    <FxCompile Include="shaders\DefaultVertex.hlsl" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="shaders\RootSignature.hlsli" />
+  </ItemGroup>
 </Project>

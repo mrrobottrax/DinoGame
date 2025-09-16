@@ -238,10 +238,10 @@ void RenderingSystem::create_device(IDXGIFactory6 *pDxgiFactory) {
       CRASH("Failed to find a suitable adapter.");
     }
 
-    if (!SUCCEEDED(D3D12CreateDevice(pBestAdapter.Get(), D3D_FEATURE_LEVEL_11_0,
+    if (!SUCCEEDED(D3D12CreateDevice(pBestAdapter.Get(), D3D_FEATURE_LEVEL_12_1,
                                      IID_PPV_ARGS(&m_pDevice)))) {
       console_warn(
-          "Adapter does not support D3D_FEATURE_LEVEL_11_0. Trying again:");
+          "Adapter does not support D3D_FEATURE_LEVEL_12_1. Trying again:");
       pBestAdapter.Reset();
 
       // deliberately don't reset i.
@@ -281,8 +281,27 @@ void RenderingSystem::frame() {
       m_pFrameBufferDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
   rtvCpuHandle.ptr += m_RtvDescriptorIncrementSize * iFrame;
 
-  float color[4] = {1, 0, 0, 1};
+  float color[4] = {0, 0, 0, 1};
   fd.commandList->ClearRenderTargetView(rtvCpuHandle, color, 0, NULL);
+
+  fd.commandList->OMSetRenderTargets(1, &rtvCpuHandle, TRUE, nullptr);
+
+  D3D12_VIEWPORT viewport{
+      .TopLeftX = 0,
+      .TopLeftY = 0,
+      .Width = 1280,
+      .Height = 720,
+      .MinDepth = 0,
+      .MaxDepth = 1,
+  };
+  fd.commandList->RSSetViewports(1, &viewport);
+  D3D12_RECT scissor{
+      .left = 0,
+      .top = 0,
+      .right = 1280,
+      .bottom = 720,
+  };
+  fd.commandList->RSSetScissorRects(1, &scissor);
 
   dgui_add_render_commands(fd.commandList.Get());
 

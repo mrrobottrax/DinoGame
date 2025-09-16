@@ -6,7 +6,7 @@ DGUI_Panel::~DGUI_Panel() { clear_children(); }
 
 void DGUI_Panel::add_render_commands(
     ID3D12GraphicsCommandList10 *pCommandList) {
-  (void)pCommandList;
+  pCommandList->DrawInstanced(4, 1, 0, 0);
 }
 
 void DGUI_Panel::add_child(DGUI_Panel *pPanel) {

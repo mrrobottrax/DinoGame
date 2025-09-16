@@ -58,6 +58,18 @@ T0_API void crash_windows_hresult(HRESULT result, const char *format, ...);
     }                                                                          \
   }
 
+#define ASSERT_WIN_EXP_ALWAYS(expression, ...)                                 \
+  {                                                                            \
+    if (expression) {                                                          \
+    } else {                                                                   \
+      if (IsDebuggerPresent()) {                                               \
+        __debugbreak();                                                        \
+      }                                                                        \
+      crash_windows("Assertion Failed: " #expression "\r\nFile: " __FILE__     \
+                    "\r\nLine: " STRINGIZE(__LINE__) "\r\n" __VA_ARGS__);      \
+    }                                                                          \
+  }
+
 #define ASSERT_ALWAYS(expression, ...)                                         \
   {                                                                            \
     if (expression) {                                                          \
@@ -73,6 +85,8 @@ T0_API void crash_windows_hresult(HRESULT result, const char *format, ...);
 #ifndef NO_ASSERTS
 
 #define ASSERT_WIN(...) ASSERT_WIN_ALWAYS(__VA_ARGS__)
+
+#define ASSERT_WIN_EXP(...) ASSERT_WIN_EXP_ALWAYS(__VA_ARGS__)
 
 #define ASSERT(...) ASSERT_ALWAYS(__VA_ARGS__)
 
