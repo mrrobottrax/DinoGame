@@ -12,10 +12,6 @@
 #include <tlhelp32.h>
 #include <wrl.h>
 
-#ifndef D3DCOMPILE_DEBUG
-#define D3DCOMPILE_DEBUG 1
-#endif
-
 // This is controversial
 using namespace Microsoft::WRL;
 

@@ -2,8 +2,6 @@
 
 #pragma warning(push, 0)
 
-#define D3DCOMPILE_DEBUG 1
-
 #include <DXGIDebug.h>
 #include <Windows.h>
 #include <d3d12.h>
