@@ -27,11 +27,12 @@ public:
     return m_Children[index];
   }
 
+protected:
+  unsigned int m_Position[2];
+  unsigned int m_Dimensions[2];
+
 private:
   DGUI_Panel **m_Children;
   uint32_t m_ChildCapacity;
   uint32_t m_ChildCount;
-
-  unsigned int m_Position[2];
-  unsigned int m_Dimensions[2];
 };
