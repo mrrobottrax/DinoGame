@@ -52,7 +52,7 @@ void WindowSystem::init(const char *name, int width, int height,
     wc.lpfnWndProc = window_proc;
     wc.hInstance = GetModuleHandle(NULL);
     wc.lpszClassName = k_WindowClassName;
-    // wc.hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH);
+    //wc.hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH);
     wc.style = CS_HREDRAW | CS_VREDRAW;
     wc.hIcon = NULL;
 
@@ -71,8 +71,8 @@ void WindowSystem::init(const char *name, int width, int height,
   int maxWidth = GetSystemMetrics(SM_CXSCREEN);
   int maxHeight = GetSystemMetrics(SM_CYSCREEN);
 
-  DWORD style = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX |
-                WS_MAXIMIZEBOX | WS_VISIBLE;
+  DWORD style =
+      WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX;
 
   if (resizeable)
     style |= WS_THICKFRAME;
@@ -112,3 +112,5 @@ void WindowSystem::init(const char *name, int width, int height,
 }
 
 void WindowSystem::stop() {}
+
+void WindowSystem::show_finally() { ShowWindowAsync(hWnd, SW_SHOW); }
