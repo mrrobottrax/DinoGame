@@ -165,11 +165,19 @@ DGUI_Panel *dgui_get_top_panel() { return &s_TopPanel; }
 void dgui_clear_all() { s_TopPanel.clear_children(); }
 
 static void render_recursive(DGUI_Panel *pPanel,
-                             ID3D12GraphicsCommandList10 *pCommandList) {
-  pPanel->add_render_commands(pCommandList);
+                             ID3D12GraphicsCommandList10 *pCommandList,
+                             unsigned int x, unsigned int y) {
+  pPanel->add_render_commands(pCommandList, x, y);
+
+  unsigned int offsets[2];
+  offsets[0] = pPanel->get_position_x();
+  offsets[1] = pPanel->get_position_y();
+  offsets[0] += x;
+  offsets[1] += y;
   uint32_t children = pPanel->get_child_count();
   for (uint32_t i = 0; i < children; ++i) {
-    render_recursive(pPanel->get_child(i), pCommandList);
+    render_recursive(pPanel->get_child(i), pCommandList, offsets[0],
+                     offsets[1]);
   }
 }
 
@@ -202,5 +210,5 @@ void dgui_add_render_commands(ID3D12GraphicsCommandList10 *pCommandList,
   pCommandList->SetPipelineState(s_RectPipelineState.Get());
   pCommandList->SetGraphicsRootSignature(s_RectRootSignature.Get());
 
-  render_recursive(pPanel, pCommandList);
+  render_recursive(pPanel, pCommandList, 0, 0);
 }
