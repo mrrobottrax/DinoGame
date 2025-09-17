@@ -90,10 +90,10 @@ void dgui_init(ID3D12Device9 *pDevice) {
               .AlphaToCoverageEnable = FALSE,
               .IndependentBlendEnable = FALSE,
               .RenderTarget = {{
-                  .BlendEnable = FALSE,
+                  .BlendEnable = TRUE,
                   .LogicOpEnable = FALSE,
-                  .SrcBlend = D3D12_BLEND_ONE,
-                  .DestBlend = D3D12_BLEND_ZERO,
+                  .SrcBlend = D3D12_BLEND_SRC_ALPHA,
+                  .DestBlend = D3D12_BLEND_INV_SRC_ALPHA,
                   .BlendOp = D3D12_BLEND_OP_ADD,
                   .SrcBlendAlpha = D3D12_BLEND_ONE,
                   .DestBlendAlpha = D3D12_BLEND_ZERO,

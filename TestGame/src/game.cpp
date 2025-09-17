@@ -17,7 +17,7 @@ GAME_API void load_main_menu() {
 
   DGUI_ColoredPanel *testChild = new DGUI_ColoredPanel();
   mainMenuPanel->add_child(testChild);
-  testChild->set_position(150, 150);
-  testChild->set_size(100, 100);
-  testChild->set_color(0, 1, 0, 1);
+  testChild->set_position(50, 50);
+  testChild->set_size(200, 110);
+  testChild->set_color(0, 1, 0, 0.5f);
 }
