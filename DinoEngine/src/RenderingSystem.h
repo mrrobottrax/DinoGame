@@ -1,6 +1,6 @@
 #pragma once
 
-constexpr UINT k_FramesInFlight = 3;
+constexpr UINT k_FramesInFlight = 2;
 
 class RenderingSystem {
   ComPtr<ID3D12Device9> m_pDevice;
