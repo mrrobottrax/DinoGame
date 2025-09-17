@@ -150,6 +150,7 @@
     <CustomBuildStep />
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="include\dgui\rendering.h" />
     <ClInclude Include="include\dino_gui.h" />
     <ClInclude Include="include\dgui\dgui.h" />
     <ClInclude Include="include\dgui\DGUI_Panel.h" />
@@ -157,6 +158,7 @@
     <ClInclude Include="src\pch.h" />
     <ClInclude Include="include\dgui\platform.h" />
     <ClInclude Include="include\dgui\screen.h" />
+    <ClInclude Include="src\rendering_private.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\dgui.cpp" />
@@ -165,6 +167,7 @@
     <ClCompile Include="src\pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="src\rendering.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\tier0\tier0.vcxproj">

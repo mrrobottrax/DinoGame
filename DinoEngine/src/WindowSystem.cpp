@@ -1,5 +1,6 @@
 #include "pch.h"
 
+#include "RenderingSystem.h"
 #include "WindowSystem.h"
 
 constexpr wchar_t k_WindowClassName[] = L"Dino Window";
@@ -22,6 +23,10 @@ static LRESULT CALLBACK window_proc(HWND hWnd, UINT uMsg, WPARAM wParam,
 
   case WM_DESTROY:
     PostQuitMessage(0);
+    break;
+
+  case WM_SIZE:
+    g_RenderingSystem.try_resize(LOWORD(lParam), HIWORD(lParam));
     break;
 
   case WM_SETCURSOR:

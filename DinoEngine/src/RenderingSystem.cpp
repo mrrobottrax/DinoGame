@@ -3,6 +3,9 @@
 #include "RenderingSystem.h"
 #include "WindowSystem.h"
 
+constexpr UINT k_SwapChainFlags = DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
+constexpr DXGI_FORMAT k_SwapChainFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
+
 #if defined(_DEBUG)
 static void __stdcall d3d12_message_callback(D3D12_MESSAGE_CATEGORY Category,
                                              D3D12_MESSAGE_SEVERITY Severity,
@@ -81,6 +84,12 @@ void RenderingSystem::init() {
 
 #endif
 
+  m_hGPUStallEvent = CreateEventEx(NULL, L"Big GPU stall", 0, EVENT_ALL_ACCESS);
+  ASSERT_WIN_EXP_ALWAYS(m_hGPUStallEvent != NULL);
+
+  ASSERT_WIN_ALWAYS(m_pDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE,
+                                           IID_PPV_ARGS(&m_GPUStallFence)));
+
   D3D12_COMMAND_QUEUE_DESC commandQueueDesc{
       .Type = D3D12_COMMAND_LIST_TYPE_DIRECT,
       .Priority = D3D12_COMMAND_QUEUE_PRIORITY_HIGH,
@@ -94,7 +103,7 @@ void RenderingSystem::init() {
   DXGI_SWAP_CHAIN_DESC1 swapChainDesc{
       .Width = 0,
       .Height = 0,
-      .Format = DXGI_FORMAT_R8G8B8A8_UNORM,
+      .Format = k_SwapChainFormat,
       .Stereo = FALSE,
       .SampleDesc =
           {
@@ -118,6 +127,11 @@ void RenderingSystem::init() {
       m_pCommandQueue.Get(), g_WindowSystem.hWnd, &swapChainDesc,
       &swapChainFullscreenDesc, NULL, &swapChain1));
   ASSERT_WIN_ALWAYS(swapChain1.As(&m_pSwapChain));
+
+  DXGI_SWAP_CHAIN_DESC1 swapChainDescRetrieved;
+  m_pSwapChain->GetDesc1(&swapChainDescRetrieved);
+  m_SwapChainW = swapChainDescRetrieved.Width;
+  m_SwapChainH = swapChainDescRetrieved.Height;
 
   ASSERT_WIN_ALWAYS(pDxgiFactory->MakeWindowAssociation(g_WindowSystem.hWnd,
                                                         DXGI_MWA_NO_ALT_ENTER));
@@ -144,10 +158,26 @@ void RenderingSystem::init() {
         0, D3D12_COMMAND_LIST_TYPE_DIRECT, D3D12_COMMAND_LIST_FLAG_NONE,
         IID_PPV_ARGS(&fd.commandList)));
 
+    ASSERT_WIN_ALWAYS(m_pDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE,
+                                             IID_PPV_ARGS(&fd.fence)));
+
+    fd.fenceEvent = CreateEventEx(NULL, NULL, 0, EVENT_ALL_ACCESS);
+    ASSERT_ALWAYS(fd.fenceEvent != NULL);
+
+    fd.fenceValue = 0;
+  }
+
+  create_backbuffer_data();
+}
+
+void RenderingSystem::create_backbuffer_data() {
+  for (UINT i = 0; i < k_FramesInFlight; ++i) {
+    FrameData &fd = m_FrameData[i];
+
     ASSERT_WIN_ALWAYS(m_pSwapChain->GetBuffer(i, IID_PPV_ARGS(&fd.backbuffer)));
 
     D3D12_RENDER_TARGET_VIEW_DESC rtViewDesc{
-        .Format = DXGI_FORMAT_R8G8B8A8_UNORM,
+        .Format = k_SwapChainFormat,
         .ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D,
         .Texture2D =
             {
@@ -159,32 +189,22 @@ void RenderingSystem::init() {
         m_pFrameBufferDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
     handle.ptr += m_RtvDescriptorIncrementSize * i;
     m_pDevice->CreateRenderTargetView(fd.backbuffer.Get(), &rtViewDesc, handle);
+  }
+}
 
-    ASSERT_WIN_ALWAYS(m_pDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE,
-                                             IID_PPV_ARGS(&fd.fence)));
+void RenderingSystem::wait_idle() {
+  m_GPUStallValue++;
+  m_GPUStallFence->SetEventOnCompletion(m_GPUStallValue, m_hGPUStallEvent);
+  ASSERT_WIN_ALWAYS(
+      m_pCommandQueue->Signal(m_GPUStallFence.Get(), m_GPUStallValue));
 
-    fd.fenceEvent = CreateEventEx(NULL, NULL, 0, EVENT_ALL_ACCESS);
-    ASSERT_ALWAYS(fd.fenceEvent != NULL);
-
-    fd.fenceValue = 0;
+  if (m_GPUStallFence->GetCompletedValue() < m_GPUStallValue) {
+    WaitForSingleObject(m_hGPUStallEvent, INFINITE);
   }
 }
 
 void RenderingSystem::stop() {
-  // wait for gpu idle
-  {
-    ComPtr<ID3D12Fence1> fence;
-    ASSERT_WIN_ALWAYS(
-        m_pDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence)));
-    ASSERT_WIN_ALWAYS(m_pCommandQueue->Signal(fence.Get(), 1));
-
-    HANDLE hEvent =
-        CreateEventEx(NULL, L"Final wait fence", 0, EVENT_ALL_ACCESS);
-    ASSERT_ALWAYS(hEvent != NULL);
-    fence->SetEventOnCompletion(1, hEvent);
-
-    WaitForSingleObject(hEvent, INFINITE);
-  }
+  wait_idle();
 
   // destroy frame data
   for (UINT i = 0; i < k_FramesInFlight; ++i) {
@@ -199,6 +219,9 @@ void RenderingSystem::stop() {
   m_pSwapChain.Reset();
   m_pCommandQueue.Reset();
   m_pFrameBufferDescriptorHeap.Reset();
+  m_GPUStallFence.Reset();
+
+  CloseHandle(m_hGPUStallEvent);
 
 #if defined(_DEBUG)
   ComPtr<ID3D12DebugDevice> debugDevice;
@@ -252,6 +275,10 @@ void RenderingSystem::create_device(IDXGIFactory6 *pDxgiFactory) {
 }
 
 void RenderingSystem::frame() {
+  if (m_SwapChainW == 0 || m_SwapChainH == 0) {
+    return;
+  }
+
   UINT iFrame = m_pSwapChain->GetCurrentBackBufferIndex();
 
   FrameData &fd = m_FrameData[iFrame];
@@ -286,7 +313,13 @@ void RenderingSystem::frame() {
 
   fd.commandList->OMSetRenderTargets(1, &rtvCpuHandle, TRUE, nullptr);
 
-  dgui_add_render_commands(fd.commandList.Get(), 1280, 720);
+  D3D12_RESOURCE_DESC1 backBufferDesc =
+      m_FrameData[iFrame].backbuffer->GetDesc1();
+  ASSERT(backBufferDesc.Width <= UINT_MAX);
+  static unsigned int s_Count = 0;
+  dgui_add_render_commands(fd.commandList.Get(),
+                           (unsigned int)backBufferDesc.Width,
+                           backBufferDesc.Height);
 
   D3D12_RESOURCE_BARRIER renderTargetToPresentBarrier{
       .Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION,
@@ -314,4 +347,46 @@ void RenderingSystem::frame() {
   };
   ASSERT_WIN_ALWAYS(m_pSwapChain->Present1(0, DXGI_PRESENT_ALLOW_TEARING,
                                            &presentParameters));
+}
+
+void RenderingSystem::try_resize(unsigned int w, unsigned int h) {
+  if (!m_pSwapChain)
+    return;
+
+  if (m_SwapChainW == w && m_SwapChainH == h)
+    return;
+
+  console_log("SIZE: %u, %u", w, h);
+  if (w == 0 || h == 0) {
+    m_SwapChainW = m_SwapChainH = 0;
+    return;
+  }
+
+  wait_idle();
+
+  for (UINT i = 0; i < k_FramesInFlight; ++i) {
+    FrameData &fd = m_FrameData[i];
+    fd.backbuffer.Reset();
+  }
+
+  ASSERT_WIN_ALWAYS(m_pSwapChain->ResizeBuffers(
+      k_FramesInFlight, w, h, k_SwapChainFormat, k_SwapChainFlags));
+
+  create_backbuffer_data();
+
+  D3D12_RESOURCE_DESC1 backbufferDesc = m_FrameData[0].backbuffer->GetDesc1();
+  ASSERT(backbufferDesc.Width == w);
+  ASSERT(backbufferDesc.Height == h);
+  ASSERT(backbufferDesc.Width <= UINT_MAX);
+  m_SwapChainW = (unsigned int)backbufferDesc.Width;
+  m_SwapChainH = backbufferDesc.Height;
+
+#ifndef NO_ASSERTS
+  for (UINT i = 0; i < k_FramesInFlight; ++i) {
+    FrameData &fd = m_FrameData[i];
+    D3D12_RESOURCE_DESC1 backbufferDescI = fd.backbuffer->GetDesc1();
+    ASSERT(backbufferDescI.Width == m_SwapChainW);
+    ASSERT(backbufferDescI.Height == m_SwapChainH);
+  }
+#endif // !NO_ASSERTS
 }

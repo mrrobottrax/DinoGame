@@ -13,7 +13,6 @@ void DGUI_ColoredPanel::add_render_commands(
        -1 + (float)(m_Position[1] + y) / g_ScreenDimensions[1] * 2, 0, 1},
   };
   pCommandList->SetGraphicsRoot32BitConstants(0, 16, matrix, 0);
-
   pCommandList->SetGraphicsRoot32BitConstants(0, 4, m_Color, 16);
 
   pCommandList->DrawInstanced(4, 1, 0, 0);

@@ -7,6 +7,9 @@ DGUI_Panel::~DGUI_Panel() { clear_children(); }
 
 void DGUI_Panel::add_render_commands(ID3D12GraphicsCommandList10 *pCommandList,
                                      unsigned int x, unsigned int y) {
+  (void)pCommandList;
+  (void)x;
+  (void)y;
 }
 
 void DGUI_Panel::add_child(DGUI_Panel *pPanel) {

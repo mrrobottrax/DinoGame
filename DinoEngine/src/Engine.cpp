@@ -73,8 +73,8 @@ void Engine::loop() {
       if (msg.message == WM_QUIT) {
         return;
       }
-
-      g_RenderingSystem.frame();
     }
+
+    g_RenderingSystem.frame();
   }
 }
