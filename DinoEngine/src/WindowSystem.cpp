@@ -52,7 +52,7 @@ void WindowSystem::init(const char *name, int width, int height,
     wc.lpfnWndProc = window_proc;
     wc.hInstance = GetModuleHandle(NULL);
     wc.lpszClassName = k_WindowClassName;
-    //wc.hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH);
+    // wc.hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH);
     wc.style = CS_HREDRAW | CS_VREDRAW;
     wc.hIcon = NULL;
 
@@ -114,3 +114,17 @@ void WindowSystem::init(const char *name, int width, int height,
 void WindowSystem::stop() {}
 
 void WindowSystem::show_finally() { ShowWindowAsync(hWnd, SW_SHOW); }
+
+uint32_t WindowSystem::get_width() {
+  RECT rect;
+  ASSERT_WIN_EXP(GetClientRect(hWnd, &rect));
+
+  return rect.right - rect.left;
+}
+
+uint32_t WindowSystem::get_height() {
+  RECT rect;
+  ASSERT_WIN_EXP(GetClientRect(hWnd, &rect));
+
+  return rect.bottom - rect.top;
+}

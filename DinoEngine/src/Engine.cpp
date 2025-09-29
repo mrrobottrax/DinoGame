@@ -52,7 +52,7 @@ void Engine::init() {
   dgui_init(g_RenderingSystem.get_device());
 
   g_WindowSystem.show_finally();
-  g_GameDllSystem.load_main_menu();
+  g_GameDllSystem.load_main_menu(g_WindowSystem.get_width(), g_WindowSystem.get_height());
 }
 
 void Engine::stop() {

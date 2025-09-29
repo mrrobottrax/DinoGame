@@ -1,21 +1,11 @@
 #include "pch.h"
 
-void main_menu_load() {
-  DGUI_ColoredPanel *mainMenuPanel = new DGUI_ColoredPanel();
-  dgui_get_top_panel()->add_child(mainMenuPanel);
-  mainMenuPanel->set_position(100, 100);
-  mainMenuPanel->set_size(100, 100);
-  mainMenuPanel->set_color(1, 0, 0, 1);
+GAME_API void load_main_menu(uint32_t width, uint32_t height) {
+  console_log("Loading main menu");
 
-  DGUI_ColoredPanel *testChild = new DGUI_ColoredPanel();
-  mainMenuPanel->add_child(testChild);
-  testChild->set_position(50, 50);
-  testChild->set_size(200, 110);
-  testChild->set_color(0, 1, 0, 0.5f);
-
-  DGUI_ColoredPanel *testChild2 = new DGUI_ColoredPanel();
-  mainMenuPanel->add_child(testChild2);
-  testChild2->set_position(20, 85);
-  testChild2->set_size(100, 200);
-  testChild2->set_color(0, 0, 1, 0.5f);
+  DGUI_ColoredPanel *mainMenuCentred = new DGUI_ColoredPanel();
+  dgui_get_top_panel()->add_child(mainMenuCentred);
+  mainMenuCentred->set_position(width / 2 - 250, 0);
+  mainMenuCentred->set_size(500, height);
+  mainMenuCentred->set_color(1, 0, 0, 0.25f);
 }

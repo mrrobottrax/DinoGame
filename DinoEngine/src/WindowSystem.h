@@ -9,6 +9,9 @@ public:
             bool resizeable = false);
   void stop();
   void show_finally();
+
+  uint32_t get_width();
+  uint32_t get_height();
 };
 
 inline WindowSystem g_WindowSystem{};
