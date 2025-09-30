@@ -16,6 +16,7 @@ void DGUI_Image::add_render_commands(ID3D12GraphicsCommandList10 *pCommandList,
   pCommandList->SetGraphicsRoot32BitConstants(0, 16, matrix.m_Data, 0);
   pCommandList->SetGraphicsRoot32BitConstants(0, 4, color, 16);
 
+  pCommandList->SetDescriptorHeaps(1, &TextureHeap);
   pCommandList->SetGraphicsRootDescriptorTable(1, TextureHandle);
 
   pCommandList->DrawInstanced(4, 1, 0, 0);

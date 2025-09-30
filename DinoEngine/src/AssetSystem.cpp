@@ -114,7 +114,9 @@ GPUImage AssetSystem::load_png(const char *path) {
 
   // Create resource
   ASSERT_WIN_ALWAYS(pDevice->CreatePlacedResource(
-      m_LevelHeap.Get(), alignedOffset, &desc, D3D12_RESOURCE_STATE_COPY_DEST,
+      m_LevelHeap.Get(), alignedOffset, &desc,
+      D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE |
+          D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE,
       nullptr, IID_PPV_ARGS(&m_LevelResources[m_LevelResourceCount])));
 
   // Create view
@@ -136,5 +138,5 @@ GPUImage AssetSystem::load_png(const char *path) {
   ++m_LevelDescriptorCount;
   ++m_LevelResourceCount;
 
-  return gpuHandle;
+  return GPUImage(gpuHandle, m_LevelDescriptorHeap.Get());
 }
