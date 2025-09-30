@@ -99,6 +99,7 @@ T0_API void crash_windows_hresult(HRESULT result, const char *format, ...);
 #else
 
 #define ASSERT_WIN(...)
+#define ASSERT_WIN_EXP(...)
 #define ASSERT(...)
 #define ASSERT_SLOW(...)
 
