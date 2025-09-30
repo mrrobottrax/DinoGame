@@ -30,9 +30,12 @@ public:
   void try_resize(unsigned int w, unsigned int h);
   void wait_idle();
 
+  bool is_initialized() const { return m_Initialized; }
   ID3D12Device9 *get_device() { return m_pDevice.Get(); }
 
 private:
+  bool m_Initialized;
+
   void create_device(IDXGIFactory6 *pDxgiFactory);
   void create_backbuffer_data();
 };

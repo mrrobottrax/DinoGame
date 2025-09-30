@@ -8,4 +8,5 @@
 #define DINO_API _declspec(dllimport)
 #define GAME_API extern "C" _declspec(dllexport)
 
+#include "dino/IAssetSystem.h"
 #include "dino/callbacks.h"

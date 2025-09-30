@@ -168,6 +168,8 @@ void RenderingSystem::init() {
   }
 
   create_backbuffer_data();
+
+  m_Initialized = true;
 }
 
 void RenderingSystem::create_backbuffer_data() {
@@ -204,6 +206,7 @@ void RenderingSystem::wait_idle() {
 }
 
 void RenderingSystem::stop() {
+  m_Initialized = false;
   wait_idle();
 
   // destroy frame data

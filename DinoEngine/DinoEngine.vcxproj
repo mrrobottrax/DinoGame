@@ -143,6 +143,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\AssetSystem.cpp" />
     <ClCompile Include="src\Engine.cpp" />
     <ClCompile Include="src\GameDllSystem.cpp" />
     <ClCompile Include="src\RenderingSystem.cpp" />
@@ -154,8 +155,10 @@
     <ClCompile Include="src\WindowSystem.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="include\dino\IAssetSystem.h" />
     <ClInclude Include="include\dino\callbacks.h" />
     <ClInclude Include="include\dino_engine.h" />
+    <ClInclude Include="src\AssetSystem.h" />
     <ClInclude Include="src\Engine.h" />
     <ClInclude Include="src\GameDllSystem.h" />
     <ClInclude Include="src\pch.h" />

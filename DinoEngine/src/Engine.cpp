@@ -2,6 +2,7 @@
 
 #include "Engine.h"
 
+#include "AssetSystem.h"
 #include "GameDllSystem.h"
 #include "RenderingSystem.h"
 #include "WindowSystem.h"
@@ -48,6 +49,7 @@ void Engine::init() {
 
   g_WindowSystem.init(g_GameDllSystem.gameInfo.windowName, 1280, 720, true);
   g_RenderingSystem.init();
+  g_AssetSystem.init();
 
   dgui_init(g_RenderingSystem.get_device());
 
@@ -58,6 +60,7 @@ void Engine::init() {
 void Engine::stop() {
   dgui_stop();
 
+  g_AssetSystem.stop();
   g_RenderingSystem.stop();
   g_WindowSystem.stop();
 
