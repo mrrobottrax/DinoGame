@@ -9,14 +9,22 @@
 ShaderData *s_pCurrentShader;
 
 DGUI_API ShaderData g_RectShader;
+DGUI_API ShaderData g_TextureShader;
 
 void rendering_init(ID3D12Device9 *pDevice) {
   dgui_compile_shader(pDevice, &g_RectShader,
                       L"dgui_shaders\\DefaultVertex.cso",
                       L"dgui_shaders\\DefaultPixel.cso");
+
+  dgui_compile_shader(pDevice, &g_TextureShader,
+                      L"dgui_shaders\\TextureVertex.cso",
+                      L"dgui_shaders\\TexturePixel.cso");
 }
 
-void rendering_stop() { dgui_release_shader(&g_RectShader); }
+void rendering_stop() {
+  dgui_release_shader(&g_TextureShader);
+  dgui_release_shader(&g_RectShader);
+}
 
 DGUI_API void dgui_compile_shader(ID3D12Device9 *pDevice,
                                   ShaderData *pShaderData,
@@ -50,30 +58,33 @@ DGUI_API void dgui_compile_shader(ID3D12Device9 *pDevice,
   CloseHandle(hVSFile);
   CloseHandle(hPSFile);
 
-  ComPtr<ID3DBlob> pVSRootSignatureBlob;
-  D3DGetBlobPart(pVSBlob, liVSFileSize.QuadPart, D3D_BLOB_ROOT_SIGNATURE, 0,
-                 &pVSRootSignatureBlob);
+  if (!pShaderData->pRootSignature) {
+    ComPtr<ID3DBlob> pVSRootSignatureBlob;
+    D3DGetBlobPart(pVSBlob, liVSFileSize.QuadPart, D3D_BLOB_ROOT_SIGNATURE, 0,
+                   &pVSRootSignatureBlob);
 
-  ComPtr<ID3DBlob> pPSRootSignatureBlob;
-  D3DGetBlobPart(pPSBlob, liPSFileSize.QuadPart, D3D_BLOB_ROOT_SIGNATURE, 0,
-                 &pPSRootSignatureBlob);
+    ComPtr<ID3DBlob> pPSRootSignatureBlob;
+    D3DGetBlobPart(pPSBlob, liPSFileSize.QuadPart, D3D_BLOB_ROOT_SIGNATURE, 0,
+                   &pPSRootSignatureBlob);
 
-  bool rootSignaturesEqual = false;
-  if (pVSRootSignatureBlob.Get() && pPSRootSignatureBlob.Get() &&
-      pVSRootSignatureBlob->GetBufferSize() ==
-          pPSRootSignatureBlob->GetBufferSize()) {
-    rootSignaturesEqual = (memcmp(pVSRootSignatureBlob->GetBufferPointer(),
-                                  pPSRootSignatureBlob->GetBufferPointer(),
-                                  pVSRootSignatureBlob->GetBufferSize()) == 0);
+    bool rootSignaturesEqual = false;
+    if (pVSRootSignatureBlob.Get() && pPSRootSignatureBlob.Get() &&
+        pVSRootSignatureBlob->GetBufferSize() ==
+            pPSRootSignatureBlob->GetBufferSize()) {
+      rootSignaturesEqual =
+          (memcmp(pVSRootSignatureBlob->GetBufferPointer(),
+                  pPSRootSignatureBlob->GetBufferPointer(),
+                  pVSRootSignatureBlob->GetBufferSize()) == 0);
+    }
+
+    ASSERT_WIN_ALWAYS(pDevice->CreateRootSignature(
+        0, pVSRootSignatureBlob->GetBufferPointer(),
+        pVSRootSignatureBlob->GetBufferSize(),
+        IID_PPV_ARGS(&pShaderData->pRootSignature)));
   }
 
-  ASSERT_WIN_ALWAYS(
-      pDevice->CreateRootSignature(0, pVSRootSignatureBlob->GetBufferPointer(),
-                                   pVSRootSignatureBlob->GetBufferSize(),
-                                   IID_PPV_ARGS(&pShaderData->pRootSignature)));
-
   D3D12_GRAPHICS_PIPELINE_STATE_DESC graphicsPipelineStateDesc{
-      .pRootSignature = pShaderData->pRootSignature,
+      .pRootSignature = pShaderData->pRootSignature.Get(),
       .VS =
           {
               .pShaderBytecode = pVSBlob,
@@ -165,11 +176,8 @@ DGUI_API void dgui_compile_shader(ID3D12Device9 *pDevice,
 }
 
 DGUI_API void dgui_release_shader(ShaderData *pShaderData) {
-  pShaderData->pPipelineState->Release();
-  pShaderData->pRootSignature->Release();
-
-  pShaderData->pPipelineState = nullptr;
-  pShaderData->pRootSignature = nullptr;
+  pShaderData->pPipelineState.Reset();
+  pShaderData->pRootSignature.Reset();
 }
 
 DGUI_API void dgui_set_shader(ShaderData *pShaderData,
@@ -182,8 +190,8 @@ DGUI_API void dgui_set_shader(ShaderData *pShaderData,
   ASSERT(pShaderData->pRootSignature != nullptr);
 
   s_pCurrentShader = pShaderData;
-  pCommandList->SetPipelineState(pShaderData->pPipelineState);
-  pCommandList->SetGraphicsRootSignature(pShaderData->pRootSignature);
+  pCommandList->SetPipelineState(pShaderData->pPipelineState.Get());
+  pCommandList->SetGraphicsRootSignature(pShaderData->pRootSignature.Get());
 }
 
 static void render_recursive(DGUI_Panel *pPanel,

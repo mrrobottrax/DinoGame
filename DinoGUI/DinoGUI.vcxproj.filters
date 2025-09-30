@@ -69,8 +69,11 @@
   <ItemGroup>
     <FxCompile Include="shaders\DefaultPixel.hlsl" />
     <FxCompile Include="shaders\DefaultVertex.hlsl" />
+    <FxCompile Include="shaders\TexturePixel.hlsl" />
+    <FxCompile Include="shaders\TextureVertex.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\RootSignature.hlsli" />
+    <None Include="shaders\Texture.hlsli" />
   </ItemGroup>
 </Project>

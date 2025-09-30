@@ -5,10 +5,14 @@ dgui_add_render_commands(ID3D12GraphicsCommandList10 *pCommandList,
                          unsigned int w, unsigned int h);
 
 struct ShaderData {
-  ID3D12PipelineState *pPipelineState;
-  ID3D12RootSignature *pRootSignature;
+  ComPtr<ID3D12PipelineState> pPipelineState;
+  ComPtr<ID3D12RootSignature> pRootSignature;
 };
 
+/// <summary>
+/// If the root signature exists in the ShaderData, use that. Otherwise, create
+/// one from the shader.
+/// </summary>
 DGUI_API void dgui_compile_shader(ID3D12Device9 *pDevice,
                                   ShaderData *pShaderData,
                                   const wchar_t *vertexPath,
@@ -20,3 +24,4 @@ DGUI_API void dgui_set_shader(ShaderData *pShaderData,
                               ID3D12GraphicsCommandList10 *pCommandList);
 
 DGUI_API extern ShaderData g_RectShader;
+DGUI_API extern ShaderData g_TextureShader;
