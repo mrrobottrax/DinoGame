@@ -2,6 +2,8 @@
 
 #include "dgui/platform.h"
 
+#include "dino_math.h"
+
 #define DGUI_API _declspec(dllimport)
 
 #include "dgui/DGUI_ColoredPanel.h"

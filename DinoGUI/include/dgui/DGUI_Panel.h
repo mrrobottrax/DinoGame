@@ -46,6 +46,14 @@ public:
   void add_child(DGUI_Panel *pPanel);
   void delete_children();
 
+  float calc_x(float baseX);
+  float calc_y(float baseY);
+
+  float calc_w();
+  float calc_h();
+
+  mat4_t get_matrix(float baseX, float baseY);
+
   uint16_t get_child_count() { return m_ChildCount; }
   DGUI_Panel *get_child(uint16_t index) {
     ASSERT(index < m_ChildCount);

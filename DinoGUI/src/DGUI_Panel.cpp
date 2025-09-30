@@ -52,3 +52,39 @@ void DGUI_Panel::delete_children() {
   m_ChildCapacity = 0;
   m_ChildCount = 0;
 }
+
+float DGUI_Panel::calc_x(float baseX) {
+  const float anchorX = Anchor[0] * m_Parent->calc_w();
+  float x = (Position[0] + anchorX) * g_ScreenRatio * DGUI_2PIXEL_SCALE + baseX;
+  return x;
+}
+
+float DGUI_Panel::calc_y(float baseY) {
+  const float anchorY = Anchor[1] * m_Parent->calc_h();
+  float y = (Position[1] + anchorY) * g_ScreenRatio * DGUI_2PIXEL_SCALE + baseY;
+  return y;
+}
+
+float DGUI_Panel::calc_w() {
+  if (Flags & DGUI_PANEL_FLAG_SUBTRACTIVE_SIZE_X) {
+    return m_Parent->Dimensions[0] - Dimensions[0];
+  } 
+    return Dimensions[0];
+}
+
+float DGUI_Panel::calc_h() {
+  if (Flags & DGUI_PANEL_FLAG_SUBTRACTIVE_SIZE_Y) {
+    return m_Parent->Dimensions[1] - Dimensions[1];
+  }
+  return Dimensions[1];
+}
+
+mat4_t DGUI_Panel::get_matrix(float baseX, float baseY) {
+  float x = calc_x(baseX);
+  float y = calc_y(baseY);
+
+  float w = calc_w() * g_ScreenRatio * DGUI_2PIXEL_SCALE;
+  float h = calc_h() * DGUI_2PIXEL_SCALE;
+
+  return mat4_create(x, y, Position[2], w, h);
+}

@@ -191,7 +191,10 @@ static void render_recursive(DGUI_Panel *pPanel,
                              float y) {
   pPanel->add_render_commands(pCommandList, x, y);
 
-  // TODO: get offsets right
+  if (pPanel != dgui_get_top_panel()) {
+    x = pPanel->calc_x(x);
+    y = pPanel->calc_y(y);
+  }
   uint16_t children = pPanel->get_child_count();
   for (uint16_t i = 0; i < children; ++i) {
     render_recursive(pPanel->get_child(i), pCommandList, x, y);
