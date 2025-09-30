@@ -13,10 +13,9 @@ GAME_API void load_main_menu() {
   mainMenuCentred->set_position_dimensions(0, 0, 800, 0, 0.5f, 0);
   mainMenuCentred->set_color(1, 0, 0, 0.3f);
 
-  DGUI_ColoredPanel *image = new DGUI_ColoredPanel();
+  DGUI_Image *image = new DGUI_Image();
   mainMenuCentred->add_child(image);
   image->Anchor[0] = 0.5f;
   image->Anchor[1] = 1;
   image->set_position_dimensions(0, -80, 600, 400, 0.5f, 1);
-  image->set_color(1, 1, 0, 0.5f);
 }

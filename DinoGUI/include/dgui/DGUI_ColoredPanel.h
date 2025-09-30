@@ -14,6 +14,6 @@ public:
     m_Color[3] = a;
   }
 
-protected:
+private:
   float m_Color[4]{};
 };

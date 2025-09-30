@@ -150,6 +150,7 @@
     <CustomBuildStep />
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="include\dgui\DGUI_Image.h" />
     <ClInclude Include="include\dgui\rendering.h" />
     <ClInclude Include="include\dino_gui.h" />
     <ClInclude Include="include\dgui\dgui.h" />
@@ -163,6 +164,7 @@
   <ItemGroup>
     <ClCompile Include="src\dgui.cpp" />
     <ClCompile Include="src\DGUI_ColoredPanel.cpp" />
+    <ClCompile Include="src\DGUI_Image.cpp" />
     <ClCompile Include="src\DGUI_Panel.cpp" />
     <ClCompile Include="src\pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
