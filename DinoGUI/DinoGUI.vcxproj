@@ -115,7 +115,7 @@
     </Link>
     <FxCompile>
       <ShaderModel>6.0</ShaderModel>
-      <AdditionalOptions>/rootsig_1_1 -Fd "$(OutDir)$(InputName).pdb" %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/rootsig_1_1 -Qembed_debug %(AdditionalOptions)</AdditionalOptions>
       <AdditionalIncludeDirectories>$(ProjectDir)shaders;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <ObjectFileOutput>$(OutDir)dgui_shaders\%(Filename).cso</ObjectFileOutput>
     </FxCompile>
