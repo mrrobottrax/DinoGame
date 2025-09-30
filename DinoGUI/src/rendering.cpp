@@ -187,19 +187,14 @@ DGUI_API void dgui_set_shader(ShaderData *pShaderData,
 }
 
 static void render_recursive(DGUI_Panel *pPanel,
-                             ID3D12GraphicsCommandList10 *pCommandList,
-                             unsigned int x, unsigned int y) {
+                             ID3D12GraphicsCommandList10 *pCommandList, float x,
+                             float y) {
   pPanel->add_render_commands(pCommandList, x, y);
 
-  unsigned int offsets[2];
-  offsets[0] = pPanel->get_position_x();
-  offsets[1] = pPanel->get_position_y();
-  offsets[0] += x;
-  offsets[1] += y;
-  uint32_t children = pPanel->get_child_count();
-  for (uint32_t i = 0; i < children; ++i) {
-    render_recursive(pPanel->get_child(i), pCommandList, offsets[0],
-                     offsets[1]);
+  // TODO: get offsets right
+  uint16_t children = pPanel->get_child_count();
+  for (uint16_t i = 0; i < children; ++i) {
+    render_recursive(pPanel->get_child(i), pCommandList, x, y);
   }
 }
 
@@ -209,7 +204,11 @@ dgui_add_render_commands(ID3D12GraphicsCommandList10 *pCommandList,
   g_ScreenDimensions[0] = w;
   g_ScreenDimensions[1] = h;
 
+  g_ScreenRatio = (float)h / w;
+
   DGUI_Panel *pPanel = dgui_get_top_panel();
+  pPanel->Dimensions[0] = DGUI_PIXEL_BASIS / g_ScreenRatio;
+  pPanel->Dimensions[1] = DGUI_PIXEL_BASIS;
 
   D3D12_VIEWPORT viewport{
       .TopLeftX = 0,
@@ -231,7 +230,7 @@ dgui_add_render_commands(ID3D12GraphicsCommandList10 *pCommandList,
   pCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
   dgui_set_shader(&s_RectShader, pCommandList);
-  render_recursive(pPanel, pCommandList, 0, 0);
+  render_recursive(pPanel, pCommandList, -1, -1);
 
   s_pCurrentShader = nullptr;
 }

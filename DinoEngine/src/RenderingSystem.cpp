@@ -35,7 +35,7 @@ static void __stdcall d3d12_message_callback(D3D12_MESSAGE_CATEGORY Category,
 #endif //  defined(_DEBUG)
 
 void RenderingSystem::init() {
-  ASSERT(g_WindowSystem.hWnd != NULL);
+  ASSERT(g_WindowSystem.get_hWnd() != NULL);
 
 #if defined(_DEBUG)
   // enable the D3D12 debug layer
@@ -124,7 +124,7 @@ void RenderingSystem::init() {
       .Windowed = TRUE,
   };
   ASSERT_WIN_ALWAYS(pDxgiFactory->CreateSwapChainForHwnd(
-      m_pCommandQueue.Get(), g_WindowSystem.hWnd, &swapChainDesc,
+      m_pCommandQueue.Get(), g_WindowSystem.get_hWnd(), &swapChainDesc,
       &swapChainFullscreenDesc, NULL, &swapChain1));
   ASSERT_WIN_ALWAYS(swapChain1.As(&m_pSwapChain));
 
@@ -133,8 +133,8 @@ void RenderingSystem::init() {
   m_SwapChainW = swapChainDescRetrieved.Width;
   m_SwapChainH = swapChainDescRetrieved.Height;
 
-  ASSERT_WIN_ALWAYS(pDxgiFactory->MakeWindowAssociation(g_WindowSystem.hWnd,
-                                                        DXGI_MWA_NO_ALT_ENTER));
+  ASSERT_WIN_ALWAYS(pDxgiFactory->MakeWindowAssociation(
+      g_WindowSystem.get_hWnd(), DXGI_MWA_NO_ALT_ENTER));
 
   D3D12_DESCRIPTOR_HEAP_DESC descriptorHeapDesc{
       .Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV,

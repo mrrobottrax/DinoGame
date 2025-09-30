@@ -16,4 +16,4 @@ DGUI_API void dgui_stop() {
 
 DGUI_API DGUI_Panel *dgui_get_top_panel() { return &s_TopPanel; }
 
-DGUI_API void dgui_clear_all() { s_TopPanel.clear_children(); }
+DGUI_API void dgui_clear_all() { s_TopPanel.delete_children(); }

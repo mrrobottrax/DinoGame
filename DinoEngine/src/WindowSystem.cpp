@@ -9,16 +9,16 @@ constexpr COLORREF k_BgColor = 0x00181818;
 static WNDCLASS s_WndClass;
 static HCURSOR s_Cursor;
 
-static LRESULT CALLBACK window_proc(HWND hWnd, UINT uMsg, WPARAM wParam,
+static LRESULT CALLBACK window_proc(HWND m_hWnd, UINT uMsg, WPARAM wParam,
                                     LPARAM lParam) {
   switch (uMsg) {
   case WM_NCCREATE:
     // store user ptr
-    SetWindowLongPtrW(hWnd, GWLP_USERDATA, lParam);
-    return DefWindowProc(hWnd, uMsg, wParam, lParam);
+    SetWindowLongPtrW(m_hWnd, GWLP_USERDATA, lParam);
+    return DefWindowProc(m_hWnd, uMsg, wParam, lParam);
 
   case WM_CLOSE:
-    DestroyWindow(hWnd);
+    DestroyWindow(m_hWnd);
     break;
 
   case WM_DESTROY:
@@ -33,12 +33,12 @@ static LRESULT CALLBACK window_proc(HWND hWnd, UINT uMsg, WPARAM wParam,
     if (LOWORD(lParam) == HTCLIENT) {
       SetCursor(s_Cursor);
     } else {
-      return DefWindowProc(hWnd, uMsg, wParam, lParam);
+      return DefWindowProc(m_hWnd, uMsg, wParam, lParam);
     }
     break;
 
   default:
-    return DefWindowProc(hWnd, uMsg, wParam, lParam);
+    return DefWindowProc(m_hWnd, uMsg, wParam, lParam);
   }
 
   return 0;
@@ -95,36 +95,36 @@ void WindowSystem::init(const char *name, int width, int height,
   wchar_t *wcName = (wchar_t *)malloc(wcLen * sizeof(wchar_t));
   MultiByteToWideChar(CP_UTF8, 0, name, -1, wcName, wcLen);
 
-  hWnd = CreateWindowEx(exStyle, k_WindowClassName, wcName, style, x, y, w, h,
+  m_hWnd = CreateWindowEx(exStyle, k_WindowClassName, wcName, style, x, y, w, h,
                         NULL, NULL, GetModuleHandle(NULL), NULL);
 
   free(wcName);
 
-  if (hWnd == NULL) {
+  if (m_hWnd == NULL) {
     CRASH_WIN("Failed to create window");
   }
 
-  DwmSetWindowAttribute(hWnd, DWMWA_CAPTION_COLOR, &k_BgColor,
+  DwmSetWindowAttribute(m_hWnd, DWMWA_CAPTION_COLOR, &k_BgColor,
                         sizeof(k_BgColor));
   DWM_WINDOW_CORNER_PREFERENCE preference = DWMWCP_DONOTROUND;
-  DwmSetWindowAttribute(hWnd, DWMWA_WINDOW_CORNER_PREFERENCE, &preference,
+  DwmSetWindowAttribute(m_hWnd, DWMWA_WINDOW_CORNER_PREFERENCE, &preference,
                         sizeof(preference));
 }
 
 void WindowSystem::stop() {}
 
-void WindowSystem::show_finally() { ShowWindowAsync(hWnd, SW_SHOW); }
+void WindowSystem::show_finally() { ShowWindowAsync(m_hWnd, SW_SHOW); }
 
 uint32_t WindowSystem::get_width() {
   RECT rect;
-  ASSERT_WIN_EXP(GetClientRect(hWnd, &rect));
+  ASSERT_WIN_EXP(GetClientRect(m_hWnd, &rect));
 
   return rect.right - rect.left;
 }
 
 uint32_t WindowSystem::get_height() {
   RECT rect;
-  ASSERT_WIN_EXP(GetClientRect(hWnd, &rect));
+  ASSERT_WIN_EXP(GetClientRect(m_hWnd, &rect));
 
   return rect.bottom - rect.top;
 }
