@@ -36,7 +36,7 @@ public:
   virtual ~DGUI_Panel();
 
   virtual void add_render_commands(ID3D12GraphicsCommandList10 *pCommandList,
-                                   float x, float y);
+                                   float x, float y, float w, float h);
 
   /// <summary>
   /// Pivot is used when positioning the object. 0-1.
@@ -46,13 +46,11 @@ public:
   void add_child(DGUI_Panel *pPanel);
   void delete_children();
 
-  float calc_x(float baseX);
-  float calc_y(float baseY);
+  float calc_x();
+  float calc_y();
 
   float calc_w();
   float calc_h();
-
-  mat4_t get_matrix(float baseX, float baseY);
 
   uint16_t get_child_count() { return m_ChildCount; }
   DGUI_Panel *get_child(uint16_t index) {

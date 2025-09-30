@@ -5,10 +5,10 @@
 #include "screen.h"
 
 void DGUI_ColoredPanel::add_render_commands(
-    ID3D12GraphicsCommandList10 *pCommandList, float baseX, float baseY) {
+    ID3D12GraphicsCommandList10 *pCommandList, float x, float y, float w, float h) {
   ASSERT(m_Parent != nullptr);
 
-  mat4_t matrix = get_matrix(baseX, baseY);
+  mat4_t matrix = mat4_create(x, y, Position[2], w, h);
 
   dgui_set_shader(&g_RectShader, pCommandList);
   pCommandList->SetGraphicsRoot32BitConstants(0, 16, matrix.m_Data, 0);

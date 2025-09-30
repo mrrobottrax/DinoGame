@@ -5,7 +5,7 @@
 class DGUI_API DGUI_ColoredPanel : public DGUI_Panel {
 public:
   virtual void add_render_commands(ID3D12GraphicsCommandList10 *pCommandList,
-                                   float x, float y) override;
+                                   float x, float y, float w, float h) override;
 
   void set_color(float r, float g, float b, float a) {
     m_Color[0] = r;

@@ -189,14 +189,49 @@ DGUI_API void dgui_set_shader(ShaderData *pShaderData,
 static void render_recursive(DGUI_Panel *pPanel,
                              ID3D12GraphicsCommandList10 *pCommandList, float x,
                              float y) {
-  pPanel->add_render_commands(pCommandList, x, y);
+  LONG lx, ly, lw, lh;
 
   if (pPanel != dgui_get_top_panel()) {
-    x = pPanel->calc_x(x);
-    y = pPanel->calc_y(y);
+    float w, h, x1, y1;
+    x1 = pPanel->calc_x();
+    y1 = pPanel->calc_y();
+    w = pPanel->calc_w();
+    h = pPanel->calc_h();
+
+    x = x1 * g_ScreenRatio * DGUI_2PIXEL_SCALE + x;
+    y = y1 * DGUI_2PIXEL_SCALE + y;
+
+    w *= g_ScreenRatio * DGUI_2PIXEL_SCALE;
+    h *= DGUI_2PIXEL_SCALE;
+
+    pPanel->add_render_commands(pCommandList, x, y, w, h);
+
+    const float hx = g_ScreenDimensions[0] * 0.5f;
+    const float hy = g_ScreenDimensions[1] * 0.5f;
+
+    lx = (LONG)((x + 1) * hx + 0.5f);
+    ly = (LONG)((y + 1) * hy + 0.5f);
+
+    lw = (LONG)(w * hx + 0.5f);
+    lh = (LONG)(h * hy + 0.5f);
+
+  } else {
+    lx = 0;
+    ly = 0;
+    lw = g_ScreenDimensions[0];
+    lh = g_ScreenDimensions[1];
   }
+
   uint16_t children = pPanel->get_child_count();
   for (uint16_t i = 0; i < children; ++i) {
+    D3D12_RECT scissor{
+        .left = lx,
+        .top = (LONG)g_ScreenDimensions[1] - ly - lh,
+        .right = lx + lw,
+        .bottom = (LONG)g_ScreenDimensions[1] - ly,
+    };
+    pCommandList->RSSetScissorRects(1, &scissor);
+
     render_recursive(pPanel->get_child(i), pCommandList, x, y);
   }
 }
@@ -208,9 +243,10 @@ dgui_add_render_commands(ID3D12GraphicsCommandList10 *pCommandList,
   g_ScreenDimensions[1] = h;
 
   g_ScreenRatio = (float)h / w;
+  g_InvScreenRatio = (float)w / h;
 
   DGUI_Panel *pPanel = dgui_get_top_panel();
-  pPanel->Dimensions[0] = DGUI_PIXEL_BASIS / g_ScreenRatio;
+  pPanel->Dimensions[0] = DGUI_PIXEL_BASIS * g_InvScreenRatio;
   pPanel->Dimensions[1] = DGUI_PIXEL_BASIS;
 
   D3D12_VIEWPORT viewport{
@@ -222,13 +258,6 @@ dgui_add_render_commands(ID3D12GraphicsCommandList10 *pCommandList,
       .MaxDepth = 1,
   };
   pCommandList->RSSetViewports(1, &viewport);
-  D3D12_RECT scissor{
-      .left = 0,
-      .top = 0,
-      .right = (LONG)w,
-      .bottom = (LONG)h,
-  };
-  pCommandList->RSSetScissorRects(1, &scissor);
 
   pCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
