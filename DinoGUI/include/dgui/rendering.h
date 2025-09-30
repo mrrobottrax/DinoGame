@@ -19,4 +19,4 @@ DGUI_API void dgui_release_shader(ShaderData *pShaderData);
 DGUI_API void dgui_set_shader(ShaderData *pShaderData,
                               ID3D12GraphicsCommandList10 *pCommandList);
 
-DGUI_API extern ShaderData s_RectShader;
+DGUI_API extern ShaderData g_RectShader;

@@ -8,15 +8,15 @@
 
 ShaderData *s_pCurrentShader;
 
-DGUI_API ShaderData s_RectShader;
+DGUI_API ShaderData g_RectShader;
 
 void rendering_init(ID3D12Device9 *pDevice) {
-  dgui_compile_shader(pDevice, &s_RectShader,
+  dgui_compile_shader(pDevice, &g_RectShader,
                       L"dgui_shaders\\DefaultVertex.cso",
                       L"dgui_shaders\\DefaultPixel.cso");
 }
 
-void rendering_stop() { dgui_release_shader(&s_RectShader); }
+void rendering_stop() { dgui_release_shader(&g_RectShader); }
 
 DGUI_API void dgui_compile_shader(ID3D12Device9 *pDevice,
                                   ShaderData *pShaderData,
@@ -232,7 +232,6 @@ dgui_add_render_commands(ID3D12GraphicsCommandList10 *pCommandList,
 
   pCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
-  dgui_set_shader(&s_RectShader, pCommandList);
   render_recursive(pPanel, pCommandList, -1, -1);
 
   s_pCurrentShader = nullptr;

@@ -1,6 +1,7 @@
 #include "pch.h"
 
 #include "DGUI_ColoredPanel.h"
+#include "rendering.h"
 #include "screen.h"
 
 void DGUI_ColoredPanel::add_render_commands(
@@ -9,6 +10,7 @@ void DGUI_ColoredPanel::add_render_commands(
 
   mat4_t matrix = get_matrix(baseX, baseY);
 
+  dgui_set_shader(&g_RectShader, pCommandList);
   pCommandList->SetGraphicsRoot32BitConstants(0, 16, matrix.m_Data, 0);
   pCommandList->SetGraphicsRoot32BitConstants(0, 4, m_Color, 16);
 

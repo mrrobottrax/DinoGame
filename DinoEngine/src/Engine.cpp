@@ -46,7 +46,7 @@ void Engine::init() {
 
   g_GameDllSystem.load_game(m_GameName);
 
-  g_WindowSystem.init(g_GameDllSystem.gameInfo.windowName);
+  g_WindowSystem.init(g_GameDllSystem.gameInfo.windowName, 1280, 720, true);
   g_RenderingSystem.init();
 
   dgui_init(g_RenderingSystem.get_device());

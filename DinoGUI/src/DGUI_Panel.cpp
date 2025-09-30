@@ -61,7 +61,7 @@ float DGUI_Panel::calc_x(float baseX) {
 
 float DGUI_Panel::calc_y(float baseY) {
   const float anchorY = Anchor[1] * m_Parent->calc_h();
-  float y = (Position[1] + anchorY) * g_ScreenRatio * DGUI_2PIXEL_SCALE + baseY;
+  float y = (Position[1] + anchorY) * DGUI_2PIXEL_SCALE + baseY;
   return y;
 }
 
