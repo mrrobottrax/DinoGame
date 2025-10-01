@@ -1,11 +1,8 @@
 #include "pch.h"
 
 #include "AssetSystem.h"
+#include "GameDllSystem.h"
 #include "RenderingSystem.h"
-
-constexpr size_t k_LevelHeapSize = 1 << 20;        // 1 MB
-constexpr size_t k_LevelDescriptorCount = 1 << 10; // 1024
-constexpr size_t k_LevelResourceCount = 1 << 10;   // 1024
 
 DINO_API IAssetSystem *get_asset_system_interface() {
   return (IAssetSystem *)&g_AssetSystem;
@@ -14,38 +11,82 @@ DINO_API IAssetSystem *get_asset_system_interface() {
 void AssetSystem::init() {
   ASSERT_ALWAYS(g_RenderingSystem.is_initialized());
 
-  D3D12_HEAP_DESC levelHeapDesc{
-      .SizeInBytes = k_LevelHeapSize,
-      .Properties =
-          {
-              .Type = D3D12_HEAP_TYPE_DEFAULT,
-              .CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN,
-              .MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN,
-              .CreationNodeMask = 0,
-              .VisibleNodeMask = 0,
-          },
-      .Alignment = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT,
-      .Flags = D3D12_HEAP_FLAG_NONE,
-  };
+  m_LevelHeapCapacity = g_GameDllSystem.GameInfo.StaticLevelHeapSize;
+  m_LevelResourceCapacity =
+      g_GameDllSystem.GameInfo.StaticLevelResourceCapacity;
+  m_StagingBufferCapacity = g_GameDllSystem.GameInfo.StagingBufferCapacity;
+
   ID3D12Device9 *pDevice = g_RenderingSystem.get_device();
-  ASSERT_WIN_ALWAYS(
-      pDevice->CreateHeap(&levelHeapDesc, IID_PPV_ARGS(&m_LevelHeap)));
 
-  D3D12_DESCRIPTOR_HEAP_DESC descriptorHeapDesc{
-      .Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV,
-      .NumDescriptors = k_LevelDescriptorCount,
-      .Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE,
-      .NodeMask = 0,
-  };
-  pDevice->CreateDescriptorHeap(&descriptorHeapDesc,
-                                IID_PPV_ARGS(&m_LevelDescriptorHeap));
+  // Create level heap
+  {
+    D3D12_HEAP_DESC levelHeapDesc{
+        .SizeInBytes = m_LevelHeapCapacity,
+        .Properties =
+            {
+                .Type = D3D12_HEAP_TYPE_DEFAULT,
+                .CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN,
+                .MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN,
+                .CreationNodeMask = 0,
+                .VisibleNodeMask = 0,
+            },
+        .Alignment = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT,
+        .Flags = D3D12_HEAP_FLAG_NONE,
+    };
+    ASSERT_WIN_ALWAYS(
+        pDevice->CreateHeap(&levelHeapDesc, IID_PPV_ARGS(&m_LevelHeap)));
 
-  m_LevelResources = (ID3D12Resource2 **)malloc(sizeof(ID3D12Resource2 *) *
-                                                k_LevelResourceCount);
+    D3D12_DESCRIPTOR_HEAP_DESC descriptorHeapDesc{
+        .Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV,
+        .NumDescriptors = (UINT)m_LevelResourceCapacity,
+        .Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE,
+        .NodeMask = 0,
+    };
+    ASSERT_WIN_ALWAYS(pDevice->CreateDescriptorHeap(
+        &descriptorHeapDesc, IID_PPV_ARGS(&m_LevelDescriptorHeap)));
+
+    m_LevelResources = (ID3D12Resource2 **)malloc(sizeof(ID3D12Resource2 *) *
+                                                  m_LevelResourceCapacity);
+  }
+
+  // Create staging buffer
+  {
+    D3D12_HEAP_PROPERTIES uploadHeap{
+        .Type = D3D12_HEAP_TYPE_UPLOAD,
+        .CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN,
+        .MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN,
+        .CreationNodeMask = 0,
+        .VisibleNodeMask = 0,
+    };
+    D3D12_RESOURCE_DESC uploadHeapDesc{
+        .Dimension = D3D12_RESOURCE_DIMENSION_BUFFER,
+        .Alignment = 0,
+        .Width = m_StagingBufferCapacity,
+        .Height = 1,
+        .DepthOrArraySize = 1,
+        .MipLevels = 1,
+        .Format = DXGI_FORMAT_UNKNOWN,
+        .SampleDesc = {1, 0},
+        .Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR,
+        .Flags = D3D12_RESOURCE_FLAG_NONE,
+    };
+
+    D3D12_RESOURCE_ALLOCATION_INFO info =
+        pDevice->GetResourceAllocationInfo(0, 1, &uploadHeapDesc);
+
+    uploadHeapDesc.Alignment = info.Alignment;
+
+    ASSERT_WIN_ALWAYS(pDevice->CreateCommittedResource(
+        &uploadHeap, D3D12_HEAP_FLAG_NONE, &uploadHeapDesc,
+        D3D12_RESOURCE_STATE_GENERIC_READ, nullptr,
+        IID_PPV_ARGS(&m_StagingBuffer)));
+  }
 }
 
 void AssetSystem::stop() {
   wipe_level_assets();
+
+  m_StagingBuffer.Reset();
 
   free(m_LevelResources);
   m_LevelDescriptorHeap.Reset();
@@ -64,14 +105,17 @@ void AssetSystem::wipe_level_assets() {
 }
 
 GPUImage AssetSystem::load_png(const char *path) {
+  uint32_t width = 256;
+  uint32_t height = 256;
+
   ID3D12Device9 *pDevice = g_RenderingSystem.get_device();
 
   // Check allocation info
   D3D12_RESOURCE_DESC desc{
       .Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D,
       .Alignment = 0,
-      .Width = 512,
-      .Height = 512,
+      .Width = width,
+      .Height = height,
       .DepthOrArraySize = 1,
       .MipLevels = 1,
       .Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB,
@@ -91,11 +135,11 @@ GPUImage AssetSystem::load_png(const char *path) {
       info.Alignment;
   m_LevelHeapOffset = alignedOffset + info.SizeInBytes;
 
-  if (m_LevelHeapOffset > k_LevelHeapSize) {
+  if (m_LevelHeapOffset > m_LevelHeapCapacity) {
     CRASH("Out of room in level data heap!");
   }
 
-  if (m_LevelDescriptorCount + 1 > k_LevelDescriptorCount) {
+  if (m_LevelDescriptorCount + 1 > m_LevelResourceCapacity) {
     CRASH("Out of level descriptors!");
   }
 
@@ -134,6 +178,47 @@ GPUImage AssetSystem::load_png(const char *path) {
   };
   pDevice->CreateShaderResourceView(m_LevelResources[m_LevelResourceCount],
                                     &viewDesc, cpuHandle);
+
+  UINT pitch = ((width + D3D12_TEXTURE_DATA_PITCH_ALIGNMENT - 1) /
+                D3D12_TEXTURE_DATA_PITCH_ALIGNMENT) *
+               D3D12_TEXTURE_DATA_PITCH_ALIGNMENT;
+
+  if ((size_t)pitch * height > m_StagingBufferCapacity) {
+    CRASH("Staging buffer too small!");
+  }
+
+  // Copy into staging buffer
+  for (UINT y = 0; y < height; ++y) {
+    for (UINT x = 0; x < width; ++x) {
+      size_t i = (size_t)y * pitch + x;
+    }
+  }
+
+  // Copy from staging buffer
+  ID3D12GraphicsCommandList10 *pList = g_RenderingSystem.record_staging_list();
+
+  D3D12_TEXTURE_COPY_LOCATION dst{
+      .pResource = m_LevelResources[m_LevelResourceCount],
+      .Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX,
+      .SubresourceIndex = 0,
+  };
+  D3D12_TEXTURE_COPY_LOCATION src{
+      .pResource = m_StagingBuffer.Get(),
+      .Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT,
+      .PlacedFootprint = {
+          .Offset = 0,
+          .Footprint =
+              {
+                  .Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB,
+                  .Width = width,
+                  .Height = height,
+                  .Depth = 1,
+                  .RowPitch = pitch,
+              },
+      }};
+  pList->CopyTextureRegion(&dst, 0, 0, 0, &src, nullptr);
+
+  g_RenderingSystem.execute_staging_list();
 
   ++m_LevelDescriptorCount;
   ++m_LevelResourceCount;

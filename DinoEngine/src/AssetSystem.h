@@ -12,8 +12,14 @@ public:
   virtual GPUImage load_png(const char *path) override;
 
 private:
+  size_t m_LevelHeapCapacity;
+  size_t m_LevelResourceCapacity;
+
+  ComPtr<ID3D12Resource2> m_StagingBuffer;
+  size_t m_StagingBufferCapacity;
+
   /// <summary>
-  /// Stores static per-level buffers (textures mostly)
+  /// Stores static per-level buffers (textures and mesh data)
   /// </summary>
   ComPtr<ID3D12Heap> m_LevelHeap;
   size_t m_LevelHeapOffset;

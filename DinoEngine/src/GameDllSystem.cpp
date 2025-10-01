@@ -18,5 +18,5 @@ void GameDllSystem::load_game(const wchar_t *gameName) {
   GET_CALLBACK(get_game_info);
   GET_CALLBACK(load_main_menu);
 
-  gameInfo = get_game_info();
+  GameInfo = get_game_info();
 }

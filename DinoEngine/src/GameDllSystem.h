@@ -12,7 +12,7 @@ private:
   HMODULE m_GameModule;
 
 public:
-  GameInfo gameInfo;
+  GameInfo GameInfo;
 
   // callbacks
   MCALLBACK(get_game_info);

@@ -148,6 +148,22 @@ void RenderingSystem::init() {
   m_RtvDescriptorIncrementSize = m_pDevice->GetDescriptorHandleIncrementSize(
       D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 
+  // create staging data
+  ASSERT_WIN_ALWAYS(m_pDevice->CreateCommandAllocator(
+      D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_pStagingAllocator)));
+
+  ASSERT_WIN_ALWAYS(m_pDevice->CreateCommandList1(
+      0, D3D12_COMMAND_LIST_TYPE_DIRECT, D3D12_COMMAND_LIST_FLAG_NONE,
+      IID_PPV_ARGS(&m_pStagingList)));
+
+  ASSERT_WIN_ALWAYS(m_pDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE,
+                                           IID_PPV_ARGS(&m_pStagingFence)));
+
+  m_StagingFenceEvent = CreateEventEx(NULL, NULL, 0, EVENT_ALL_ACCESS);
+  ASSERT_ALWAYS(m_StagingFenceEvent != NULL);
+
+  m_StagingFenceValue = 0;
+
   // create frame data
   for (UINT i = 0; i < k_FramesInFlight; ++i) {
     FrameData &fd = m_FrameData[i];
@@ -205,9 +221,36 @@ void RenderingSystem::wait_idle() {
   }
 }
 
+ID3D12GraphicsCommandList10 *RenderingSystem::record_staging_list() {
+  ASSERT_WIN_ALWAYS(m_pStagingAllocator->Reset());
+  ASSERT_WIN_ALWAYS(m_pStagingList->Reset(m_pStagingAllocator.Get(), NULL));
+
+  return m_pStagingList.Get();
+}
+
+void RenderingSystem::execute_staging_list() {
+  ASSERT_WIN_ALWAYS(m_pStagingList->Close());
+  ID3D12CommandList *ppCommandLists[] = {m_pStagingList.Get()};
+  m_pCommandQueue->ExecuteCommandLists(_countof(ppCommandLists),
+                                       ppCommandLists);
+  m_StagingFenceValue++;
+  ASSERT_WIN_ALWAYS(
+      m_pCommandQueue->Signal(m_pStagingFence.Get(), m_StagingFenceValue));
+
+  if (m_pStagingFence->GetCompletedValue() < m_StagingFenceValue) {
+    m_pStagingFence->SetEventOnCompletion(m_StagingFenceValue,
+                                          m_StagingFenceEvent);
+    WaitForSingleObject(m_StagingFenceEvent, INFINITE);
+  }
+}
+
 void RenderingSystem::stop() {
   m_Initialized = false;
   wait_idle();
+
+  m_pStagingFence.Reset();
+  m_pStagingList.Reset();
+  m_pStagingAllocator.Reset();
 
   // destroy frame data
   for (UINT i = 0; i < k_FramesInFlight; ++i) {

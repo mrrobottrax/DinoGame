@@ -3,6 +3,23 @@
 constexpr UINT k_FramesInFlight = 2;
 
 class RenderingSystem {
+public:
+  void init();
+  void stop();
+  void frame();
+  void try_resize(unsigned int w, unsigned int h);
+  void wait_idle();
+
+  bool is_initialized() const { return m_Initialized; }
+  ID3D12Device9 *get_device() { return m_pDevice.Get(); }
+  ID3D12CommandQueue *get_queue() { return m_pCommandQueue.Get(); }
+
+  ID3D12GraphicsCommandList10 *record_staging_list();
+  void execute_staging_list();
+
+private:
+  bool m_Initialized;
+
   ComPtr<ID3D12Device9> m_pDevice;
   ComPtr<ID3D12Fence1> m_GPUStallFence;
   UINT m_GPUStallValue;
@@ -13,6 +30,12 @@ class RenderingSystem {
   ComPtr<ID3D12DescriptorHeap> m_pFrameBufferDescriptorHeap;
   size_t m_RtvDescriptorIncrementSize;
 
+  ComPtr<ID3D12CommandAllocator> m_pStagingAllocator;
+  ComPtr<ID3D12GraphicsCommandList10> m_pStagingList;
+  ComPtr<ID3D12Fence1> m_pStagingFence;
+  UINT m_StagingFenceValue;
+  HANDLE m_StagingFenceEvent;
+
   struct FrameData {
     ComPtr<ID3D12CommandAllocator> commandAllocator;
     ComPtr<ID3D12GraphicsCommandList10> commandList;
@@ -22,19 +45,6 @@ class RenderingSystem {
     HANDLE fenceEvent;
   };
   FrameData m_FrameData[k_FramesInFlight]{};
-
-public:
-  void init();
-  void stop();
-  void frame();
-  void try_resize(unsigned int w, unsigned int h);
-  void wait_idle();
-
-  bool is_initialized() const { return m_Initialized; }
-  ID3D12Device9 *get_device() { return m_pDevice.Get(); }
-
-private:
-  bool m_Initialized;
 
   void create_device(IDXGIFactory6 *pDxgiFactory);
   void create_backbuffer_data();

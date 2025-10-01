@@ -10,7 +10,10 @@
 #endif
 
 struct GameInfo {
-  const char *windowName;
+  const char *WindowName = "Dino Engine";
+  size_t StaticLevelHeapSize = (1 << 20) * 256; // Default: 256MB
+  size_t StaticLevelResourceCapacity = 1024;  // Default: 1024
+  size_t StagingBufferCapacity = 1 << 20;     // Default: 1MB
 };
 
 DEFINE_CALLBACK(GameInfo, get_game_info);
