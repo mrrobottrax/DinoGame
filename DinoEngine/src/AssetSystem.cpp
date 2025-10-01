@@ -80,12 +80,16 @@ void AssetSystem::init() {
         &uploadHeap, D3D12_HEAP_FLAG_NONE, &uploadHeapDesc,
         D3D12_RESOURCE_STATE_GENERIC_READ, nullptr,
         IID_PPV_ARGS(&m_StagingBuffer)));
+
+    D3D12_RANGE range{0, 0};
+    m_StagingBuffer->Map(0, &range, (void **)&m_StagingBufferMap);
   }
 }
 
 void AssetSystem::stop() {
   wipe_level_assets();
 
+  m_StagingBuffer->Unmap(0, nullptr);
   m_StagingBuffer.Reset();
 
   free(m_LevelResources);
@@ -158,9 +162,7 @@ GPUImage AssetSystem::load_png(const char *path) {
 
   // Create resource
   ASSERT_WIN_ALWAYS(pDevice->CreatePlacedResource(
-      m_LevelHeap.Get(), alignedOffset, &desc,
-      D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE |
-          D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE,
+      m_LevelHeap.Get(), alignedOffset, &desc, D3D12_RESOURCE_STATE_COPY_DEST,
       nullptr, IID_PPV_ARGS(&m_LevelResources[m_LevelResourceCount])));
 
   // Create view
@@ -179,7 +181,7 @@ GPUImage AssetSystem::load_png(const char *path) {
   pDevice->CreateShaderResourceView(m_LevelResources[m_LevelResourceCount],
                                     &viewDesc, cpuHandle);
 
-  UINT pitch = ((width + D3D12_TEXTURE_DATA_PITCH_ALIGNMENT - 1) /
+  UINT pitch = ((width * 4 + D3D12_TEXTURE_DATA_PITCH_ALIGNMENT - 1) /
                 D3D12_TEXTURE_DATA_PITCH_ALIGNMENT) *
                D3D12_TEXTURE_DATA_PITCH_ALIGNMENT;
 
@@ -188,9 +190,13 @@ GPUImage AssetSystem::load_png(const char *path) {
   }
 
   // Copy into staging buffer
-  for (UINT y = 0; y < height; ++y) {
-    for (UINT x = 0; x < width; ++x) {
-      size_t i = (size_t)y * pitch + x;
+  for (size_t y = 0; y < height; ++y) {
+    for (size_t x = 0; x < width; ++x) {
+      size_t i = y * pitch + x * 4;
+      m_StagingBufferMap[i + 0] = 0;
+      m_StagingBufferMap[i + 1] = 255;
+      m_StagingBufferMap[i + 2] = 0;
+      m_StagingBufferMap[i + 3] = 255;
     }
   }
 
@@ -217,6 +223,18 @@ GPUImage AssetSystem::load_png(const char *path) {
               },
       }};
   pList->CopyTextureRegion(&dst, 0, 0, 0, &src, nullptr);
+
+  D3D12_RESOURCE_BARRIER barrier{
+      .Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION,
+      .Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE,
+      .Transition = {
+          .pResource = m_LevelResources[m_LevelResourceCount],
+          .Subresource = 0,
+          .StateBefore = D3D12_RESOURCE_STATE_COPY_DEST,
+          .StateAfter = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE |
+                        D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+      }};
+  pList->ResourceBarrier(1, &barrier);
 
   g_RenderingSystem.execute_staging_list();
 

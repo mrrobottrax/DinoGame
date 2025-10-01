@@ -17,6 +17,7 @@ private:
 
   ComPtr<ID3D12Resource2> m_StagingBuffer;
   size_t m_StagingBufferCapacity;
+  unsigned char *m_StagingBufferMap;
 
   /// <summary>
   /// Stores static per-level buffers (textures and mesh data)
