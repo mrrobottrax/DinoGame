@@ -143,8 +143,8 @@ static char *add_windows_message_to_format(const char *format, DWORD error) {
   char *mbErr = nullptr;
   size_t mbErrLen = 0;
   if (wideErr != nullptr) {
-    mbErrLen = WideCharToMultiByte(CP_UTF8, 0, wideErr, wideErrLen + 1, NULL, 0,
-                                   NULL, NULL);
+    mbErrLen = (size_t)WideCharToMultiByte(CP_UTF8, 0, wideErr, wideErrLen + 1,
+                                           NULL, 0, NULL, NULL);
 
     mbErr = (char *)malloc(mbErrLen);
     ASSERT_ALWAYS(mbErr);

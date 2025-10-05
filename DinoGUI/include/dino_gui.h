@@ -1,11 +1,11 @@
 #pragma once
 
-#include "dgui/platform.h"
+#include "DinoGUI/platform.h"
 
 #define DGUI_API _declspec(dllimport)
 
-#include "dgui/DGUI_ColoredPanel.h"
-#include "dgui/DGUI_Image.h"
-#include "dgui/DGUI_Panel.h"
-#include "dgui/dgui.h"
-#include "dgui/rendering.h"
+#include "DinoGUI/DGUI_ColoredPanel.h"
+#include "DinoGUI/DGUI_Image.h"
+#include "DinoGUI/DGUI_Panel.h"
+#include "DinoGUI/dgui.h"
+#include "DinoGUI/rendering.h"

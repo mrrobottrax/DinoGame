@@ -21,34 +21,31 @@
     <ClInclude Include="src\pch.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\t0\ucrt.h">
+    <ClInclude Include="include\Tier0\ucrt.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\t0\console.h">
+    <ClInclude Include="include\Tier0\console.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\memory.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\t0\hash.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\t0\error.h">
+    <ClInclude Include="include\Tier0\error.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\console_private.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\t0\platform.h">
+    <ClInclude Include="include\Tier0\platform.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\t0\base.h">
+    <ClInclude Include="include\Tier0\base.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\error_private.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\t0\control.h">
+    <ClInclude Include="include\Tier0\control.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -60,9 +57,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\memory.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\hash.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\error.cpp">

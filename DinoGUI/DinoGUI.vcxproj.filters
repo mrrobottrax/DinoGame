@@ -21,28 +21,28 @@
     <ClInclude Include="include\dino_gui.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\dgui\dgui.h">
+    <ClInclude Include="include\DinoGUI\dgui.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\dgui\DGUI_Panel.h">
+    <ClInclude Include="include\DinoGUI\DGUI_Panel.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\dgui\platform.h">
+    <ClInclude Include="include\DinoGUI\platform.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\dgui\screen.h">
+    <ClInclude Include="include\DinoGUI\screen.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\dgui\DGUI_ColoredPanel.h">
+    <ClInclude Include="include\DinoGUI\DGUI_ColoredPanel.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\rendering_private.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\dgui\rendering.h">
+    <ClInclude Include="include\DinoGUI\rendering.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\dgui\DGUI_Image.h">
+    <ClInclude Include="include\DinoGUI\DGUI_Image.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

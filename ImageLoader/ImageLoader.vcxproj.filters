@@ -24,13 +24,13 @@
     <ClInclude Include="src\buffer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\image_loader\setup.h">
+    <ClInclude Include="include\ImageLoader\setup.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\image_loader\buffer.h">
+    <ClInclude Include="include\ImageLoader\buffer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\image_loader\png.h">
+    <ClInclude Include="include\ImageLoader\png.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

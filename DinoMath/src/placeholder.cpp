@@ -1,3 +1,3 @@
 #include "pch.h"
 
-void placeholder() {}
+__declspec(dllexport) void placeholder() {}

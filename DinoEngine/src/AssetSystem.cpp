@@ -118,6 +118,7 @@ void AssetSystem::wipe_level_assets() {
 }
 
 GPUImage AssetSystem::load_png(const char *path) {
+  (void)path;
   uint32_t width = 256;
   uint32_t height = 256;
 
