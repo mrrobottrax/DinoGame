@@ -1,6 +1,6 @@
 #pragma once
 
-struct ImageLoader_SetupInfo {
+struct ResourceLoader_SetupInfo {
   size_t BufferSize = 1 << 20; // 1MB
 
   /// <summary>
@@ -9,11 +9,11 @@ struct ImageLoader_SetupInfo {
   void *pBuffer;
 };
 
-struct ImageLoader_SetupResult {
+struct ResourceLoader_SetupResult {
   size_t BufferSize;
   void *pBuffer;
 };
 
-IMAGE_LOADER_API bool ImageLoader_setup(ImageLoader_SetupInfo info,
-                                        ImageLoader_SetupResult *pResult);
-IMAGE_LOADER_API void ImageLoader_close();
+IMAGE_LOADER_API bool ResourceLoader_setup(ResourceLoader_SetupInfo *pInfo,
+                                           ResourceLoader_SetupResult *pResult);
+IMAGE_LOADER_API void ResourceLoader_close();

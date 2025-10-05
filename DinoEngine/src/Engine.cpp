@@ -53,11 +53,8 @@ void Engine::init() {
 
   dgui_init(g_RenderingSystem.get_device());
 
-  ImageLoader_SetupInfo imageLoader{
-      .BufferSize = g_AssetSystem.get_decompression_buffer_size(),
-      .pBuffer = g_AssetSystem.get_decompression_buffer(),
-  };
-  ASSERT_ALWAYS(ImageLoader_setup(imageLoader, nullptr));
+  ResourceLoader_SetupInfo resourceLoaderSetup{};
+  ASSERT_ALWAYS(ResourceLoader_setup(&resourceLoaderSetup, nullptr));
 
   g_WindowSystem.show_finally();
 
@@ -66,7 +63,7 @@ void Engine::init() {
 }
 
 void Engine::stop() {
-  ImageLoader_close();
+  ResourceLoader_close();
   dgui_stop();
 
   g_AssetSystem.stop();

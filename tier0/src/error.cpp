@@ -5,13 +5,11 @@
 #include "error.h"
 #include "error_private.h"
 
-__declspec(thread) static char *s_LastError = nullptr;
 static CRITICAL_SECTION s_CrashLock;
 
-static void free_error() {
-  free(s_LastError);
-  s_LastError = nullptr;
-}
+constexpr size_t k_ErrBufferLength = 1 << 12;
+static char s_MbErrBuffer[k_ErrBufferLength];
+static wchar_t s_WcErrBuffer[k_ErrBufferLength];
 
 static void write_minidump() {
   console_log("Writing minidump...");
@@ -86,18 +84,16 @@ static void print_stack() {
 }
 
 static void error_popup() {
-  int wcLen = MultiByteToWideChar(CP_UTF8, 0, s_LastError, -1, NULL, 0);
-  wchar_t *wcErr = (wchar_t *)malloc(sizeof(wchar_t) * wcLen);
-  ASSERT_ALWAYS(wcErr, "Failed to allocate wcErr");
-  MultiByteToWideChar(CP_UTF8, 0, s_LastError, -1, wcErr, wcLen);
-  MessageBoxExW(NULL, wcErr, L"Error", MB_OK | MB_ICONERROR, 0);
-
-  free(wcErr);
+  int wcLen = MultiByteToWideChar(CP_UTF8, 0, s_MbErrBuffer, -1, NULL, 0);
+  if (wcLen > k_ErrBufferLength) {
+    console_error("Error popup truncation");
+  }
+  MultiByteToWideChar(CP_UTF8, 0, s_MbErrBuffer, -1, s_WcErrBuffer,
+                      k_ErrBufferLength);
+  MessageBoxExW(NULL, s_WcErrBuffer, L"Error", MB_OK | MB_ICONERROR, 0);
 }
 
 static void set_error_va(const char *format, va_list args) {
-  free_error();
-
   va_list args_required;
   va_copy(args_required, args);
   size_t required = _vscprintf(format, args_required);
@@ -109,21 +105,22 @@ static void set_error_va(const char *format, va_list args) {
   if (!format)
     return;
 
-  s_LastError = (char *)malloc(required + 1);
-  if (s_LastError) {
-    va_list args_log;
-    va_copy(args_log, args);
-    console_println_va(format, args_log);
-    va_end(args_log);
-
-    va_list args_vsnprintf;
-    va_copy(args_vsnprintf, args);
-    if (vsnprintf_s(s_LastError, required + 1, _TRUNCATE, format,
-                    args_vsnprintf) < 0) {
-      console_error("Formatting failure");
-    }
-    va_end(args_vsnprintf);
+  if (required + 1 > k_ErrBufferLength) {
+    console_error("Crash message truncation");
   }
+
+  va_list args_log;
+  va_copy(args_log, args);
+  console_println_va(format, args_log);
+  va_end(args_log);
+
+  va_list args_vsnprintf;
+  va_copy(args_vsnprintf, args);
+  if (vsnprintf_s(s_MbErrBuffer, k_ErrBufferLength, _TRUNCATE, format,
+                  args_vsnprintf) < 0) {
+    console_error("Formatting failure");
+  }
+  va_end(args_vsnprintf);
 }
 
 static void set_error(const char *format, ...) {
@@ -179,10 +176,7 @@ void error_handling_init() {
   SetThreadDescription(GetCurrentThread(), L"Main Thread");
 }
 
-void error_handling_stop() {
-  DeleteCriticalSection(&s_CrashLock);
-  free_error();
-}
+void error_handling_stop() { DeleteCriticalSection(&s_CrashLock); }
 
 static void crash_start() {
   EnterCriticalSection(&s_CrashLock);
