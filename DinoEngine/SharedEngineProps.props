@@ -23,7 +23,6 @@
       <AdditionalDependencies>D3DCompiler.lib;dxguid.lib;dwmapi.lib;Dbghelp.lib;d3d12.lib;dxgi.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(OutDir);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <IgnoreSpecificDefaultLibraries>msvcprtd.lib;msvcprt.lib;libcpmt.lib;libcpmtd.lib;libucrt.lib;libucrtd.lib</IgnoreSpecificDefaultLibraries>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup />

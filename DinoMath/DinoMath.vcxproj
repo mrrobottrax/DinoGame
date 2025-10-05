@@ -58,6 +58,8 @@
       <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <Link />
+    <Link />
+    <Link />
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="include\dino_math.h" />

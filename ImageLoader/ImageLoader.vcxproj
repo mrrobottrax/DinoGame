@@ -58,6 +58,7 @@
       <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <Link />
+    <Link />
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="include\image_loader.h" />

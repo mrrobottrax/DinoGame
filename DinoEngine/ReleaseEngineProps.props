@@ -10,9 +10,10 @@
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link />
+    <Link />
     <Link>
-      <IgnoreSpecificDefaultLibraries>libcpmt.lib;libucrt.lib;</IgnoreSpecificDefaultLibraries>
       <AdditionalDependencies>ucrt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <IgnoreSpecificDefaultLibraries>libucrt.lib</IgnoreSpecificDefaultLibraries>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup />

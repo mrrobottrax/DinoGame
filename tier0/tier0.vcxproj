@@ -58,7 +58,6 @@
     <ClCompile>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <Link />
     <Link />
@@ -66,9 +65,7 @@
     <Link />
     <Link />
     <Link />
-    <Link>
-      <IgnoreSpecificDefaultLibraries>libcpmt.lib;libucrt.lib;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
-    </Link>
+    <Link />
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="include\Tier0\base.h" />
