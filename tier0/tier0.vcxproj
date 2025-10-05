@@ -65,9 +65,9 @@
     <Link />
     <Link />
     <Link />
+    <Link />
     <Link>
-      <AdditionalDependencies>ucrt.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <NoEntryPoint>true</NoEntryPoint>
+      <IgnoreSpecificDefaultLibraries>libcpmt.lib;libucrt.lib;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>

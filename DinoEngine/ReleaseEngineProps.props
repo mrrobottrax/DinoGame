@@ -7,7 +7,13 @@
     <ClCompile>
       <PreprocessorDefinitions>NDEBUG;NO_ASSERTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <TreatWarningAsError>true</TreatWarningAsError>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
+    <Link />
+    <Link>
+      <IgnoreSpecificDefaultLibraries>libcpmt.lib;libucrt.lib;</IgnoreSpecificDefaultLibraries>
+      <AdditionalDependencies>ucrt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
   </ItemDefinitionGroup>
   <ItemGroup />
 </Project>
