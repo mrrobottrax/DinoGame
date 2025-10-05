@@ -11,7 +11,13 @@ public:
 
   virtual GPUImage load_png(const char *path) override;
 
+  size_t get_decompression_buffer_size() { return m_DecompressionBufferSize; }
+  void *get_decompression_buffer() { return m_DecompressionBuffer; }
+
 private:
+  size_t m_DecompressionBufferSize;
+  void *m_DecompressionBuffer;
+
   size_t m_LevelHeapCapacity;
   size_t m_LevelResourceCapacity;
 

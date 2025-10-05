@@ -107,8 +107,7 @@
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(ProjectDir)include\dino;$(SolutionDir)DinoGUI\include;$(SolutionDir)DinoMath\include;$(SolutionDir)tier0\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <TreatWarningAsError>false</TreatWarningAsError>
+      <AdditionalIncludeDirectories>$(SolutionDir)ImageLoader\include;$(ProjectDir)include\dino;$(SolutionDir)DinoGUI\include;$(SolutionDir)DinoMath\include;$(SolutionDir)tier0\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <ExceptionHandling>false</ExceptionHandling>
     </ClCompile>
     <Link>
@@ -131,7 +130,7 @@
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(ProjectDir)include\dino;$(SolutionDir)DinoGUI\include;$(SolutionDir)DinoMath\include;$(SolutionDir)tier0\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)ImageLoader\include;$(ProjectDir)include\dino;$(SolutionDir)DinoGUI\include;$(SolutionDir)DinoMath\include;$(SolutionDir)tier0\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
       <ExceptionHandling>false</ExceptionHandling>
     </ClCompile>
@@ -170,6 +169,9 @@
   <ItemGroup>
     <ProjectReference Include="..\DinoGUI\DinoGUI.vcxproj">
       <Project>{f3b79259-c768-456b-9998-30ab54d46bc4}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\ImageLoader\ImageLoader.vcxproj">
+      <Project>{2ea99c61-d7a4-4ed4-a18a-ee9d34492910}</Project>
     </ProjectReference>
     <ProjectReference Include="..\tier0\tier0.vcxproj">
       <Project>{6c45eb36-f46a-474f-9ad5-f3a50d90579a}</Project>

@@ -7,3 +7,5 @@
 #include "platform.h"
 
 #define DGUI_API _declspec(dllexport)
+
+using namespace Microsoft::WRL;

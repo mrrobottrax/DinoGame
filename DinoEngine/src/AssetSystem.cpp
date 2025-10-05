@@ -4,12 +4,18 @@
 #include "GameDllSystem.h"
 #include "RenderingSystem.h"
 
+constexpr size_t k_DecompressionBufferSize = 1 << 20; // 1MB
+
 DINO_API IAssetSystem *get_asset_system_interface() {
   return (IAssetSystem *)&g_AssetSystem;
 }
 
 void AssetSystem::init() {
   ASSERT_ALWAYS(g_RenderingSystem.is_initialized());
+
+  m_DecompressionBufferSize = k_DecompressionBufferSize;
+  m_DecompressionBuffer = malloc(m_DecompressionBufferSize);
+  ASSERT_ALWAYS(m_DecompressionBuffer);
 
   m_LevelHeapCapacity = g_GameDllSystem.GameInfo.StaticLevelHeapSize;
   m_LevelResourceCapacity =
@@ -95,6 +101,8 @@ void AssetSystem::stop() {
   free(m_LevelResources);
   m_LevelDescriptorHeap.Reset();
   m_LevelHeap.Reset();
+
+  free(m_DecompressionBuffer);
 }
 
 void AssetSystem::wipe_level_assets() {

@@ -12,7 +12,4 @@
 #include <tlhelp32.h>
 #include <wrl.h>
 
-// This is controversial
-using namespace Microsoft::WRL;
-
 #pragma warning(pop)
