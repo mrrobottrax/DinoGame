@@ -15,7 +15,7 @@ void memory_start_debug() {
 
 void memory_check_leaks() {
   _CrtDumpMemoryLeaks();
-#ifdef CONSOLE
+#ifdef T0_CONSOLE
   system("pause");
 #endif
 }

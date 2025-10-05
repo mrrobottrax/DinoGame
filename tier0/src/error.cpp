@@ -88,6 +88,7 @@ static void print_stack() {
 static void error_popup() {
   int wcLen = MultiByteToWideChar(CP_UTF8, 0, s_LastError, -1, NULL, 0);
   wchar_t *wcErr = (wchar_t *)malloc(sizeof(wchar_t) * wcLen);
+  ASSERT_ALWAYS(wcErr, "Failed to allocate wcErr");
   MultiByteToWideChar(CP_UTF8, 0, s_LastError, -1, wcErr, wcLen);
   MessageBoxExW(NULL, wcErr, L"Error", MB_OK | MB_ICONERROR, 0);
 
@@ -146,6 +147,7 @@ static char *add_windows_message_to_format(const char *format, DWORD error) {
                                    NULL, NULL);
 
     mbErr = (char *)malloc(mbErrLen);
+    ASSERT_ALWAYS(mbErr);
     WideCharToMultiByte(CP_UTF8, 0, wideErr, wideErrLen + 1, mbErr,
                         (int)mbErrLen, NULL, NULL);
 
@@ -159,6 +161,7 @@ static char *add_windows_message_to_format(const char *format, DWORD error) {
 
   size_t len = strnlen_s(format, 4096);
   char *finalFormat = (char *)malloc(len + affixLen + mbErrLen + 1);
+  ASSERT_ALWAYS(finalFormat);
 
   if (mbErr == 0 || finalFormat == 0) {
     return nullptr;

@@ -57,7 +57,7 @@ void Engine::init() {
       .BufferSize = g_AssetSystem.get_decompression_buffer_size(),
       .pBuffer = g_AssetSystem.get_decompression_buffer(),
   };
-  ASSERT_ALWAYS(image_loader_setup(imageLoader, nullptr));
+  ASSERT_ALWAYS(ImageLoader_setup(imageLoader, nullptr));
 
   g_WindowSystem.show_finally();
 
@@ -66,7 +66,7 @@ void Engine::init() {
 }
 
 void Engine::stop() {
-  image_loader_close();
+  ImageLoader_close();
   dgui_stop();
 
   g_AssetSystem.stop();

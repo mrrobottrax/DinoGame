@@ -53,6 +53,7 @@ void AssetSystem::init() {
 
     m_LevelResources = (ID3D12Resource2 **)malloc(sizeof(ID3D12Resource2 *) *
                                                   m_LevelResourceCapacity);
+    ASSERT_ALWAYS(m_LevelResources);
   }
 
   // Create staging buffer

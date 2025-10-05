@@ -14,6 +14,6 @@ struct ImageLoader_SetupResult {
   void *pBuffer;
 };
 
-IMAGE_LOADER_API bool image_loader_setup(ImageLoader_SetupInfo info,
-                                         ImageLoader_SetupResult *pResult);
-IMAGE_LOADER_API void image_loader_close();
+IMAGE_LOADER_API bool ImageLoader_setup(ImageLoader_SetupInfo info,
+                                        ImageLoader_SetupResult *pResult);
+IMAGE_LOADER_API void ImageLoader_close();

@@ -93,10 +93,11 @@ void WindowSystem::init(const char *name, int width, int height,
   // convert name to wc
   int wcLen = MultiByteToWideChar(CP_UTF8, 0, name, -1, NULL, 0);
   wchar_t *wcName = (wchar_t *)malloc(wcLen * sizeof(wchar_t));
+  ASSERT_ALWAYS(wcName);
   MultiByteToWideChar(CP_UTF8, 0, name, -1, wcName, wcLen);
 
   m_hWnd = CreateWindowEx(exStyle, k_WindowClassName, wcName, style, x, y, w, h,
-                        NULL, NULL, GetModuleHandle(NULL), NULL);
+                          NULL, NULL, GetModuleHandle(NULL), NULL);
 
   free(wcName);
 

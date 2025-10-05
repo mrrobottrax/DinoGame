@@ -11,7 +11,7 @@ static char *s_LogFilePrintfBuffer;
 static size_t s_LogFilePrintfBufferLen = 1024;
 
 void console_create() {
-#ifdef CONSOLE
+#ifdef T0_CONSOLE
   // create console
   if (!AllocConsole()) {
     CRASH_WIN("AllocConsole failed");
@@ -53,7 +53,7 @@ void console_free() {
   console_free_filebuffer();
   LeaveCriticalSection(&s_LogLock);
 
-#ifdef CONSOLE
+#ifdef T0_CONSOLE
   FreeConsole();
 #endif
 }

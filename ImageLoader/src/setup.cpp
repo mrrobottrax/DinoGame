@@ -5,8 +5,8 @@
 
 static bool s_BufferIsSelfAllocated;
 
-IMAGE_LOADER_API bool image_loader_setup(ImageLoader_SetupInfo info,
-                                         ImageLoader_SetupResult *pResult) {
+IMAGE_LOADER_API bool ImageLoader_setup(ImageLoader_SetupInfo info,
+                                        ImageLoader_SetupResult *pResult) {
   if (info.BufferSize == 0) {
     return false;
   }
@@ -31,7 +31,7 @@ IMAGE_LOADER_API bool image_loader_setup(ImageLoader_SetupInfo info,
   return true;
 }
 
-IMAGE_LOADER_API void image_loader_close() {
+IMAGE_LOADER_API void ImageLoader_close() {
   if (s_BufferIsSelfAllocated) {
     free(g_Buffer);
     g_Buffer = nullptr;
