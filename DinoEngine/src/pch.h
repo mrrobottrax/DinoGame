@@ -7,6 +7,6 @@
 #include "Tier0/control.h"
 
 #include "dino_gui.h"
-#include "image_loader.h"
+#include "resource_loader.h"
 
 #define DINO_API _declspec(dllexport)
