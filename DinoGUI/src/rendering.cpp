@@ -13,12 +13,12 @@ DGUI_API ShaderData g_TextureShader;
 
 void rendering_init(ID3D12Device9 *pDevice) {
   DGUI_compile_shader(pDevice, &g_RectShader,
-                      L"dgui_shaders\\DefaultVertex.cso",
-                      L"dgui_shaders\\DefaultPixel.cso");
+                      L"content\\dgui_shaders\\DefaultVertex.cso",
+                      L"content\\dgui_shaders\\DefaultPixel.cso");
 
   DGUI_compile_shader(pDevice, &g_TextureShader,
-                      L"dgui_shaders\\TextureVertex.cso",
-                      L"dgui_shaders\\TexturePixel.cso");
+                      L"content\\dgui_shaders\\TextureVertex.cso",
+                      L"content\\dgui_shaders\\TexturePixel.cso");
 }
 
 void rendering_stop() {

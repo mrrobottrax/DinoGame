@@ -61,6 +61,12 @@
       <AdditionalDependencies>DinoEngine.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(OutDir);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
+    <PostBuildEvent>
+      <Command>xcopy /E /I /Y "$(ProjectDir)content" "$(OutDir)content"</Command>
+    </PostBuildEvent>
+    <PostBuildEvent>
+      <Message>Copy content</Message>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>

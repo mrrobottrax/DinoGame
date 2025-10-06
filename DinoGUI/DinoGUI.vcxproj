@@ -56,7 +56,7 @@
       <ShaderModel>6.0</ShaderModel>
       <AdditionalOptions>/rootsig_1_1 -Qembed_debug %(AdditionalOptions)</AdditionalOptions>
       <AdditionalIncludeDirectories>$(ProjectDir)shaders;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <ObjectFileOutput>$(OutDir)dgui_shaders\%(Filename).cso</ObjectFileOutput>
+      <ObjectFileOutput>$(OutDir)content\dgui_shaders\%(Filename).cso</ObjectFileOutput>
     </FxCompile>
     <CustomBuildStep />
   </ItemDefinitionGroup>
