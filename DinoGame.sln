@@ -13,7 +13,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DinoGUI", "DinoGUI\DinoGUI.
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DinoMath", "DinoMath\DinoMath.vcxproj", "{27AE4186-5E82-48C0-B58F-EBF2E4C19C28}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ImageLoader", "ImageLoader\ImageLoader.vcxproj", "{2EA99C61-D7A4-4ED4-A18A-EE9D34492910}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ResourceLoader", "ResourceLoader\ResourceLoader.vcxproj", "{2EA99C61-D7A4-4ED4-A18A-EE9D34492910}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Engine", "Engine", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
 EndProject

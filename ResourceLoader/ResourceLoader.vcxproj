@@ -14,7 +14,7 @@
     <VCProjectVersion>17.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
     <ProjectGuid>{2ea99c61-d7a4-4ed4-a18a-ee9d34492910}</ProjectGuid>
-    <RootNamespace>ImageLoader</RootNamespace>
+    <RootNamespace>ResourceLoader</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
     <ProjectName>ResourceLoader</ProjectName>
   </PropertyGroup>
