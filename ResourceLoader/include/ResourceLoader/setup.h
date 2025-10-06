@@ -1,12 +1,12 @@
 #pragma once
 
 struct ResourceLoader_SetupInfo {
-  size_t BufferSize = 1 << 20; // 1MB
-
   /// <summary>
-  /// If nullptr, this will be allocated automatically.
+  /// If nullptr, this will be allocated automatically. Buffer is used as
+  /// working arena and file output.
   /// </summary>
   void *pBuffer;
+  size_t BufferSize = 1 << 20; // 1MB
 };
 
 struct ResourceLoader_SetupResult {

@@ -112,9 +112,12 @@ void AssetSystem::wipe_level_assets() {
 }
 
 GPUImage AssetSystem::load_png(const char *path) {
-  (void)path;
-  uint32_t width = 256;
-  uint32_t height = 256;
+  ASSERT_WIN_CODE_ALWAYS(ResourceLoader_load_file(path),
+                         "Failed to load file: %s", path);
+
+  PngOutInfo png;
+  ASSERT_WIN_CODE_ALWAYS(ResourceLoader_decompress_png(&png),
+                         "Failed to decompress png.");
 
   ID3D12Device9 *pDevice = g_RenderingSystem.get_device();
 
@@ -122,8 +125,8 @@ GPUImage AssetSystem::load_png(const char *path) {
   D3D12_RESOURCE_DESC desc{
       .Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D,
       .Alignment = 0,
-      .Width = width,
-      .Height = height,
+      .Width = png.Width,
+      .Height = png.Height,
       .DepthOrArraySize = 1,
       .MipLevels = 1,
       .Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB,
@@ -185,22 +188,23 @@ GPUImage AssetSystem::load_png(const char *path) {
   pDevice->CreateShaderResourceView(m_LevelResources[m_LevelResourceCount],
                                     &viewDesc, cpuHandle);
 
-  UINT pitch = ((width * 4 + D3D12_TEXTURE_DATA_PITCH_ALIGNMENT - 1) /
+  UINT pitch = ((png.Width * 4 + D3D12_TEXTURE_DATA_PITCH_ALIGNMENT - 1) /
                 D3D12_TEXTURE_DATA_PITCH_ALIGNMENT) *
                D3D12_TEXTURE_DATA_PITCH_ALIGNMENT;
 
-  if ((size_t)pitch * height > m_StagingBufferCapacity) {
+  if ((size_t)pitch * png.Height > m_StagingBufferCapacity) {
     CRASH("Staging buffer too small!");
   }
 
   // Copy into staging buffer
-  for (size_t y = 0; y < height; ++y) {
-    for (size_t x = 0; x < width; ++x) {
+  for (size_t y = 0; y < png.Height; ++y) {
+    for (size_t x = 0; x < png.Width; ++x) {
       size_t i = y * pitch + x * 4;
-      m_StagingBufferMap[i + 0] = 0;
-      m_StagingBufferMap[i + 1] = 255;
-      m_StagingBufferMap[i + 2] = 0;
-      m_StagingBufferMap[i + 3] = 255;
+      size_t j = y * png.Width * 4 + x * 4;
+      m_StagingBufferMap[i + 0] = png.Data[j + 0];
+      m_StagingBufferMap[i + 1] = png.Data[j + 1];
+      m_StagingBufferMap[i + 2] = png.Data[j + 2];
+      m_StagingBufferMap[i + 3] = png.Data[j + 3];
     }
   }
 
@@ -220,8 +224,8 @@ GPUImage AssetSystem::load_png(const char *path) {
           .Footprint =
               {
                   .Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB,
-                  .Width = width,
-                  .Height = height,
+                  .Width = png.Width,
+                  .Height = png.Height,
                   .Depth = 1,
                   .RowPitch = pitch,
               },

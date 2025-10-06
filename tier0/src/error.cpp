@@ -7,10 +7,10 @@
 
 static CRITICAL_SECTION s_CrashLock;
 
-constexpr size_t k_ErrBufferLength = 1 << 12;
-static char s_MbErrBuffer[k_ErrBufferLength];
-static char s_MbFormatBuffer[k_ErrBufferLength];
-static wchar_t s_WcErrBuffer[k_ErrBufferLength];
+constexpr size_t k_ErrorBufferLength = 1 << 12;
+static char s_MbErrorBuffer[k_ErrorBufferLength];
+static char s_MbFormatBuffer[k_ErrorBufferLength];
+static wchar_t s_WcErrorBuffer[k_ErrorBufferLength];
 
 static void write_minidump() {
   console_log("Writing minidump...");
@@ -83,27 +83,22 @@ static void print_stack() {
 }
 
 /// <summary>
-/// Uses error stored in s_MbErrBuffer
+/// Uses error stored in s_MbErrorBuffer
 /// </summary>
 static void error_popup() {
-  int wcLen = MultiByteToWideChar(CP_UTF8, 0, s_MbErrBuffer, -1, NULL, 0);
-  if (wcLen > k_ErrBufferLength) {
+  int wcLen = MultiByteToWideChar(CP_UTF8, 0, s_MbErrorBuffer, -1, NULL, 0);
+  if (wcLen > k_ErrorBufferLength) {
     console_error("Error popup truncation");
   }
-  MultiByteToWideChar(CP_UTF8, 0, s_MbErrBuffer, -1, s_WcErrBuffer,
-                      k_ErrBufferLength);
-  MessageBoxExW(NULL, s_WcErrBuffer, L"Error", MB_OK | MB_ICONERROR, 0);
+  MultiByteToWideChar(CP_UTF8, 0, s_MbErrorBuffer, -1, s_WcErrorBuffer,
+                      k_ErrorBufferLength);
+  MessageBoxExW(NULL, s_WcErrorBuffer, L"Error", MB_OK | MB_ICONERROR, 0);
 }
 
 /// <summary>
-/// Print error and copy into s_MbErrBuffer.
+/// Print error and copy into s_MbErrorBuffer.
 /// </summary>
 static void set_error_va(const char *format, va_list args) {
-  va_list args_required;
-  va_copy(args_required, args);
-  _vscprintf(format, args_required);
-  va_end(args_required);
-
   console_line();
   console_println("!! CRASH !!");
 
@@ -117,10 +112,8 @@ static void set_error_va(const char *format, va_list args) {
 
   va_list args_vsnprintf;
   va_copy(args_vsnprintf, args);
-  if (vsnprintf_s(s_MbErrBuffer, k_ErrBufferLength, _TRUNCATE, format,
-                  args_vsnprintf) < 0) {
-    console_error("Formatting failure");
-  }
+  vsnprintf_s(s_MbErrorBuffer, k_ErrorBufferLength, _TRUNCATE, format,
+              args_vsnprintf);
   va_end(args_vsnprintf);
 }
 
@@ -135,27 +128,47 @@ static void set_error(const char *format, ...) {
 /// Copy format string + windows message into s_MbFormatBuffer.
 /// </summary>
 static void append_windows_message(const char *format, DWORD error) {
-  if (!FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM |
-                          FORMAT_MESSAGE_IGNORE_INSERTS,
-                      NULL, error, 0, s_WcErrBuffer, k_ErrBufferLength, NULL)) {
-    _snwprintf_s(s_WcErrBuffer, k_ErrBufferLength, _TRUNCATE,
+  if (!FormatMessageW(
+          FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL,
+          error, 0, s_WcErrorBuffer, k_ErrorBufferLength, NULL)) {
+    _snwprintf_s(s_WcErrorBuffer, k_ErrorBufferLength, _TRUNCATE,
                  L"Truncation. Win message number: %u", error);
   }
 
-  constexpr char affix[] = ":\r\n";
+  constexpr char affix[] = "\r\nWin: ";
   constexpr size_t affixLen = sizeof(affix) - 1;
 
   // no null char
-  size_t len = strnlen_s(format, k_ErrBufferLength - affixLen - 1);
+  size_t len = strnlen_s(format, k_ErrorBufferLength - affixLen - 1);
 
   // append format string
-  strncpy_s(s_MbFormatBuffer, k_ErrBufferLength, format, len);
+  strncpy_s(s_MbFormatBuffer, k_ErrorBufferLength, format, len);
   // append affix
-  strncat_s(s_MbFormatBuffer, k_ErrBufferLength, affix, affixLen);
-  // append affix
+  strncat_s(s_MbFormatBuffer, k_ErrorBufferLength, affix, affixLen);
+  // windows message
   WideCharToMultiByte(
-      CP_UTF8, 0, s_WcErrBuffer, -1, s_MbFormatBuffer + len + affixLen,
-      (int)(k_ErrBufferLength - len - affixLen - 1), NULL, NULL);
+      CP_UTF8, 0, s_WcErrorBuffer, -1, s_MbFormatBuffer + len + affixLen,
+      (int)(k_ErrorBufferLength - len - affixLen - 1), NULL, NULL);
+}
+
+/// <summary>
+/// Copy format string + return code into s_MbFormatBuffer. Corrupts
+/// s_MbErrorBuffer.
+/// </summary>
+static void append_return_code(const char *format, int code) {
+  constexpr char codeFormat[] = "\r\nReturn code: %i";
+
+  _snprintf_s(s_MbErrorBuffer, k_ErrorBufferLength, _TRUNCATE, codeFormat,
+              code);
+
+  // no null char
+  size_t len = strnlen_s(format, k_ErrorBufferLength - 1);
+  size_t len1 = strnlen_s(s_MbErrorBuffer, k_ErrorBufferLength - len - 1);
+
+  // append format string
+  strncpy_s(s_MbFormatBuffer, k_ErrorBufferLength, format, len);
+  // append return code text
+  strncat_s(s_MbFormatBuffer, k_ErrorBufferLength, s_MbErrorBuffer, len1);
 }
 
 void error_handling_init() {
@@ -189,6 +202,18 @@ void crash(const char *format, ...) {
   crash_end();
 }
 
+void crash_code(int code, const char *format, ...) {
+  crash_start();
+  va_list args;
+  va_start(args, format);
+
+  append_return_code(format, code);
+  set_error_va(s_MbFormatBuffer, args);
+
+  va_end(args);
+  crash_end();
+}
+
 void crash() { crash("Unknown"); }
 
 void crash_windows(const char *format, ...) {
@@ -199,6 +224,26 @@ void crash_windows(const char *format, ...) {
   va_start(args, format);
 
   append_windows_message(format, lastErr);
+  set_error_va(s_MbFormatBuffer, args);
+
+  va_end(args);
+
+  crash_end();
+}
+
+void crash_windows_code(int code, const char *format, ...) {
+  DWORD lastErr = GetLastError();
+
+  crash_start();
+  va_list args;
+  va_start(args, format);
+
+  append_return_code(format, code);
+
+  strncpy_s(s_MbErrorBuffer, k_ErrorBufferLength, s_MbFormatBuffer,
+            k_ErrorBufferLength - 1);
+
+  append_windows_message(s_MbErrorBuffer, lastErr);
   set_error_va(s_MbFormatBuffer, args);
 
   va_end(args);

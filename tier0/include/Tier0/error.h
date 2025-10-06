@@ -2,8 +2,10 @@
 
 T0_API void crash();
 T0_API void crash(const char *format, ...);
+T0_API void crash_code(int code, const char *format, ...);
 T0_API void crash_windows();
 T0_API void crash_windows(const char *format, ...);
+T0_API void crash_windows_code(int code, const char *format, ...);
 T0_API void crash_windows_hresult(HRESULT result);
 T0_API void crash_windows_hresult(HRESULT result, const char *format, ...);
 
@@ -55,19 +57,35 @@ T0_API void crash_windows_hresult(HRESULT result, const char *format, ...);
           result,                                                              \
           #expression " failed.\r\nFile: " __FILE__                            \
                       "\r\nLine: " STRINGIZE(__LINE__) "\r\n" __VA_ARGS__);    \
+      exit(1);                                                                 \
     }                                                                          \
   }
 
 #define ASSERT_WIN_EXP_ALWAYS(expression, ...)                                 \
   {                                                                            \
-    HRESULT result = expression;                                               \
-    if (result) {                                                              \
+    if (expression) {                                                          \
     } else {                                                                   \
       if (IsDebuggerPresent()) {                                               \
         __debugbreak();                                                        \
       }                                                                        \
       crash_windows("Assertion Failed: " #expression "\r\nFile: " __FILE__     \
                     "\r\nLine: " STRINGIZE(__LINE__) "\r\n" __VA_ARGS__);      \
+      exit(1);                                                                 \
+    }                                                                          \
+  }
+
+#define ASSERT_WIN_CODE_ALWAYS(expression, ...)                                \
+  {                                                                            \
+    int code = expression;                                                     \
+    if (code == 0) {                                                           \
+    } else {                                                                   \
+      if (IsDebuggerPresent()) {                                               \
+        __debugbreak();                                                        \
+      }                                                                        \
+      crash_windows_code(code, #expression                                     \
+                         " failed.\r\nFile: " __FILE__                         \
+                         "\r\nLine: " STRINGIZE(__LINE__) "\r\n" __VA_ARGS__); \
+      exit(1);                                                                 \
     }                                                                          \
   }
 
@@ -80,29 +98,68 @@ T0_API void crash_windows_hresult(HRESULT result, const char *format, ...);
       }                                                                        \
       crash("Assertion Failed: " #expression "\r\nFile: " __FILE__             \
             "\r\nLine: " STRINGIZE(__LINE__) "\r\n" __VA_ARGS__);              \
+      exit(1);                                                                 \
+    }                                                                          \
+  }
+
+#define ASSERT_CODE_ALWAYS(expression, ...)                                    \
+  {                                                                            \
+    int code = expression;                                                     \
+    if (code == 0) {                                                           \
+    } else {                                                                   \
+      if (IsDebuggerPresent()) {                                               \
+        __debugbreak();                                                        \
+      }                                                                        \
+      crash_code(code, #expression                                             \
+                 " failed.\r\nFile: " __FILE__                                 \
+                 "\r\nLine: " STRINGIZE(__LINE__) "\r\n" __VA_ARGS__);         \
+      exit(1);                                                                 \
     }                                                                          \
   }
 
 #ifndef NO_ASSERTS
 
 #define ASSERT_WIN(...) ID(ASSERT_WIN_ALWAYS(__VA_ARGS__))
-
 #define ASSERT_WIN_EXP(...) ID(ASSERT_WIN_EXP_ALWAYS(__VA_ARGS__))
+#define ASSERT_WIN_CODE(...) ID(ASSERT_WIN_CODE_ALWAYS(__VA_ARGS__))
 
-#define ASSERT(...) ASSERT_ALWAYS(__VA_ARGS__)
+#define ASSERT(...) ID(ASSERT_ALWAYS(__VA_ARGS__))
+#define ASSERT_CODE(...) ID(ASSERT_CODE_ALWAYS(__VA_ARGS__))
 
 #ifndef NO_SLOW_ASSERTS
-#define ASSERT_SLOW(...) ASSERT(__VA_ARGS__)
+#define ASSERT_WIN_SLOW(...) ID(ASSERT_WIN_ALWAYS(__VA_ARGS__))
+#define ASSERT_WIN_EXP_SLOW(...) ID(ASSERT_WIN_EXP_ALWAYS(__VA_ARGS__))
+#define ASSERT_WIN_CODE_SLOW(...) ID(ASSERT_WIN_CODE_ALWAYS(__VA_ARGS__))
+
+#define ASSERT_SLOW(...) ID(ASSERT_ALWAYS(__VA_ARGS__))
+#define ASSERT_CODE_SLOW(...) ID(ASSERT_CODE_ALWAYS(__VA_ARGS__))
+
 #else
+
+#define ASSERT_WIN_SLOW(...)
+#define ASSERT_WIN_EXP_SLOW(...)
+#define ASSERT_WIN_CODE_SLOW(...)
+
 #define ASSERT_SLOW(...)
+#define ASSERT_CODE_SLOW(...)
+
 #endif
 
 #else
 
 #define ASSERT_WIN(...)
 #define ASSERT_WIN_EXP(...)
+#define ASSERT_WIN_CODE(...)
+
 #define ASSERT(...)
+#define ASSERT_CODE(...)
+
+#define ASSERT_WIN_SLOW(...)
+#define ASSERT_WIN_EXP_SLOW(...)
+#define ASSERT_WIN_CODE_SLOW(...)
+
 #define ASSERT_SLOW(...)
+#define ASSERT_CODE_SLOW(...)
 
 #endif
 

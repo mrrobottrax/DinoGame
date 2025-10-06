@@ -1,8 +1,11 @@
 #include "pch.h"
 
+#include "buffer.h"
 #include "png.h"
 
-IMAGE_LOADER_API bool ResourceLoader_load_png(const char *path) {
-  (void)path;
-  return false;
+/// <summary>
+/// Decompress png file stored in file buffer.
+/// </summary>
+IMAGE_LOADER_API int ResourceLoader_decompress_png(PngOutInfo *pOut) {
+  return 1;
 }
