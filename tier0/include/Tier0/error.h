@@ -60,7 +60,8 @@ T0_API void crash_windows_hresult(HRESULT result, const char *format, ...);
 
 #define ASSERT_WIN_EXP_ALWAYS(expression, ...)                                 \
   {                                                                            \
-    if (expression) {                                                          \
+    HRESULT result = expression;                                               \
+    if (result) {                                                              \
     } else {                                                                   \
       if (IsDebuggerPresent()) {                                               \
         __debugbreak();                                                        \
@@ -84,9 +85,9 @@ T0_API void crash_windows_hresult(HRESULT result, const char *format, ...);
 
 #ifndef NO_ASSERTS
 
-#define ASSERT_WIN(...) ASSERT_WIN_ALWAYS(__VA_ARGS__)
+#define ASSERT_WIN(...) ID(ASSERT_WIN_ALWAYS(__VA_ARGS__))
 
-#define ASSERT_WIN_EXP(...) ASSERT_WIN_EXP_ALWAYS(__VA_ARGS__)
+#define ASSERT_WIN_EXP(...) ID(ASSERT_WIN_EXP_ALWAYS(__VA_ARGS__))
 
 #define ASSERT(...) ASSERT_ALWAYS(__VA_ARGS__)
 
