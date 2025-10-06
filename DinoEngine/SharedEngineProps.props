@@ -13,7 +13,7 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <WarningLevel>Level4</WarningLevel>
-      <AdditionalIncludeDirectories>$(SolutionDir)ImageLoader\include;$(ProjectDir)include\$(ProjectName);$(SolutionDir)DinoGUI\include;$(SolutionDir)DinoMath\include;$(SolutionDir)tier0\include;$(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)ResourceLoader\include;$(ProjectDir)include\$(ProjectName);$(SolutionDir)DinoGUI\include;$(SolutionDir)DinoMath\include;$(SolutionDir)tier0\include;$(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <ConformanceMode>true</ConformanceMode>
       <SDLCheck>true</SDLCheck>

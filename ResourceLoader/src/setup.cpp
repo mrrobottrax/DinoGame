@@ -1,6 +1,6 @@
 #include "pch.h"
 
-#include "buffer.h"
+#include "buffer_private.h"
 #include "setup.h"
 
 static bool s_BufferIsSelfAllocated;
