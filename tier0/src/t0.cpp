@@ -21,8 +21,6 @@ T0_API void t0_init() {
 T0_API void t0_stop() {
   error_handling_stop();
 
-  console_free_filebuffer(); // Seperate so that memory leak checking doesn't
-                             // freak out
   memory_check_leaks();
   console_free();
 }

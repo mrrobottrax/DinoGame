@@ -12,7 +12,7 @@ void DGUI_Image::add_render_commands(ID3D12GraphicsCommandList10 *pCommandList,
   float color[4] = {0, 1, 0, 1};
   mat4_t matrix = mat4_create(x, y, Position[2], w, h);
 
-  dgui_set_shader(&g_TextureShader, pCommandList);
+  DGUI_set_shader(&g_TextureShader, pCommandList);
   pCommandList->SetGraphicsRoot32BitConstants(0, 16, matrix.m_Data, 0);
   pCommandList->SetGraphicsRoot32BitConstants(0, 4, color, 16);
 

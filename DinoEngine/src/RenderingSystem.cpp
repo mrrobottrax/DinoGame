@@ -363,7 +363,7 @@ void RenderingSystem::frame() {
       m_FrameData[iFrame].backbuffer->GetDesc1();
   ASSERT(backBufferDesc.Width <= UINT_MAX);
   static unsigned int s_Count = 0;
-  dgui_add_render_commands(fd.commandList.Get(),
+  DGUI_add_render_commands(fd.commandList.Get(),
                            (unsigned int)backBufferDesc.Width,
                            backBufferDesc.Height);
 

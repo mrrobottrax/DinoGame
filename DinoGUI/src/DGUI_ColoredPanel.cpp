@@ -10,7 +10,7 @@ void DGUI_ColoredPanel::add_render_commands(
 
   mat4_t matrix = mat4_create(x, y, Position[2], w, h);
 
-  dgui_set_shader(&g_RectShader, pCommandList);
+  DGUI_set_shader(&g_RectShader, pCommandList);
   pCommandList->SetGraphicsRoot32BitConstants(0, 16, matrix.m_Data, 0);
   pCommandList->SetGraphicsRoot32BitConstants(0, 4, m_Color, 16);
 

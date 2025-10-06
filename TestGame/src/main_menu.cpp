@@ -7,7 +7,7 @@ GAME_API void load_main_menu() {
   GPUImage logo = assetSystem->load_png("EngineLogo.png");
 
   DGUI_ColoredPanel *mainMenuCentred = new DGUI_ColoredPanel();
-  dgui_get_top_panel()->add_child(mainMenuCentred);
+  DGUI_get_top_panel()->add_child(mainMenuCentred);
   mainMenuCentred->Anchor[0] = 0.5f;
   mainMenuCentred->Anchor[1] = 0;
   mainMenuCentred->Flags |= DGUI_PANEL_FLAG_SUBTRACTIVE_SIZE_Y;

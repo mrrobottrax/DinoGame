@@ -12,21 +12,21 @@ DGUI_API ShaderData g_RectShader;
 DGUI_API ShaderData g_TextureShader;
 
 void rendering_init(ID3D12Device9 *pDevice) {
-  dgui_compile_shader(pDevice, &g_RectShader,
+  DGUI_compile_shader(pDevice, &g_RectShader,
                       L"dgui_shaders\\DefaultVertex.cso",
                       L"dgui_shaders\\DefaultPixel.cso");
 
-  dgui_compile_shader(pDevice, &g_TextureShader,
+  DGUI_compile_shader(pDevice, &g_TextureShader,
                       L"dgui_shaders\\TextureVertex.cso",
                       L"dgui_shaders\\TexturePixel.cso");
 }
 
 void rendering_stop() {
-  dgui_release_shader(&g_TextureShader);
-  dgui_release_shader(&g_RectShader);
+  DGUI_release_shader(&g_TextureShader);
+  DGUI_release_shader(&g_RectShader);
 }
 
-DGUI_API void dgui_compile_shader(ID3D12Device9 *pDevice,
+DGUI_API void DGUI_compile_shader(ID3D12Device9 *pDevice,
                                   ShaderData *pShaderData,
                                   const wchar_t *vertexPath,
                                   const wchar_t *pixelPath) {
@@ -47,12 +47,12 @@ DGUI_API void dgui_compile_shader(ID3D12Device9 *pDevice,
   ASSERT_ALWAYS(liVSFileSize.QuadPart <= DWORD_MAX);
   ASSERT_ALWAYS(liPSFileSize.QuadPart <= DWORD_MAX);
 
-  void *pVSBlob = malloc(liVSFileSize.QuadPart);
+  void *pVSBlob = alloca(liVSFileSize.QuadPart);
   ASSERT_ALWAYS(pVSBlob);
   ASSERT_WIN_EXP_ALWAYS(
       ReadFile(hVSFile, pVSBlob, (DWORD)liVSFileSize.QuadPart, NULL, NULL));
 
-  void *pPSBlob = malloc(liPSFileSize.QuadPart);
+  void *pPSBlob = alloca(liPSFileSize.QuadPart);
   ASSERT_ALWAYS(pPSBlob);
   ASSERT_WIN_EXP_ALWAYS(
       ReadFile(hPSFile, pPSBlob, (DWORD)liPSFileSize.QuadPart, NULL, NULL));
@@ -172,17 +172,14 @@ DGUI_API void dgui_compile_shader(ID3D12Device9 *pDevice,
   };
   ASSERT_WIN_ALWAYS(pDevice->CreateGraphicsPipelineState(
       &graphicsPipelineStateDesc, IID_PPV_ARGS(&pShaderData->pPipelineState)));
-
-  free(pVSBlob);
-  free(pPSBlob);
 }
 
-DGUI_API void dgui_release_shader(ShaderData *pShaderData) {
+DGUI_API void DGUI_release_shader(ShaderData *pShaderData) {
   pShaderData->pPipelineState.Reset();
   pShaderData->pRootSignature.Reset();
 }
 
-DGUI_API void dgui_set_shader(ShaderData *pShaderData,
+DGUI_API void DGUI_set_shader(ShaderData *pShaderData,
                               ID3D12GraphicsCommandList10 *pCommandList) {
   if (s_pCurrentShader == pShaderData)
     return;
@@ -201,7 +198,7 @@ static void render_recursive(DGUI_Panel *pPanel,
                              float y) {
   LONG lx, ly, lw, lh;
 
-  if (pPanel != dgui_get_top_panel()) {
+  if (pPanel != DGUI_get_top_panel()) {
     float w, h, x1, y1;
     x1 = pPanel->calc_x();
     y1 = pPanel->calc_y();
@@ -247,7 +244,7 @@ static void render_recursive(DGUI_Panel *pPanel,
 }
 
 DGUI_API void
-dgui_add_render_commands(ID3D12GraphicsCommandList10 *pCommandList,
+DGUI_add_render_commands(ID3D12GraphicsCommandList10 *pCommandList,
                          unsigned int w, unsigned int h) {
   g_ScreenDimensions[0] = w;
   g_ScreenDimensions[1] = h;
@@ -255,7 +252,7 @@ dgui_add_render_commands(ID3D12GraphicsCommandList10 *pCommandList,
   g_ScreenRatio = (float)h / w;
   g_InvScreenRatio = (float)w / h;
 
-  DGUI_Panel *pPanel = dgui_get_top_panel();
+  DGUI_Panel *pPanel = DGUI_get_top_panel();
   pPanel->Dimensions[0] = DGUI_PIXEL_BASIS * g_InvScreenRatio;
   pPanel->Dimensions[1] = DGUI_PIXEL_BASIS;
 

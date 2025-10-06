@@ -13,10 +13,6 @@ DINO_API IAssetSystem *get_asset_system_interface() {
 void AssetSystem::init() {
   ASSERT_ALWAYS(g_RenderingSystem.is_initialized());
 
-  m_DecompressionBufferSize = k_DecompressionBufferSize;
-  m_DecompressionBuffer = malloc(m_DecompressionBufferSize);
-  ASSERT_ALWAYS(m_DecompressionBuffer);
-
   m_LevelHeapCapacity = g_GameDllSystem.GameInfo.StaticLevelHeapSize;
   m_LevelResourceCapacity =
       g_GameDllSystem.GameInfo.StaticLevelResourceCapacity;
@@ -102,8 +98,6 @@ void AssetSystem::stop() {
   free(m_LevelResources);
   m_LevelDescriptorHeap.Reset();
   m_LevelHeap.Reset();
-
-  free(m_DecompressionBuffer);
 }
 
 void AssetSystem::wipe_level_assets() {
