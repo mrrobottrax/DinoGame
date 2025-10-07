@@ -261,15 +261,17 @@ static int chunk_IDAT(const uint8_t *data, size_t len, State &state) {
     CHECK_CODE(ResourceLoader_zlib_read_header(data, len, &header),
                PNG_IDAT_ZLIB_HEADER_ERROR);
 
-    uint32_t adler;
+    ASSERT_RETURN(header.CM == 8, PNG_IDAT_ZLIB_UNSUPPORTED_CM);
+
+    // Uh oh. Doesn't work here if the data stream is split up
+    /*uint32_t adler;
     CHECK_CODE(ResourceLoader_zlib_read_adler(data, len, &header, &adler),
                PNG_IDAT_ZLIB_ADLER_ERROR);
 
-    ASSERT_RETURN(header.CM == 8, PNG_IDAT_ZLIB_UNSUPPORTED_CM);
 
+    state.Adler = adler;*/
     data += header.HeaderSize;
     len -= header.HeaderSize;
-    state.Adler = adler;
   }
 
   CHECK_CODE(

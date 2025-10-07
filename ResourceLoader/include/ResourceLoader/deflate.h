@@ -2,21 +2,33 @@
 
 enum EResourceLoader_Deflate_Stage {
   RESOURCE_LOADER_DEFLATE_STAGE_INITIAL,
-  RESOURCE_LOADER_DEFLATE_STAGE_READ_HEADER,
-  RESOURCE_LOADER_DEFLATE_STAGE_READ_HUFFMAN_TREE,
+  RESOURCE_LOADER_DEFLATE_STAGE_READING_HEADER_BFINAL,
+  RESOURCE_LOADER_DEFLATE_STAGE_READING_HEADER_BTYPE,
+  RESOURCE_LOADER_DEFLATE_STAGE_T0_COPY_DATA,
+  RESOURCE_LOADER_DEFLATE_STAGE_T1_SETUP_STATIC_TREE,
+  RESOURCE_LOADER_DEFLATE_STAGE_T2_READ_HUFFMAN_TREE,
+  RESOURCE_LOADER_DEFLATE_STAGE_DECODE,
+};
+
+struct ResourceLoader_Deflate_State_T0 {
+  uint16_t LEN;
+  uint16_t NLEN;
 };
 
 struct ResourceLoader_Deflate_State {
+  union {
+    ResourceLoader_Deflate_State_T0 T0;
+  };
+
   uint8_t *pOutStream;
   size_t OutStreamSize;
 
-  size_t OutStreamByteOffset;
+  size_t OutStreamOffset;
 
   EResourceLoader_Deflate_Stage Stage;
+  uint32_t SubStage;
 
   uint8_t CompressionType;
-
-  uint8_t OutStreamBitOffset;
 
   bool IsFinalChunk;
 };
