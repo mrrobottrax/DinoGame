@@ -2,17 +2,37 @@
 
 #include "arenas_private.h"
 #include "png.h"
+#include "zlib.h"
 
-#define PNG_TOO_SMALL 1;
-#define PNG_BAD_MAGIC 2;
-#define PNG_INCOMPLETE 3;
-#define PNG_BAD_CRC 4;
-#define PNG_UNRECOGNIZED_CHUNK 5;
-#define PNG_BAD_DIMENSIONS 6;
-#define PNG_UNSUPPORTED_FORMAT 7;
-#define PNG_INVALID_FORMAT 8;
-#define PNG_BAD_CHUNK_ORDERING 9;
-#define PNG_OUT_OF_MEMORY 10;
+#define PNG_OUT_OF_MEMORY MAKE_ERROR(00, 00, 00)
+
+#define PNG_BAD_MAGIC_NUMBER MAKE_ERROR(01, 00, 00)
+#define PNG_BAD_CRC MAKE_ERROR(01, 00, 01)
+#define PNG_BAD_CHUNK_ORDERING MAKE_ERROR(01, 00, 02)
+
+#define PNG_UNSUPPORTED_CHUNK_NAME MAKE_ERROR(01, 01, 00)
+
+#define PNG_TOO_SMALL_FOR_HEADER MAKE_ERROR(02, 00, 00)
+#define PNG_TOO_SMALL_FOR_CHUNK MAKE_ERROR(02, 00, 01)
+#define PNG_TOO_SMALL_FOR_CHUNK_HEADER MAKE_ERROR(02, 00, 02)
+#define PNG_TOO_SMALL_FOR_CHUNK_LENGTH MAKE_ERROR(02, 00, 03)
+#define PNG_TOO_SMALL_FOR_MAGIC_NUMBER MAKE_ERROR(02, 00, 04)
+
+#define PNG_IHDR_INVALID_BIT_DEPTH MAKE_ERROR(03, 00, 00)
+#define PNG_IHDR_INVALID_DIMENSIONS MAKE_ERROR(03, 00, 01)
+
+#define PNG_IHDR_UNSUPPORTED_COMPRESSION_METHOD MAKE_ERROR(03, 01, 00)
+#define PNG_IHDR_UNSUPPORTED_INTERLACE_METHOD MAKE_ERROR(03, 01, 01)
+#define PNG_IHDR_UNSUPPORTED_FILTER_METHOD MAKE_ERROR(03, 01, 02)
+#define PNG_IHDR_UNSUPPORTED_COLOR_TYPE MAKE_ERROR(03, 01, 03)
+
+#define PNG_PLTE_INVALID_COLOR_TYPE MAKE_ERROR(04, 00, 00)
+#define PNG_PLTE_INVALID_SIZE MAKE_ERROR(04, 00, 01)
+
+#define PNG_IDAT_ZLIB_HEADER_ERROR MAKE_ERROR(05, 00, 00)
+#define PNG_IDAT_ZLIB_ADLER_ERROR MAKE_ERROR(05, 00, 01)
+
+#define PNG_IDAT_ZLIB_UNSUPPORTED_CM MAKE_ERROR(05, 01, 02)
 
 static uint32_t s_CrcTable[256];
 static bool s_CrcTableComputed;
@@ -84,32 +104,31 @@ static uint32_t calc_crc(const uint8_t *pBuffer, size_t len) {
 }
 
 static uint32_t png_u32(const uint8_t *pValue) {
-  uint32_t o = 0;
+  union {
+    uint32_t v = 0;
+    uint8_t p1[4];
+  } u;
 
-  char *p = (char *)pValue;
-  char *p1 = (char *)&o;
+  u.p1[0] = pValue[3];
+  u.p1[1] = pValue[2];
+  u.p1[2] = pValue[1];
+  u.p1[3] = pValue[0];
 
-  p1[0] = p[3];
-  p1[1] = p[2];
-  p1[2] = p[1];
-  p1[3] = p[0];
-
-  return o;
+  return u.v;
 }
 
 static uint8_t png_u8(const uint8_t *pValue) { return *pValue; }
 
 #define ASSERT_CHUNK_ORDER(afterOrDuring, before)                              \
-  if (state.Stage < afterOrDuring || state.Stage >= before)                    \
-    return PNG_BAD_CHUNK_ORDERING;
+  ASSERT_RETURN(state.Stage >= afterOrDuring && state.Stage < before,          \
+                PNG_BAD_CHUNK_ORDERING)
 
 static int chunk_IHDR(const uint8_t *data, size_t len, PngInfo *pOut,
                       State &state) {
   ASSERT_CHUNK_ORDER(STAGE_INITIAL, STAGE_READ_HEADER);
   state.Stage = STAGE_READ_HEADER;
 
-  if (len < 13)
-    return PNG_INCOMPLETE;
+  ASSERT_RETURN(len >= 13, PNG_TOO_SMALL_FOR_HEADER);
 
   pOut->Width = png_u32(&data[0]);
   pOut->Height = png_u32(&data[4]);
@@ -133,17 +152,17 @@ static int chunk_IHDR(const uint8_t *data, size_t len, PngInfo *pOut,
   console_log_debug("\tFilterMethod: %u", state.FilterMethod);
   console_log_debug("\tInterlaceMethod: %u", state.InterlaceMethod);
 
-  if (state.Width == 0 || state.Height == 0)
-    return PNG_BAD_DIMENSIONS;
+  ASSERT_RETURN(state.Width != 0 && state.Height != 0,
+                PNG_IHDR_INVALID_DIMENSIONS);
 
   if (state.CompressionMethod != 0)
-    return PNG_UNSUPPORTED_FORMAT;
+    return PNG_IHDR_UNSUPPORTED_COMPRESSION_METHOD;
 
   if (state.FilterMethod != 0)
-    return PNG_UNSUPPORTED_FORMAT;
+    return PNG_IHDR_UNSUPPORTED_FILTER_METHOD;
 
   if (state.InterlaceMethod != 0 && state.InterlaceMethod != 1)
-    return PNG_UNSUPPORTED_FORMAT;
+    return PNG_IHDR_UNSUPPORTED_INTERLACE_METHOD;
 
 #define VERIFY_ALLOWED(colorType, ...)                                         \
   case colorType: {                                                            \
@@ -162,7 +181,7 @@ static int chunk_IHDR(const uint8_t *data, size_t len, PngInfo *pOut,
     console_error("Bit depth %u not allowed for colour type %u",               \
                   pOut->BitDepth, pOut->ColorType);                            \
                                                                                \
-    return PNG_INVALID_FORMAT;                                                 \
+    return PNG_IHDR_INVALID_BIT_DEPTH;                                         \
   }
 
   switch (state.ColorType) {
@@ -173,11 +192,11 @@ static int chunk_IHDR(const uint8_t *data, size_t len, PngInfo *pOut,
     VERIFY_ALLOWED(6, 8, 16)
 
   default:
-    console_error("Colour type %u not allowed", pOut->ColorType);
-    return PNG_UNSUPPORTED_FORMAT;
+    console_error("ColorType %u not allowed", pOut->ColorType);
+    return PNG_IHDR_UNSUPPORTED_COLOR_TYPE;
   }
 
-  size_t colors;
+  size_t colors = 0;
   switch (state.ColorType) {
   case 0:
     colors = 1;
@@ -195,6 +214,7 @@ static int chunk_IHDR(const uint8_t *data, size_t len, PngInfo *pOut,
     colors = 4;
     break;
   }
+  ASSERT(colors != 0);
   size_t requiredSpace = (size_t)state.Width * state.Height *
                          (((size_t)state.BitDepth + 7) / 8) * colors;
   state.Data = (uint8_t *)arena_allocate(state.Arena, requiredSpace);
@@ -210,11 +230,10 @@ static int chunk_PLTE(const uint8_t *data, size_t len, State &state) {
   ASSERT_CHUNK_ORDER(STAGE_READ_HEADER, STAGE_READ_PALETTE);
   state.Stage = STAGE_READ_PALETTE;
 
-  if (state.ColorType == 0 || state.ColorType == 4)
-    return PNG_INVALID_FORMAT;
+  ASSERT_RETURN(state.ColorType != 0 && state.ColorType != 4,
+                PNG_PLTE_INVALID_COLOR_TYPE);
 
-  if (len % 3 != 0)
-    return PNG_INVALID_FORMAT;
+  ASSERT_RETURN(len % 3 == 0, PNG_PLTE_INVALID_SIZE);
 
   state.Palette = data;
 
@@ -224,6 +243,19 @@ static int chunk_PLTE(const uint8_t *data, size_t len, State &state) {
 static int chunk_IDAT(const uint8_t *data, size_t len, State &state) {
   ASSERT_CHUNK_ORDER(STAGE_READ_HEADER, STAGE_READ_DATA);
   state.Stage = STAGE_READ_DATA;
+
+  ASSERT_RETURN(state.CompressionMethod == 0,
+                PNG_IHDR_UNSUPPORTED_COMPRESSION_METHOD);
+
+  ResourceLoader_ZlibHeader header;
+  CHECK_CODE(ResourceLoader_zlib_read_header(data, len, &header),
+             PNG_IDAT_ZLIB_HEADER_ERROR);
+
+  uint32_t adler;
+  CHECK_CODE(ResourceLoader_zlib_read_adler(data, len, &header, &adler),
+             PNG_IDAT_ZLIB_ADLER_ERROR);
+
+  ASSERT_RETURN(header.CM == 8, PNG_IDAT_ZLIB_UNSUPPORTED_CM);
 
   return 1;
 }
@@ -249,16 +281,14 @@ ResourceLoader_decompress_png(const void *pFile, size_t fileSize, PngInfo *pOut,
   const size_t size = fileSize;
 
   *pOut = PngInfo{};
-  PngInfo &out = *pOut;
 
-  if (size < 8)
-    return PNG_TOO_SMALL;
+  ASSERT_RETURN(size >= 8, PNG_TOO_SMALL_FOR_MAGIC_NUMBER);
 
   uint64_t magicNum = *(uint64_t *)file;
   constexpr uint64_t correctNum = 0x0A1A0A0D474E5089;
 
   if (magicNum != correctNum)
-    return PNG_BAD_MAGIC;
+    return PNG_BAD_MAGIC_NUMBER;
 
   console_log_debug("Decompressing PNG file...");
 
@@ -268,8 +298,7 @@ ResourceLoader_decompress_png(const void *pFile, size_t fileSize, PngInfo *pOut,
 
   size_t offset = 8;
   while (true) {
-    if (size - offset < 12)
-      return PNG_INCOMPLETE;
+    ASSERT_RETURN(size - offset >= 12, PNG_TOO_SMALL_FOR_CHUNK_HEADER);
 
     const uint8_t *pLength = file + offset;
     const uint8_t *pName = file + offset + 4;
@@ -283,8 +312,8 @@ ResourceLoader_decompress_png(const void *pFile, size_t fileSize, PngInfo *pOut,
 
     const bool ancillary = chunk[0] & 0b100000;
 
-    if (size < offset + 12 + dataLen)
-      return PNG_INCOMPLETE;
+    ASSERT_RETURN(size >= offset + 12 + dataLen,
+                  PNG_TOO_SMALL_FOR_CHUNK_LENGTH);
 
     const uint32_t crc = png_u32(pData + dataLen);
     const uint32_t crc1 = calc_crc(pName, dataLen + 4);
@@ -315,7 +344,7 @@ ResourceLoader_decompress_png(const void *pFile, size_t fileSize, PngInfo *pOut,
 
       console_log_debug("Unrecognized required chunk: %s", chunk);
 
-      return PNG_UNRECOGNIZED_CHUNK;
+      return PNG_UNSUPPORTED_CHUNK_NAME;
     }
 
     offset += dataLen + 12;
@@ -323,8 +352,7 @@ ResourceLoader_decompress_png(const void *pFile, size_t fileSize, PngInfo *pOut,
     if (state.Stage == STAGE_END)
       break;
 
-    if (!state.Data)
-      return PNG_OUT_OF_MEMORY;
+    ASSERT_RETURN(state.Data, PNG_OUT_OF_MEMORY);
   }
 
   ASSERT(size - offset == 0);

@@ -16,9 +16,6 @@ RESOURCE_LOADER_API int
 ResourceLoader_decompress_png(const void *pFile, size_t fileSize, PngInfo *pOut,
                               ResourceLoader_arena_t arena);
 
-/// <summary>
-/// Convert PNG file to rgba8 format. Uses Arena0.
-/// </summary>
 RESOURCE_LOADER_API int
 ResourceLoader_png_to_rgba8(const PngInfo *pSrc, PngInfo *pDst,
                             ResourceLoader_arena_t arena);

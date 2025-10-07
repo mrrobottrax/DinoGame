@@ -18,6 +18,8 @@ inline void console_log(float f) { console_log("%f", f); }
 
 #ifdef DEBUG
 #define console_log_debug(...) console_log(__VA_ARGS__)
+#define console_error_debug(...) console_error(__VA_ARGS__)
 #else
 #define console_log_debug(...)
+#define console_error_debug(...)
 #endif

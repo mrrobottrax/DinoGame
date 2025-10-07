@@ -44,17 +44,57 @@ T0_API void crash_windows_hresult(HRESULT result, const char *format, ...);
     exit(1);                                                                   \
   }
 
+#define MAKE_ERROR(Group, Major, Minor)                                        \
+  (Group * 10000 + Major * 100 + Minor + 100000)
+
 // Always asserts not stripped out in release builds. Use for critical error
 // checking.
+
+#define DEBUG_BREAK_ALWAYS()                                                   \
+  if (IsDebuggerPresent()) {                                                   \
+    __debugbreak();                                                            \
+  } else {                                                                     \
+  }
+
+#ifdef DEBUG
+#define DEBUG_BREAK() DEBUG_BREAK_ALWAYS()
+#else
+#define DEBUG_BREAK()
+#endif
+
+#define CHECK_CODE(expression, returnVal, ...)                                 \
+  {                                                                            \
+    int code = expression;                                                     \
+    if (code == 0) {                                                           \
+    } else {                                                                   \
+      DEBUG_BREAK();                                                           \
+      console_log(#expression " failed: %i", code);                            \
+      console_log_debug(#expression                                            \
+                        " failed\r\nFile: " __FILE__                           \
+                        "\r\nLine:" STRINGIZE(__LINE__) "\r\n" __VA_ARGS__);   \
+      return returnVal;                                                        \
+    }                                                                          \
+  }
+
+// These are critical and never removed!
+#define ASSERT_RETURN(expression, returnVal, ...)                              \
+  {                                                                            \
+    if (expression) {                                                          \
+    } else {                                                                   \
+      DEBUG_BREAK();                                                           \
+      console_error_debug(                                                     \
+          #expression " failed. Returning " #returnVal "\r\nFile: " __FILE__   \
+                      "\r\nLine:" STRINGIZE(__LINE__) "\r\n" __VA_ARGS__);     \
+      return returnVal;                                                        \
+    }                                                                          \
+  }
 
 #define ASSERT_WIN_ALWAYS(expression, ...)                                     \
   {                                                                            \
     HRESULT result = expression;                                               \
     if (SUCCEEDED(result)) {                                                   \
     } else {                                                                   \
-      if (IsDebuggerPresent()) {                                               \
-        __debugbreak();                                                        \
-      }                                                                        \
+      DEBUG_BREAK_ALWAYS();                                                    \
       crash_windows_hresult(                                                   \
           result,                                                              \
           #expression " failed.\r\nFile: " __FILE__                            \
@@ -67,9 +107,7 @@ T0_API void crash_windows_hresult(HRESULT result, const char *format, ...);
   {                                                                            \
     if (expression) {                                                          \
     } else {                                                                   \
-      if (IsDebuggerPresent()) {                                               \
-        __debugbreak();                                                        \
-      }                                                                        \
+      DEBUG_BREAK_ALWAYS();                                                    \
       crash_windows("Assertion Failed: " #expression "\r\nFile: " __FILE__     \
                     "\r\nLine: " STRINGIZE(__LINE__) "\r\n" __VA_ARGS__);      \
       exit(1);                                                                 \
@@ -81,9 +119,7 @@ T0_API void crash_windows_hresult(HRESULT result, const char *format, ...);
     int code = expression;                                                     \
     if (code == 0) {                                                           \
     } else {                                                                   \
-      if (IsDebuggerPresent()) {                                               \
-        __debugbreak();                                                        \
-      }                                                                        \
+      DEBUG_BREAK_ALWAYS();                                                    \
       crash_windows_code(code, #expression                                     \
                          " failed.\r\nFile: " __FILE__                         \
                          "\r\nLine: " STRINGIZE(__LINE__) "\r\n" __VA_ARGS__); \
@@ -95,9 +131,7 @@ T0_API void crash_windows_hresult(HRESULT result, const char *format, ...);
   {                                                                            \
     if (expression) {                                                          \
     } else {                                                                   \
-      if (IsDebuggerPresent()) {                                               \
-        __debugbreak();                                                        \
-      }                                                                        \
+      DEBUG_BREAK_ALWAYS();                                                    \
       crash("Assertion Failed: " #expression "\r\nFile: " __FILE__             \
             "\r\nLine: " STRINGIZE(__LINE__) "\r\n" __VA_ARGS__);              \
       exit(1);                                                                 \
@@ -109,9 +143,7 @@ T0_API void crash_windows_hresult(HRESULT result, const char *format, ...);
     int code = expression;                                                     \
     if (code == 0) {                                                           \
     } else {                                                                   \
-      if (IsDebuggerPresent()) {                                               \
-        __debugbreak();                                                        \
-      }                                                                        \
+      DEBUG_BREAK_ALWAYS();                                                    \
       crash_code(code, #expression                                             \
                  " failed.\r\nFile: " __FILE__                                 \
                  "\r\nLine: " STRINGIZE(__LINE__) "\r\n" __VA_ARGS__);         \
