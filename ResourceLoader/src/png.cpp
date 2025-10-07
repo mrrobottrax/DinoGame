@@ -1,6 +1,7 @@
 #include "pch.h"
 
 #include "arenas_private.h"
+#include "deflate.h"
 #include "png.h"
 #include "zlib.h"
 
@@ -31,8 +32,9 @@
 
 #define PNG_IDAT_ZLIB_HEADER_ERROR MAKE_ERROR(05, 00, 00)
 #define PNG_IDAT_ZLIB_ADLER_ERROR MAKE_ERROR(05, 00, 01)
+#define PNG_IDAT_ZLIB_UNSUPPORTED_CM MAKE_ERROR(05, 00, 02)
 
-#define PNG_IDAT_ZLIB_UNSUPPORTED_CM MAKE_ERROR(05, 01, 02)
+#define PNG_IDAT_DEFLATE_HEADER_ERROR MAKE_ERROR(05, 01, 00)
 
 static uint32_t s_CrcTable[256];
 static bool s_CrcTableComputed;
@@ -46,12 +48,15 @@ enum EStage {
 };
 
 struct State {
+  ResourceLoader_Deflate_State DeflateState;
+
   uint8_t *Data;
-  size_t Size;
   const uint8_t *Palette;
+  size_t Size;
   ResourceLoader_arena_t Arena;
   uint32_t Width;
   uint32_t Height;
+  uint32_t Adler;
   EStage Stage;
   uint8_t BitDepth;
   uint8_t ColorType;
@@ -217,6 +222,10 @@ static int chunk_IHDR(const uint8_t *data, size_t len, PngInfo *pOut,
   ASSERT(colors != 0);
   size_t requiredSpace = (size_t)state.Width * state.Height *
                          (((size_t)state.BitDepth + 7) / 8) * colors;
+
+  constexpr size_t k_ScanlinePrefix = 1;
+  requiredSpace += state.Width * k_ScanlinePrefix;
+
   state.Data = (uint8_t *)arena_allocate(state.Arena, requiredSpace);
   state.Size = requiredSpace;
 
@@ -242,22 +251,34 @@ static int chunk_PLTE(const uint8_t *data, size_t len, State &state) {
 
 static int chunk_IDAT(const uint8_t *data, size_t len, State &state) {
   ASSERT_CHUNK_ORDER(STAGE_READ_HEADER, STAGE_READ_DATA);
-  state.Stage = STAGE_READ_DATA;
 
   ASSERT_RETURN(state.CompressionMethod == 0,
                 PNG_IHDR_UNSUPPORTED_COMPRESSION_METHOD);
 
-  ResourceLoader_ZlibHeader header;
-  CHECK_CODE(ResourceLoader_zlib_read_header(data, len, &header),
-             PNG_IDAT_ZLIB_HEADER_ERROR);
+  // Read ZLIB header
+  if (state.Stage < STAGE_READ_DATA) {
+    ResourceLoader_Zlib_Header header;
+    CHECK_CODE(ResourceLoader_zlib_read_header(data, len, &header),
+               PNG_IDAT_ZLIB_HEADER_ERROR);
 
-  uint32_t adler;
-  CHECK_CODE(ResourceLoader_zlib_read_adler(data, len, &header, &adler),
-             PNG_IDAT_ZLIB_ADLER_ERROR);
+    uint32_t adler;
+    CHECK_CODE(ResourceLoader_zlib_read_adler(data, len, &header, &adler),
+               PNG_IDAT_ZLIB_ADLER_ERROR);
 
-  ASSERT_RETURN(header.CM == 8, PNG_IDAT_ZLIB_UNSUPPORTED_CM);
+    ASSERT_RETURN(header.CM == 8, PNG_IDAT_ZLIB_UNSUPPORTED_CM);
 
-  return 1;
+    data += header.HeaderSize;
+    len -= header.HeaderSize;
+    state.Adler = adler;
+  }
+
+  CHECK_CODE(
+      ResourceLoader_deflate_read_partial(data, len, &state.DeflateState),
+      PNG_IDAT_DEFLATE_HEADER_ERROR);
+
+  state.Stage = STAGE_READ_DATA;
+
+  return 0;
 }
 
 static int chunk_IEND(const uint8_t *data, size_t len, State &state) {

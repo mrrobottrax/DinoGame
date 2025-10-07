@@ -63,6 +63,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="include\ResourceLoader\arenas.h" />
+    <ClInclude Include="include\ResourceLoader\deflate.h" />
     <ClInclude Include="include\ResourceLoader\file.h" />
     <ClInclude Include="include\ResourceLoader\zlib.h" />
     <ClInclude Include="include\resource_loader.h" />
@@ -73,6 +74,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\arenas.cpp" />
+    <ClCompile Include="src\deflate.cpp" />
     <ClCompile Include="src\file.cpp" />
     <ClCompile Include="src\pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>

@@ -27,11 +27,12 @@ static uint32_t zlib_u32(const uint8_t *p) {
 }
 
 RESOURCE_LOADER_API int ResourceLoader_zlib_read_header(
-    const void *pFile, size_t fileSize, ResourceLoader_ZlibHeader *pHeader,
+    const void *pFile, size_t fileSize, ResourceLoader_Zlib_Header *pHeader,
     const uint32_t *pSupportedPresetDicts, size_t supportedPresetDictsLength) {
   ASSERT_RETURN(fileSize >= 6, ZLIB_HEADER_NO_SPACE);
 
-  *pHeader = ResourceLoader_ZlibHeader{};
+  *pHeader = ResourceLoader_Zlib_Header{};
+  pHeader->HeaderSize = 2;
 
   const uint8_t *file = (uint8_t *)pFile;
   pHeader->CM = file[0] & 0b00001111;
@@ -47,6 +48,7 @@ RESOURCE_LOADER_API int ResourceLoader_zlib_read_header(
   pHeader->CompressionLevel = (file[1] & 0b11000000) >> 6;
 
   if (pHeader->PresetDict) {
+    pHeader->HeaderSize += 4;
     pHeader->DictId = zlib_u32(&file[2]);
 
     bool supported = false;
@@ -67,13 +69,10 @@ RESOURCE_LOADER_API int ResourceLoader_zlib_read_header(
 
 RESOURCE_LOADER_API int
 ResourceLoader_zlib_read_adler(const void *pFile, size_t fileSize,
-                               ResourceLoader_ZlibHeader *pHeader,
+                               ResourceLoader_Zlib_Header *pHeader,
                                uint32_t *pAdler) {
-  size_t headerSize = 2;
-  if (pHeader->PresetDict) {
-    headerSize += 4;
-  }
-  ASSERT_RETURN(fileSize >= headerSize + 4, ZLIB_ADLER_NOT_ENOUGH_SPACE);
+  ASSERT_RETURN(fileSize >= pHeader->HeaderSize + 4,
+                ZLIB_ADLER_NOT_ENOUGH_SPACE);
 
   *pAdler = zlib_u32((uint8_t *)pFile + fileSize - 4);
 

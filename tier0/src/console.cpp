@@ -40,6 +40,7 @@ void console_free() {
   EnterCriticalSection(&s_LogLock);
   FlushFileBuffers(s_hLogFile);
   CloseHandle(s_hLogFile);
+  s_hLogFile = NULL;
   LeaveCriticalSection(&s_LogLock);
 
 #ifdef T0_CONSOLE
@@ -54,17 +55,21 @@ void console_print_va(const char format[], va_list args) {
 
   vprintf(format, args);
 
+  EnterCriticalSection(&s_LogLock);
   if (s_hLogFile != NULL && s_LogFilePrintfBuffer) {
-    EnterCriticalSection(&s_LogLock);
     vsnprintf_s(s_LogFilePrintfBuffer, k_LogFilePrintfBufferLength, _TRUNCATE,
                 format, args2);
 
     size_t len =
         strnlen_s(s_LogFilePrintfBuffer, k_LogFilePrintfBufferLength - 1);
 
-    WriteFile(s_hLogFile, s_LogFilePrintfBuffer, (DWORD)len, NULL, NULL);
-    LeaveCriticalSection(&s_LogLock);
+    if (!WriteFile(s_hLogFile, s_LogFilePrintfBuffer, (DWORD)len, NULL, NULL)) {
+      CloseHandle(s_hLogFile);
+      s_hLogFile = NULL;
+      CRASH_WIN("Failed to write to log file");
+    }
   }
+  LeaveCriticalSection(&s_LogLock);
 
   va_end(args2);
 }
@@ -79,14 +84,24 @@ void console_print(const char format[], ...) {
 void console_println(const char format[], ...) {
   va_list args;
   va_start(args, format);
+
+  EnterCriticalSection(&s_LogLock);
+
   console_print_va(format, args);
-  va_end(args);
   console_print("\r\n");
+
+  LeaveCriticalSection(&s_LogLock);
+
+  va_end(args);
 }
 
 void console_println_va(const char format[], va_list args) {
+  EnterCriticalSection(&s_LogLock);
+
   console_print_va(format, args);
   console_print("\r\n");
+
+  LeaveCriticalSection(&s_LogLock);
 }
 
 void console_log(const char format[], ...) {

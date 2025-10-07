@@ -222,7 +222,6 @@ void crash_windows(const char *format, ...) {
   set_error_va(s_MbFormatBuffer, args);
 
   va_end(args);
-
   crash_end();
 }
 

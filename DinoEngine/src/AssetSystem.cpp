@@ -126,8 +126,9 @@ GPUImage AssetSystem::load_png(const char *path) {
                                                    ResourceLoader_arena1),
                      "Failed to decompress png.");
 
+  ResourceLoader_arena0_reset();
+
   PngInfo png2 = png1;
-  // ResourceLoader_arena0_reset();
 
   // PngInfo png2;
   // ASSERT_CODE_ALWAYS(
