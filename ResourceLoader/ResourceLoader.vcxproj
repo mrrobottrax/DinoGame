@@ -62,15 +62,16 @@
     <Link />
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="include\ResourceLoader\arenas.h" />
     <ClInclude Include="include\ResourceLoader\file.h" />
     <ClInclude Include="include\resource_loader.h" />
     <ClInclude Include="include\ResourceLoader\png.h" />
     <ClInclude Include="include\ResourceLoader\setup.h" />
-    <ClInclude Include="src\buffer.h" />
+    <ClInclude Include="src\arenas_private.h" />
     <ClInclude Include="src\pch.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\buffer.cpp" />
+    <ClCompile Include="src\arenas.cpp" />
     <ClCompile Include="src\file.cpp" />
     <ClCompile Include="src\pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>

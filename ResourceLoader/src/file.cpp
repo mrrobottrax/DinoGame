@@ -1,27 +1,40 @@
 #include "pch.h"
 
-#include "buffer.h"
+#include "arenas_private.h"
 #include "file.h"
 
 #define LF_FAILED_CONVERT 1;
 #define LF_FAILED_OPEN 2;
 #define LF_FAILED_SIZE 3;
-#define LF_FAILED_ALLOC 4;
+#define LF_OUT_OF_MEMORY 4;
 #define LF_FAILED_READ 5;
 
-/// <summary>
-/// Load file into file buffer.
-/// </summary>
-IMAGE_LOADER_API int ResourceLoader_load_file(const char *path) {
+RESOURCE_LOADER_API int ResourceLoader_load_file(const char *path,
+                                                 void **ppFile,
+                                                 size_t *pFileSize,
+                                                 ResourceLoader_arena_t arena) {
+  *ppFile = nullptr;
+  *pFileSize = 0;
+
+  arena_reset(arena);
+
   constexpr wchar_t prefix[] = L"content\\";
   constexpr size_t prefixLen = sizeof(prefix) / sizeof(wchar_t) - 1;
-  memcpy_s(g_Buffer, g_BufferSize, prefix, prefixLen * sizeof(wchar_t));
 
-  void *bufferStart = (wchar_t *)g_Buffer + prefixLen;
-  size_t bufferSize = g_BufferSize / sizeof(wchar_t) - prefixLen;
+  int wcLen = MultiByteToWideChar(CP_UTF8, 0, path, -1, nullptr, 0);
+  if (wcLen == 0)
+    return LF_FAILED_CONVERT;
 
-  int wcLen = MultiByteToWideChar(CP_UTF8, 0, path, -1, (LPWSTR)bufferStart,
-                                  (int)bufferSize);
+  const size_t required = (prefixLen + wcLen) * sizeof(wchar_t);
+  void *const buffer = arena_allocate(arena, required);
+
+  memcpy_s(buffer, required, prefix, prefixLen * sizeof(wchar_t));
+
+  void *const pathStart = (wchar_t *)buffer + prefixLen;
+  const size_t pathSize = required / sizeof(wchar_t) - prefixLen;
+
+  wcLen = MultiByteToWideChar(CP_UTF8, 0, path, -1, (LPWSTR)pathStart,
+                              (int)pathSize);
   if (wcLen == 0)
     return LF_FAILED_CONVERT;
 
@@ -41,10 +54,14 @@ IMAGE_LOADER_API int ResourceLoader_load_file(const char *path) {
   ASSERT_ALWAYS(fileSize.QuadPart < MAXDWORD32);
 #endif // DEBUG
 
-  arena0_reset();
-  void *alloc = arena0_allocate(fileSize.QuadPart);
+  arena_reset(arena);
+
+  void *alloc = arena_allocate(arena, fileSize.QuadPart);
   if (!alloc)
-    return LF_FAILED_ALLOC;
+    return LF_OUT_OF_MEMORY;
+
+  *ppFile = alloc;
+  *pFileSize = fileSize.QuadPart;
 
   if (!ReadFile(hFile, g_Buffer, (DWORD)fileSize.QuadPart, NULL, NULL))
     return LF_FAILED_READ;

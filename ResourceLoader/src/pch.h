@@ -2,4 +2,4 @@
 
 #include "tier0.h"
 
-#define IMAGE_LOADER_API _declspec(dllexport)
+#define RESOURCE_LOADER_API _declspec(dllexport)

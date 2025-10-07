@@ -1,11 +1,11 @@
 #include "pch.h"
 
-#include "buffer.h"
+#include "arenas_private.h"
 #include "setup.h"
 
 static bool s_BufferIsSelfAllocated;
 
-IMAGE_LOADER_API bool
+RESOURCE_LOADER_API bool
 ResourceLoader_setup(ResourceLoader_SetupInfo *pInfo,
                      ResourceLoader_SetupResult *pResult) {
   if (!pInfo) {
@@ -36,7 +36,7 @@ ResourceLoader_setup(ResourceLoader_SetupInfo *pInfo,
   return true;
 }
 
-IMAGE_LOADER_API void ResourceLoader_close() {
+RESOURCE_LOADER_API void ResourceLoader_close() {
   if (s_BufferIsSelfAllocated) {
     free(g_Buffer);
     g_Buffer = nullptr;

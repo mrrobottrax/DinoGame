@@ -1,9 +1,10 @@
 #include "pch.h"
 
-#include "buffer.h"
+#include "arenas.h"
+#include "arenas_private.h"
 
-void arena0_reset() { g_Arena0Size = 0; }
-void arena1_reset() { g_Arena1Size = 0; }
+RESOURCE_LOADER_API void ResourceLoader_arena0_reset() { g_Arena0Size = 0; }
+RESOURCE_LOADER_API void ResourceLoader_arena1_reset() { g_Arena1Size = 0; }
 
 void *arena0_allocate(size_t amt) {
   if (g_BufferSize - g_Arena0Size - g_Arena1Size < amt)

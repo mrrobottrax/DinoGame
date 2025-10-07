@@ -43,6 +43,7 @@ void console_free() {
   LeaveCriticalSection(&s_LogLock);
 
 #ifdef T0_CONSOLE
+  system("pause");
   FreeConsole();
 #endif
 }
@@ -61,12 +62,7 @@ void console_print_va(const char format[], va_list args) {
     size_t len =
         strnlen_s(s_LogFilePrintfBuffer, k_LogFilePrintfBufferLength - 1);
 
-    if (!WriteFile(s_hLogFile, s_LogFilePrintfBuffer, (DWORD)len, NULL, NULL)) {
-      printf("[CRASH] Failed to write to log!");
-      LeaveCriticalSection(&s_LogLock);
-      CRASH_IMMEDIATE();
-      return;
-    }
+    WriteFile(s_hLogFile, s_LogFilePrintfBuffer, (DWORD)len, NULL, NULL);
     LeaveCriticalSection(&s_LogLock);
   }
 

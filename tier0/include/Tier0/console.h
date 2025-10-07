@@ -15,3 +15,9 @@ inline void console_log(unsigned short n) { console_log("%hu", n); }
 inline void console_log(short n) { console_log("%h", n); }
 inline void console_log(void *p) { console_log("%p", p); }
 inline void console_log(float f) { console_log("%f", f); }
+
+#ifdef DEBUG
+#define console_log_debug(...) console_log(__VA_ARGS__)
+#else
+#define console_log_debug(...)
+#endif

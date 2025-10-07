@@ -141,11 +141,8 @@ static void append_windows_message(const char *format, DWORD error) {
   // no null char
   size_t len = strnlen_s(format, k_ErrorBufferLength - affixLen - 1);
 
-  // append format string
   strncpy_s(s_MbFormatBuffer, k_ErrorBufferLength, format, len);
-  // append affix
   strncat_s(s_MbFormatBuffer, k_ErrorBufferLength, affix, affixLen);
-  // windows message
   WideCharToMultiByte(
       CP_UTF8, 0, s_WcErrorBuffer, -1, s_MbFormatBuffer + len + affixLen,
       (int)(k_ErrorBufferLength - len - affixLen - 1), NULL, NULL);
@@ -165,9 +162,7 @@ static void append_return_code(const char *format, int code) {
   size_t len = strnlen_s(format, k_ErrorBufferLength - 1);
   size_t len1 = strnlen_s(s_MbErrorBuffer, k_ErrorBufferLength - len - 1);
 
-  // append format string
   strncpy_s(s_MbFormatBuffer, k_ErrorBufferLength, format, len);
-  // append return code text
   strncat_s(s_MbFormatBuffer, k_ErrorBufferLength, s_MbErrorBuffer, len1);
 }
 

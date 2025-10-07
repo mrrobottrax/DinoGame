@@ -6,7 +6,7 @@ struct ResourceLoader_SetupInfo {
   /// working arena and file output.
   /// </summary>
   void *pBuffer;
-  size_t BufferSize = 1 << 20; // 1MB
+  size_t BufferSize = 1 << 26; // 64MB
 };
 
 struct ResourceLoader_SetupResult {
@@ -14,6 +14,7 @@ struct ResourceLoader_SetupResult {
   void *pBuffer;
 };
 
-IMAGE_LOADER_API bool ResourceLoader_setup(ResourceLoader_SetupInfo *pInfo,
-                                           ResourceLoader_SetupResult *pResult);
-IMAGE_LOADER_API void ResourceLoader_close();
+RESOURCE_LOADER_API bool
+ResourceLoader_setup(ResourceLoader_SetupInfo *pInfo,
+                     ResourceLoader_SetupResult *pResult);
+RESOURCE_LOADER_API void ResourceLoader_close();

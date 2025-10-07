@@ -112,12 +112,32 @@ void AssetSystem::wipe_level_assets() {
 }
 
 GPUImage AssetSystem::load_png(const char *path) {
-  ASSERT_WIN_CODE_ALWAYS(ResourceLoader_load_file(path),
-                         "Failed to load file: %s", path);
+  ResourceLoader_arena0_reset();
+  ResourceLoader_arena1_reset();
 
-  PngOutInfo png;
-  ASSERT_WIN_CODE_ALWAYS(ResourceLoader_decompress_png(&png),
-                         "Failed to decompress png.");
+  void *file;
+  size_t fileSize;
+  ASSERT_WIN_CODE_ALWAYS(
+      ResourceLoader_load_file(path, &file, &fileSize, ResourceLoader_arena0),
+      "Failed to load file: %s", path);
+
+  PngInfo png1;
+  ASSERT_CODE_ALWAYS(ResourceLoader_decompress_png(file, fileSize, &png1,
+                                                   ResourceLoader_arena1),
+                     "Failed to decompress png.");
+
+  PngInfo png2 = png1;
+  // ResourceLoader_arena0_reset();
+
+  // PngInfo png2;
+  // ASSERT_CODE_ALWAYS(
+  //     ResourceLoader_png_to_rgba8(&png1, &png2, ResourceLoader_arena0));
+
+  DXGI_FORMAT format;
+  if (png2.SRGB)
+    format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+  else
+    format = DXGI_FORMAT_R8G8B8A8_UNORM;
 
   ID3D12Device9 *pDevice = g_RenderingSystem.get_device();
 
@@ -125,11 +145,11 @@ GPUImage AssetSystem::load_png(const char *path) {
   D3D12_RESOURCE_DESC desc{
       .Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D,
       .Alignment = 0,
-      .Width = png.Width,
-      .Height = png.Height,
+      .Width = png2.Width,
+      .Height = png2.Height,
       .DepthOrArraySize = 1,
       .MipLevels = 1,
-      .Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB,
+      .Format = format,
       .SampleDesc = {1, 0},
       .Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN,
       .Flags = D3D12_RESOURCE_FLAG_NONE,
@@ -174,7 +194,7 @@ GPUImage AssetSystem::load_png(const char *path) {
 
   // Create view
   D3D12_SHADER_RESOURCE_VIEW_DESC viewDesc{
-      .Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB,
+      .Format = format,
       .ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D,
       .Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING,
       .Texture2D =
@@ -188,23 +208,23 @@ GPUImage AssetSystem::load_png(const char *path) {
   pDevice->CreateShaderResourceView(m_LevelResources[m_LevelResourceCount],
                                     &viewDesc, cpuHandle);
 
-  UINT pitch = ((png.Width * 4 + D3D12_TEXTURE_DATA_PITCH_ALIGNMENT - 1) /
+  UINT pitch = ((png2.Width * 4 + D3D12_TEXTURE_DATA_PITCH_ALIGNMENT - 1) /
                 D3D12_TEXTURE_DATA_PITCH_ALIGNMENT) *
                D3D12_TEXTURE_DATA_PITCH_ALIGNMENT;
 
-  if ((size_t)pitch * png.Height > m_StagingBufferCapacity) {
+  if ((size_t)pitch * png2.Height > m_StagingBufferCapacity) {
     CRASH("Staging buffer too small!");
   }
 
   // Copy into staging buffer
-  for (size_t y = 0; y < png.Height; ++y) {
-    for (size_t x = 0; x < png.Width; ++x) {
+  for (size_t y = 0; y < png2.Height; ++y) {
+    for (size_t x = 0; x < png2.Width; ++x) {
       size_t i = y * pitch + x * 4;
-      size_t j = y * png.Width * 4 + x * 4;
-      m_StagingBufferMap[i + 0] = png.Data[j + 0];
-      m_StagingBufferMap[i + 1] = png.Data[j + 1];
-      m_StagingBufferMap[i + 2] = png.Data[j + 2];
-      m_StagingBufferMap[i + 3] = png.Data[j + 3];
+      size_t j = y * png2.Width * 4 + x * 4;
+      m_StagingBufferMap[i + 0] = png2.Data[j + 0];
+      m_StagingBufferMap[i + 1] = png2.Data[j + 1];
+      m_StagingBufferMap[i + 2] = png2.Data[j + 2];
+      m_StagingBufferMap[i + 3] = png2.Data[j + 3];
     }
   }
 
@@ -219,17 +239,19 @@ GPUImage AssetSystem::load_png(const char *path) {
   D3D12_TEXTURE_COPY_LOCATION src{
       .pResource = m_StagingBuffer.Get(),
       .Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT,
-      .PlacedFootprint = {
-          .Offset = 0,
-          .Footprint =
-              {
-                  .Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB,
-                  .Width = png.Width,
-                  .Height = png.Height,
-                  .Depth = 1,
-                  .RowPitch = pitch,
-              },
-      }};
+      .PlacedFootprint =
+          {
+              .Offset = 0,
+              .Footprint =
+                  {
+                      .Format = format,
+                      .Width = png2.Width,
+                      .Height = png2.Height,
+                      .Depth = 1,
+                      .RowPitch = pitch,
+                  },
+          },
+  };
   pList->CopyTextureRegion(&dst, 0, 0, 0, &src, nullptr);
 
   D3D12_RESOURCE_BARRIER barrier{
@@ -248,6 +270,9 @@ GPUImage AssetSystem::load_png(const char *path) {
 
   ++m_LevelDescriptorCount;
   ++m_LevelResourceCount;
+
+  ResourceLoader_arena0_reset();
+  ResourceLoader_arena1_reset();
 
   return GPUImage(gpuHandle, m_LevelDescriptorHeap.Get());
 }

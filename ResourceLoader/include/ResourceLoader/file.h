@@ -1,6 +1,11 @@
 #pragma once
 
+#include "arenas.h"
+
 /// <summary>
-/// Load an entire file into memory.
+/// Load file into memory.
 /// </summary>
-IMAGE_LOADER_API int ResourceLoader_load_file(const char *path);
+RESOURCE_LOADER_API int ResourceLoader_load_file(const char *path,
+                                                 void **ppFile,
+                                                 size_t *pFileSize,
+                                                 ResourceLoader_arena_t arena);

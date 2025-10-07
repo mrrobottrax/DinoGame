@@ -23,6 +23,7 @@ T0_API void crash_windows_hresult(HRESULT result, const char *format, ...);
     }                                                                          \
     crash("File: " __FILE__                                                    \
           "\r\nLine: " STRINGIZE(__LINE__) "\r\n" __VA_ARGS__);                \
+    exit(1);                                                                   \
   }
 
 #define CRASH_IMMEDIATE()                                                      \
@@ -40,6 +41,7 @@ T0_API void crash_windows_hresult(HRESULT result, const char *format, ...);
     }                                                                          \
     crash_windows("File: " __FILE__                                            \
                   "\r\nLine: " STRINGIZE(__LINE__) "\r\n" __VA_ARGS__);        \
+    exit(1);                                                                   \
   }
 
 // Always asserts not stripped out in release builds. Use for critical error
