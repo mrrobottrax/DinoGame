@@ -14,6 +14,9 @@
 #define PNG_BAD_CHUNK_ORDERING 9;
 #define PNG_OUT_OF_MEMORY 10;
 
+static uint32_t s_CrcTable[256];
+static bool s_CrcTableComputed;
+
 enum EStage {
   STAGE_INITIAL,
   STAGE_READ_HEADER,
@@ -46,6 +49,38 @@ constexpr static uint32_t encode(const char name[4]) {
   }
 
   return val;
+}
+
+static void make_crc_table() {
+  uint32_t c;
+  int n, k;
+
+  for (n = 0; n < 256; ++n) {
+    c = (unsigned int)n;
+    for (k = 0; k < 8; ++k) {
+      if (c & 1)
+        c = 0xedb88320L ^ (c >> 1);
+      else
+        c = c >> 1;
+    }
+    s_CrcTable[n] = c;
+  }
+}
+
+static uint32_t update_crc(uint32_t crc, const uint8_t *pBuffer, size_t len) {
+  unsigned long c = crc;
+  size_t n;
+
+  if (!s_CrcTableComputed)
+    make_crc_table();
+  for (n = 0; n < len; n++) {
+    c = s_CrcTable[(c ^ pBuffer[n]) & 0xff] ^ (c >> 8);
+  }
+  return c;
+}
+
+static uint32_t calc_crc(const uint8_t *pBuffer, size_t len) {
+  return update_crc(0xffffffff, pBuffer, len) ^ 0xffffffff;
 }
 
 static uint32_t png_u32(const uint8_t *pValue) {
@@ -101,6 +136,15 @@ static int chunk_IHDR(const uint8_t *data, size_t len, PngInfo *pOut,
   if (state.Width == 0 || state.Height == 0)
     return PNG_BAD_DIMENSIONS;
 
+  if (state.CompressionMethod != 0)
+    return PNG_UNSUPPORTED_FORMAT;
+
+  if (state.FilterMethod != 0)
+    return PNG_UNSUPPORTED_FORMAT;
+
+  if (state.InterlaceMethod != 0 && state.InterlaceMethod != 1)
+    return PNG_UNSUPPORTED_FORMAT;
+
 #define VERIFY_ALLOWED(colorType, ...)                                         \
   case colorType: {                                                            \
     bool valid = false;                                                        \
@@ -130,7 +174,7 @@ static int chunk_IHDR(const uint8_t *data, size_t len, PngInfo *pOut,
 
   default:
     console_error("Colour type %u not allowed", pOut->ColorType);
-    return PNG_INVALID_FORMAT;
+    return PNG_UNSUPPORTED_FORMAT;
   }
 
   size_t colors;
@@ -218,7 +262,9 @@ ResourceLoader_decompress_png(const void *pFile, size_t fileSize, PngInfo *pOut,
 
   console_log_debug("Decompressing PNG file...");
 
-  State state{};
+  State state{
+      .Arena = arena,
+  };
 
   size_t offset = 8;
   while (true) {
@@ -241,7 +287,9 @@ ResourceLoader_decompress_png(const void *pFile, size_t fileSize, PngInfo *pOut,
       return PNG_INCOMPLETE;
 
     const uint32_t crc = png_u32(pData + dataLen);
-    // TODO: check crc
+    const uint32_t crc1 = calc_crc(pName, dataLen + 4);
+    if (crc != crc1)
+      return PNG_BAD_CRC;
 
     console_log_debug("Reading chunk: %s", chunk);
 
