@@ -6,16 +6,15 @@
 #define DEFLATE_T0_NLEN_MISMATCH MAKE_ERROR(00, 00, 01);
 #define DEFLATE_UNSUPPORTED_STAGE MAKE_ERROR(00, 00, 02);
 #define DEFLATE_CANNOT_UNCOMPRESS_T0 MAKE_ERROR(00, 00, 03);
+#define DEFLATE_OUT_BUFFER_TOO_SMALL MAKE_ERROR(00, 00, 04);
 
 static int deflate_state_machine(ResourceLoader_Deflate_State *pState,
                                  bool bit) {
-  if (pState->Stage == RESOURCE_LOADER_DEFLATE_STAGE_INITIAL)
-    pState->Stage = RESOURCE_LOADER_DEFLATE_STAGE_READING_HEADER_BFINAL;
-
   switch (pState->Stage) {
   case RESOURCE_LOADER_DEFLATE_STAGE_READING_HEADER_BFINAL:
     pState->SubStage = 0;
     pState->IsFinalChunk = bit;
+    pState->Stage = RESOURCE_LOADER_DEFLATE_STAGE_READING_HEADER_BTYPE;
     break;
 
   case RESOURCE_LOADER_DEFLATE_STAGE_READING_HEADER_BTYPE:
@@ -60,6 +59,9 @@ static int deflate_state_machine(ResourceLoader_Deflate_State *pState,
 RESOURCE_LOADER_API int
 ResourceLoader_deflate_read_partial(const uint8_t *pStream, size_t streamSize,
                                     ResourceLoader_Deflate_State *pState) {
+  if (pState->Stage == RESOURCE_LOADER_DEFLATE_STAGE_INITIAL)
+    pState->Stage = RESOURCE_LOADER_DEFLATE_STAGE_READING_HEADER_BFINAL;
+
   for (size_t byte = 0; byte < streamSize; ++byte) {
     for (uint8_t bit = 0; bit < 8; ++bit) {
       bool set = *(pStream + byte) & (1 << bit);
@@ -70,8 +72,27 @@ ResourceLoader_deflate_read_partial(const uint8_t *pStream, size_t streamSize,
       }
 
       if (pState->Stage == RESOURCE_LOADER_DEFLATE_STAGE_T0_COPY_DATA) {
+        ++byte;
+        bit = 0;
+
+        pState->T0.LEN = 0;
+        pState->T0.NLEN = 0;
+        pState->T0.LEN |= *(uint16_t *)(pStream + byte);
+        pState->T0.NLEN |= *(uint16_t *)(pStream + byte + 2);
+
         ASSERT_RETURN(pState->T0.LEN == (pState->T0.NLEN ^ (uint16_t)~0),
                       DEFLATE_T0_NLEN_MISMATCH);
+
+        pStream = pStream + byte + 4;
+
+        ASSERT_RETURN(pState->OutStreamSize - pState->OutStreamOffset >=
+                          pState->T0.LEN,
+                      DEFLATE_OUT_BUFFER_TOO_SMALL);
+
+        for (byte = 0; byte < pState->T0.LEN; ++byte) {
+          uint8_t v = pStream[byte];
+          pState->pOutStream[pState->OutStreamOffset] = v;
+        }
 
         return 0;
       }
