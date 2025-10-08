@@ -11,12 +11,12 @@
 #define DEFLATE_NOT_ENOUGH_MEMORY MAKE_ERROR(00, 00, 06);
 #define DEFLATE_FAILED_ALLOCATION MAKE_ERROR(00, 00, 07);
 
-typedef ResourceLoader_Deflate_State::Node Node;
+static int construct_tree(const uint8_t *pLengths, size_t nLengths,
+                          uint16_t *pCodes, size_t codesLength) {
+  ASSERT_RETURN(nLengths <= codesLength, DEFLATE_CORRUPT_DATASTREAM);
 
-static int construct_tree(const uint8_t *pLengths, size_t nLengths, Node *pTree,
-                          size_t treeArrayLength) {
-  ASSERT_RETURN(nLengths <= treeArrayLength, DEFLATE_CORRUPT_DATASTREAM);
-
+  // copy lengths because we actually use the same buffer to store the result
+  // due to unions
   uint8_t *pNewLengthsBuffer = (uint8_t *)_malloca(sizeof(uint8_t) * nLengths);
   ASSERT_RETURN(pNewLengthsBuffer, DEFLATE_FAILED_ALLOCATION);
 
@@ -25,12 +25,19 @@ static int construct_tree(const uint8_t *pLengths, size_t nLengths, Node *pTree,
 
   pLengths = pNewLengthsBuffer;
 
-  uint8_t counts[15]{};
+  uint8_t count[16]{};
+  uint16_t nextCode[16]{};
 
   for (size_t i = 0; i < nLengths; ++i) {
     uint8_t length = pLengths[i];
-    ASSERT_RETURN(length <= 14, DEFLATE_NOT_ENOUGH_MEMORY);
-    ++counts[length];
+    ASSERT_RETURN(length <= 15, DEFLATE_NOT_ENOUGH_MEMORY);
+    ++count[length];
+  }
+
+  uint16_t code = 0;
+  for (size_t i = 1; i < _countof(count); ++i) {
+    code = (code + count[i - 1]) << 1;
+    nextCode[i] = code;
   }
 
   return 1;

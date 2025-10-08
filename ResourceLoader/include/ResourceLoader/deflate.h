@@ -20,17 +20,6 @@ enum EResourceLoader_Deflate_Stage {
 };
 
 struct ResourceLoader_Deflate_State {
-  struct Node {
-    union {
-      bool IsLeaf;
-      uint16_t IndexLeft;
-    };
-    union {
-      uint16_t LeafValue;
-      uint16_t IndexRight;
-    };
-  };
-
   union {
     struct {
       uint16_t LEN;
@@ -42,11 +31,11 @@ struct ResourceLoader_Deflate_State {
       uint16_t NumberOfDistanceCodes;
       uint16_t NumberofCodeLengthCodes;
       union {
-        Node CodeLengthTree[19];
+        uint16_t CodeLengthCodes[19];
         uint8_t CodeLengthLengths[19];
       };
       union {
-        Node LiteralTree[287];
+        uint16_t LiteralCodes[287];
         uint8_t LiteralLengths[287];
       };
     } Huffman;
