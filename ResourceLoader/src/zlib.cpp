@@ -29,7 +29,7 @@ static uint32_t zlib_u32(const uint8_t *p) {
 RESOURCE_LOADER_API int ResourceLoader_zlib_read_header(
     const void *pFile, size_t fileSize, ResourceLoader_Zlib_Header *pHeader,
     const uint32_t *pSupportedPresetDicts, size_t supportedPresetDictsLength) {
-  ASSERT_RETURN(fileSize >= 6, ZLIB_HEADER_NO_SPACE);
+  ASSERT_RETURN(fileSize >= 2, ZLIB_HEADER_NO_SPACE);
 
   *pHeader = ResourceLoader_Zlib_Header{};
   pHeader->HeaderSize = 2;
@@ -44,10 +44,11 @@ RESOURCE_LOADER_API int ResourceLoader_zlib_read_header(
 
   ASSERT_RETURN(pHeader->CM == 8, ZLIB_HEADER_UNSUPPORTED_CM);
 
-  pHeader->PresetDict = file[1] & 0b100000;
-  pHeader->CompressionLevel = (file[1] & 0b11000000) >> 6;
+  pHeader->PresetDict = FLG & 0b100000;
+  pHeader->CompressionLevel = (FLG & 0b11000000) >> 6;
 
   if (pHeader->PresetDict) {
+    ASSERT_RETURN(fileSize >= 6, ZLIB_HEADER_NO_SPACE);
     pHeader->HeaderSize += 4;
     pHeader->DictId = zlib_u32(&file[2]);
 
