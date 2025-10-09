@@ -25,26 +25,26 @@ struct ResourceLoader_Deflate_State {
 
     struct LengthData {
       uint16_t FirstCode;
-      uint16_t FirstValue;
+      uint16_t FirstValueIndex;
       uint8_t CodeCount;
     };
 
     struct {
       LengthData InfoForLength[k_MaxBits + 1];
       uint16_t NumberProvided;
-      uint8_t LengthForAlphabet[19];
+      uint16_t Tree[19];
     } CodeLength;
 
     struct {
       LengthData InfoForLength[k_MaxBits + 1];
       uint16_t NumberProvided;
-      uint8_t LengthForAlphabet[31];
+      uint16_t Tree[31];
     } Distance;
 
     struct {
       LengthData InfoForLength[k_MaxBits + 1];
       uint16_t NumberProvided;
-      uint8_t LengthForAlphabet[287];
+      uint16_t Tree[287];
     } LiteralLength;
   };
 

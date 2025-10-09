@@ -13,36 +13,56 @@
 
 typedef ResourceLoader_Deflate_State::HuffmanState HuffmanState;
 
-static int get_initial_codes(const uint8_t *pAlphabetLengths,
-                             size_t nAlphabetLengths,
-                             HuffmanState::LengthData *pLengthInfo) {
+constexpr size_t k_CodeLengthAlphabetSize = 19;
+
+static int get_initial_codes(
+    const uint16_t *pLengths, uint16_t *pTree, size_t nLengths,
+    HuffmanState::LengthData pLengthInfo[HuffmanState::k_MaxBits + 1]) {
+  // copy length info onto stack
+  uint16_t *pLengthsNew = (uint16_t *)_malloca(sizeof(uint16_t) * nLengths);
+  ASSERT_RETURN(pLengthsNew, DEFLATE_FAILED_ALLOCATION);
+  memcpy(pLengthsNew, pLengths, sizeof(uint16_t) * nLengths);
+  pLengths = pLengthsNew;
+
+  // setup
   for (int i = 0; i <= HuffmanState::k_MaxBits; ++i) {
     pLengthInfo[i].CodeCount = 0;
-    pLengthInfo[i].FirstCode = ~0u;
-    pLengthInfo[i].FirstValue = ~0u;
+    pLengthInfo[i].FirstCode = 0;
+    pLengthInfo[i].FirstValueIndex = 0;
   }
 
   // get frequency of each length
-  for (int i = 0; i < nAlphabetLengths; ++i) {
-    uint8_t length = pAlphabetLengths[i];
-    ASSERT_RETURN(length <= HuffmanState::k_MaxBits, DEFLATE_NOT_ENOUGH_MEMORY);
+  for (int i = 0; i < nLengths; ++i) {
+    uint16_t length = pLengths[i];
+    ASSERT_RETURN(length <= HuffmanState::k_MaxBits,
+                  DEFLATE_CORRUPT_DATASTREAM);
     ++pLengthInfo[length].CodeCount;
-    if (i < pLengthInfo[length].FirstValue)
-      pLengthInfo[length].FirstValue = i;
   }
+  pLengthInfo[0].CodeCount = 0;
+
+  uint16_t next_index[HuffmanState::k_MaxBits + 1]{};
 
   // get starting code of each length
-  pLengthInfo[0].CodeCount = 0;
-  pLengthInfo[0].FirstCode = 0;
-  pLengthInfo[0].FirstValue = 0;
   uint16_t code = 0;
+  uint16_t index = 0;
   for (int i = 1; i <= HuffmanState::k_MaxBits; ++i) {
     code = (code + pLengthInfo[i - 1].CodeCount) << 1;
-
-    if (pLengthInfo[i].CodeCount == 0)
-      continue;
-
+    index = index + pLengthInfo[i - 1].CodeCount;
+    ASSERT_RETURN(index < nLengths, DEFLATE_CORRUPT_DATASTREAM);
     pLengthInfo[i].FirstCode = code;
+    pLengthInfo[i].FirstValueIndex = index;
+    next_index[i] = index;
+  }
+
+  // insert values into tree
+  for (uint16_t i = 0; i < nLengths; ++i) {
+    uint16_t length = pLengths[i];
+    ASSERT_RETURN(length <= HuffmanState::k_MaxBits,
+                  DEFLATE_CORRUPT_DATASTREAM);
+    if (length > 0) {
+      pTree[next_index[length]] = i;
+      ++next_index[length];
+    }
   }
 
   return 0;
@@ -114,7 +134,8 @@ static int deflate_state_machine(ResourceLoader_Deflate_State *pState,
 
     if (pState->SubStage >= 4) {
       pState->Huffman.CodeLength.NumberProvided += 4;
-      ASSERT_RETURN(pState->Huffman.CodeLength.NumberProvided <= 19,
+      ASSERT_RETURN(pState->Huffman.CodeLength.NumberProvided <=
+                        k_CodeLengthAlphabetSize,
                     DEFLATE_CORRUPT_DATASTREAM);
       pState->Stage =
           RESOURCE_LOADER_DEFLATE_STAGE_T2_READING_CODE_LENGTHS_FOR_CL_ALPHABET;
@@ -127,18 +148,21 @@ static int deflate_state_machine(ResourceLoader_Deflate_State *pState,
     uint32_t bitIndex = pState->SubStage % 3;
     ++pState->SubStage;
 
-    ASSERT_RETURN(charIndex < 19, DEFLATE_CORRUPT_DATASTREAM);
+    ASSERT_RETURN(charIndex < k_CodeLengthAlphabetSize,
+                  DEFLATE_CORRUPT_DATASTREAM);
 
     constexpr uint8_t k_ClAlphabetOrder[] = {16, 17, 18, 0, 8,  7, 9,  6, 10, 5,
                                              11, 4,  12, 3, 13, 2, 14, 1, 15};
 
     charIndex = k_ClAlphabetOrder[charIndex];
 
-    pState->Huffman.CodeLength.LengthForAlphabet[charIndex] |=
-        bit * (0b1 << bitIndex);
+    pState->Huffman.CodeLength.Tree[charIndex] |= bit * (0b1 << bitIndex);
 
     if (pState->SubStage >= pState->Huffman.CodeLength.NumberProvided * 3u) {
-      int code = get_initial_codes(pState->Huffman.CodeLength.LengthForAlphabet,
+      // cheeky use of the same buffer for lengths and tree since we copy
+      // lengths to the stack first
+      int code = get_initial_codes(pState->Huffman.CodeLength.Tree,
+                                   pState->Huffman.CodeLength.Tree,
                                    pState->Huffman.CodeLength.NumberProvided,
                                    pState->Huffman.CodeLength.InfoForLength);
 
