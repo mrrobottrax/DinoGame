@@ -20,25 +20,41 @@ enum EResourceLoader_Deflate_Stage {
 };
 
 struct ResourceLoader_Deflate_State {
+  struct HuffmanState {
+    static const size_t k_MaxBits = 15;
+
+    struct LengthData {
+      uint16_t FirstCode;
+      uint16_t FirstValue;
+      uint8_t CodeCount;
+    };
+
+    struct {
+      LengthData InfoForLength[k_MaxBits + 1];
+      uint16_t NumberProvided;
+      uint8_t LengthForAlphabet[19];
+    } CodeLength;
+
+    struct {
+      LengthData InfoForLength[k_MaxBits + 1];
+      uint16_t NumberProvided;
+      uint8_t LengthForAlphabet[31];
+    } Distance;
+
+    struct {
+      LengthData InfoForLength[k_MaxBits + 1];
+      uint16_t NumberProvided;
+      uint8_t LengthForAlphabet[287];
+    } LiteralLength;
+  };
+
   union {
     struct {
       uint16_t LEN;
       uint16_t NLEN;
     } T0;
 
-    struct {
-      uint16_t NumberOfLiteralLengthCodes;
-      uint16_t NumberOfDistanceCodes;
-      uint16_t NumberofCodeLengthCodes;
-      union {
-        uint16_t CodeLengthCodes[19];
-        uint8_t CodeLengthLengths[19];
-      };
-      union {
-        uint16_t LiteralCodes[287];
-        uint8_t LiteralLengths[287];
-      };
-    } Huffman;
+    HuffmanState Huffman;
   };
 
   uint8_t *pOutStream;
