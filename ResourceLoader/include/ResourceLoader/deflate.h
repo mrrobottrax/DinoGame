@@ -46,13 +46,16 @@ struct ResourceLoader_Deflate_State {
       uint16_t NumberProvided;
       uint16_t Tree[287];
     } LiteralLength;
+
+    uint16_t CurrentCode;
+    uint8_t CurrentCodeBitOffset;
   };
 
   union {
     struct {
       uint16_t LEN;
       uint16_t NLEN;
-    } T0;
+    } Uncompressed;
 
     HuffmanState Huffman;
   };

@@ -78,7 +78,7 @@ static int deflate_state_machine(ResourceLoader_Deflate_State *pState,
     break;
 
   case RESOURCE_LOADER_DEFLATE_STAGE_READING_HEADER_BTYPE:
-    pState->CompressionType |= bit * (0b1 << pState->SubStage);
+    pState->CompressionType |= bit << pState->SubStage;
     ++pState->SubStage;
 
     if (pState->SubStage < 2)
@@ -101,8 +101,7 @@ static int deflate_state_machine(ResourceLoader_Deflate_State *pState,
     return DEFLATE_UNSUPPORTED_STAGE;
 
   case RESOURCE_LOADER_DEFLATE_STAGE_T2_READING_HEADER_HLIT:
-    pState->Huffman.LiteralLength.NumberProvided |=
-        bit * (0b1 << pState->SubStage);
+    pState->Huffman.LiteralLength.NumberProvided |= bit << pState->SubStage;
     ++pState->SubStage;
 
     if (pState->SubStage >= 5) {
@@ -115,7 +114,7 @@ static int deflate_state_machine(ResourceLoader_Deflate_State *pState,
     break;
 
   case RESOURCE_LOADER_DEFLATE_STAGE_T2_READING_HEADER_HDIST:
-    pState->Huffman.Distance.NumberProvided |= bit * (0b1 << pState->SubStage);
+    pState->Huffman.Distance.NumberProvided |= bit << pState->SubStage;
     ++pState->SubStage;
 
     if (pState->SubStage >= 5) {
@@ -128,8 +127,7 @@ static int deflate_state_machine(ResourceLoader_Deflate_State *pState,
     break;
 
   case RESOURCE_LOADER_DEFLATE_STAGE_T2_READING_HEADER_HCLEN:
-    pState->Huffman.CodeLength.NumberProvided |=
-        bit * (0b1 << pState->SubStage);
+    pState->Huffman.CodeLength.NumberProvided |= bit << pState->SubStage;
     ++pState->SubStage;
 
     if (pState->SubStage >= 4) {
@@ -156,7 +154,7 @@ static int deflate_state_machine(ResourceLoader_Deflate_State *pState,
 
     charIndex = k_ClAlphabetOrder[charIndex];
 
-    pState->Huffman.CodeLength.Tree[charIndex] |= bit * (0b1 << bitIndex);
+    pState->Huffman.CodeLength.Tree[charIndex] |= bit << bitIndex;
 
     if (pState->SubStage >= pState->Huffman.CodeLength.NumberProvided * 3u) {
       // cheeky use of the same buffer for lengths and tree since we copy
@@ -172,9 +170,22 @@ static int deflate_state_machine(ResourceLoader_Deflate_State *pState,
       pState->Stage =
           RESOURCE_LOADER_DEFLATE_STAGE_T2_READING_CODE_LENGTHS_FOR_DISTANCE_ALPHABET;
       pState->SubStage = 0;
+      pState->Huffman.CurrentCode = 0;
+      pState->Huffman.CurrentCodeBitOffset = 0;
     }
     break;
   }
+
+  case RESOURCE_LOADER_DEFLATE_STAGE_T2_READING_CODE_LENGTHS_FOR_DISTANCE_ALPHABET:
+    pState->Huffman.CurrentCode |= bit << pState->Huffman.CurrentCodeBitOffset;
+
+    if (found key) {
+      ++pState->SubStage;
+    }
+
+    if (pState->SubStage >= pState->Huffman.Distance.NumberProvided) {
+    }
+    break;
 
   case RESOURCE_LOADER_DEFLATE_STAGE_HUFFMAN_DECODE:
     ASSERT_RETURN(pState->CompressionType != 0, DEFLATE_CANNOT_UNCOMPRESS_T0);
@@ -207,21 +218,22 @@ ResourceLoader_deflate_read_partial(const uint8_t *pStream, size_t streamSize,
         ++byte;
         bit = 0;
 
-        pState->T0.LEN = 0;
-        pState->T0.NLEN = 0;
-        pState->T0.LEN |= *(uint16_t *)(pStream + byte);
-        pState->T0.NLEN |= *(uint16_t *)(pStream + byte + 2);
+        pState->Uncompressed.LEN = 0;
+        pState->Uncompressed.NLEN = 0;
+        pState->Uncompressed.LEN |= *(uint16_t *)(pStream + byte);
+        pState->Uncompressed.NLEN |= *(uint16_t *)(pStream + byte + 2);
 
-        ASSERT_RETURN(pState->T0.LEN == (pState->T0.NLEN ^ (uint16_t)~0),
+        ASSERT_RETURN(pState->Uncompressed.LEN ==
+                          (pState->Uncompressed.NLEN ^ (uint16_t)~0),
                       DEFLATE_T0_NLEN_MISMATCH);
 
         pStream = pStream + byte + 4;
 
         ASSERT_RETURN(pState->OutStreamSize - pState->OutStreamOffset >=
-                          pState->T0.LEN,
+                          pState->Uncompressed.LEN,
                       DEFLATE_OUT_BUFFER_TOO_SMALL);
 
-        for (byte = 0; byte < pState->T0.LEN; ++byte) {
+        for (byte = 0; byte < pState->Uncompressed.LEN; ++byte) {
           uint8_t v = pStream[byte];
           pState->pOutStream[pState->OutStreamOffset] = v;
         }
