@@ -261,6 +261,7 @@ static int chunk_IDAT(const uint8_t *data, size_t len, State &state) {
                PNG_IDAT_ZLIB_HEADER_ERROR);
 
     ASSERT_RETURN(header.CM == 8, PNG_IDAT_ZLIB_UNSUPPORTED_CM);
+    ASSERT_RETURN(header.CINFO <= 7, PNG_IDAT_ZLIB_UNSUPPORTED_CM);
 
     data += header.HeaderSize;
     len -= header.HeaderSize;

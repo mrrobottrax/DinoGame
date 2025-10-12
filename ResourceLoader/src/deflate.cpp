@@ -68,6 +68,28 @@ static int get_initial_codes(
   return 0;
 }
 
+static void setup_static_data(ResourceLoader_Deflate_State *pState) {
+  for (uint16_t i = 0; i <= 143; ++i) {
+    pState->Huffman.LiteralLength.Tree[i] = 8;
+  }
+
+  for (uint16_t i = 144; i <= 255; ++i) {
+    pState->Huffman.LiteralLength.Tree[i] = 9;
+  }
+
+  for (uint16_t i = 256; i <= 279; ++i) {
+    pState->Huffman.LiteralLength.Tree[i] = 7;
+  }
+
+  for (uint16_t i = 280; i <= 287; ++i) {
+    pState->Huffman.LiteralLength.Tree[i] = 8;
+  }
+
+  for (uint16_t i = 0; i <= 31; ++i) {
+    pState->Huffman.Distance.Tree[i] = 5;
+  }
+}
+
 static int deflate_state_machine(ResourceLoader_Deflate_State *pState,
                                  bool bit) {
   switch (pState->Stage) {
@@ -91,14 +113,12 @@ static int deflate_state_machine(ResourceLoader_Deflate_State *pState,
     if (pState->CompressionType == 0) {
       pState->Stage = RESOURCE_LOADER_DEFLATE_STAGE_T0_COPY_DATA;
     } else if (pState->CompressionType == 1) {
-      pState->Stage = RESOURCE_LOADER_DEFLATE_STAGE_T1_SETUP_STATIC_TREE;
+      setup_static_data(pState);
+      pState->Stage = RESOURCE_LOADER_DEFLATE_STAGE_HUFFMAN_DECODE;
     } else if (pState->CompressionType == 2) {
       pState->Stage = RESOURCE_LOADER_DEFLATE_STAGE_T2_READING_HEADER_HLIT;
     }
     break;
-
-  case RESOURCE_LOADER_DEFLATE_STAGE_T1_SETUP_STATIC_TREE:
-    return DEFLATE_UNSUPPORTED_STAGE;
 
   case RESOURCE_LOADER_DEFLATE_STAGE_T2_READING_HEADER_HLIT:
     pState->Huffman.LiteralLength.NumberProvided |= bit << pState->SubStage;
@@ -168,24 +188,144 @@ static int deflate_state_machine(ResourceLoader_Deflate_State *pState,
         return code;
 
       pState->Stage =
-          RESOURCE_LOADER_DEFLATE_STAGE_T2_READING_CODE_LENGTHS_FOR_DISTANCE_ALPHABET;
+          RESOURCE_LOADER_DEFLATE_STAGE_T2_READING_CODE_LENGTHS_FOR_LITERAL_LENGTH_ALPHABET;
       pState->SubStage = 0;
       pState->Huffman.CurrentCode = 0;
-      pState->Huffman.CurrentCodeBitOffset = 0;
+      pState->Huffman.CurrentCodeLength = 0;
     }
     break;
   }
 
-  case RESOURCE_LOADER_DEFLATE_STAGE_T2_READING_CODE_LENGTHS_FOR_DISTANCE_ALPHABET:
-    pState->Huffman.CurrentCode |= bit << pState->Huffman.CurrentCodeBitOffset;
+  case RESOURCE_LOADER_DEFLATE_STAGE_T2_READING_CODE_LENGTHS_FOR_LITERAL_LENGTH_ALPHABET:
+  case RESOURCE_LOADER_DEFLATE_STAGE_T2_READING_CODE_LENGTHS_FOR_DISTANCE_ALPHABET: {
+    pState->Huffman.CurrentCode =
+        (pState->Huffman.CurrentCode << 1) | bit * 0b1u;
+    ++pState->Huffman.CurrentCodeLength;
 
-    if (found key) {
+    ASSERT_RETURN(pState->Huffman.CurrentCodeLength <= HuffmanState::k_MaxBits,
+                  DEFLATE_CORRUPT_DATASTREAM);
+
+    HuffmanState::LengthData &lengthData =
+        pState->Huffman.CodeLength
+            .InfoForLength[pState->Huffman.CurrentCodeLength];
+
+    uint16_t firstCode = lengthData.FirstCode;
+    uint16_t lastCode = firstCode + lengthData.CodeCount;
+
+    bool inRange = pState->Huffman.CurrentCode >= firstCode &&
+                   pState->Huffman.CurrentCode < lastCode;
+
+    if (!inRange)
+      break;
+
+    uint16_t index = lengthData.FirstValueIndex;
+    index += pState->Huffman.CurrentCode - firstCode;
+
+    uint16_t value = pState->Huffman.CodeLength.Tree[index];
+
+    ASSERT_RETURN(value < k_CodeLengthAlphabetSize, DEFLATE_CORRUPT_DATASTREAM);
+
+    uint16_t *tree = 0;
+    uint16_t numProvided = 0;
+    EResourceLoader_Deflate_Stage nextStage;
+
+    if (pState->Stage ==
+        RESOURCE_LOADER_DEFLATE_STAGE_T2_READING_CODE_LENGTHS_FOR_LITERAL_LENGTH_ALPHABET) {
+      tree = pState->Huffman.LiteralLength.Tree;
+      numProvided = pState->Huffman.LiteralLength.NumberProvided;
+      nextStage =
+          RESOURCE_LOADER_DEFLATE_STAGE_T2_READING_CODE_LENGTHS_FOR_DISTANCE_ALPHABET;
+    } else if (
+        pState->Stage ==
+        RESOURCE_LOADER_DEFLATE_STAGE_T2_READING_CODE_LENGTHS_FOR_DISTANCE_ALPHABET) {
+      tree = pState->Huffman.Distance.Tree;
+      numProvided = pState->Huffman.Distance.NumberProvided;
+      nextStage = RESOURCE_LOADER_DEFLATE_STAGE_HUFFMAN_DECODE;
+    } else {
+      ASSERT(false);
+    }
+
+    pState->Huffman.ReturnStage = pState->Stage;
+    if (value <= 15) {
+      tree[pState->SubStage] = value;
+    } else if (value == 16) {
+      pState->Huffman.CurrentValue0 = value;
+      pState->Stage =
+          RESOURCE_LOADER_DEFLATE_STAGE_T2_READING_COPY_EXTRA_BIT_1_FOR_CODE_LENGTHS;
+    } else if (value == 17 || value == 18) {
+      pState->Huffman.CurrentValue0 = value;
+      pState->Stage =
+          RESOURCE_LOADER_DEFLATE_STAGE_T2_READING_ZERO_EXTRA_BITS_FOR_CODE_LENGTHS;
+    }
+
+    ++pState->SubStage;
+    pState->Huffman.CurrentCode = 0;
+    pState->Huffman.CurrentCodeLength = 0;
+
+    if (pState->SubStage >= numProvided) {
+      pState->Stage = nextStage;
+      pState->SubStage = 0;
+    }
+    break;
+  }
+
+  case RESOURCE_LOADER_DEFLATE_STAGE_T2_READING_COPY_EXTRA_BIT_1_FOR_CODE_LENGTHS:
+    pState->Huffman.ExtraBitsValue0 |= bit << 0;
+    pState->Stage =
+        RESOURCE_LOADER_DEFLATE_STAGE_T2_READING_COPY_EXTRA_BIT_2_FOR_CODE_LENGTHS;
+    break;
+
+  case RESOURCE_LOADER_DEFLATE_STAGE_T2_READING_COPY_EXTRA_BIT_2_FOR_CODE_LENGTHS: {
+    pState->Huffman.ExtraBitsValue0 |= bit << 1;
+
+    uint16_t repeatAmt = pState->Huffman.ExtraBitsValue0 + 3;
+
+    ASSERT(pState->SubStage > 0);
+    uint16_t value = pState->Huffman.LiteralLength.Tree[pState->SubStage - 1];
+
+    for (uint8_t i = 0; i < repeatAmt; ++i) {
+      pState->Huffman.LiteralLength.Tree[pState->SubStage] = value;
       ++pState->SubStage;
     }
 
-    if (pState->SubStage >= pState->Huffman.Distance.NumberProvided) {
-    }
+    pState->Stage = pState->Huffman.ReturnStage;
+
     break;
+  }
+
+  case RESOURCE_LOADER_DEFLATE_STAGE_T2_READING_ZERO_EXTRA_BITS_FOR_CODE_LENGTHS: {
+    pState->Huffman.ExtraBitsValue0 |= bit << pState->Huffman.CurrentCodeLength;
+    ++pState->Huffman.CurrentCodeLength;
+
+    ASSERT(pState->Huffman.CurrentValue0 == 17 ||
+           pState->Huffman.CurrentValue0 == 18);
+
+    uint16_t extraBitsToRead = 0;
+    if (pState->Huffman.CurrentValue0 == 17) {
+      extraBitsToRead = 3;
+    } else if (pState->Huffman.CurrentValue0 == 18) {
+      extraBitsToRead = 7;
+    }
+
+    if (pState->Huffman.CurrentCodeLength >= extraBitsToRead) {
+      uint16_t amtToFill = 0;
+      if (pState->Huffman.CurrentValue0 == 17) {
+        amtToFill = 3 + pState->Huffman.ExtraBitsValue0;
+      } else if (pState->Huffman.CurrentValue0 == 18) {
+        amtToFill = 11 + pState->Huffman.ExtraBitsValue0;
+      }
+
+      for (uint16_t i = 0; i < amtToFill; ++i) {
+        pState->Huffman.LiteralLength.Tree[pState->SubStage] = 0;
+        ++pState->SubStage;
+      }
+
+      pState->Stage = pState->Huffman.ReturnStage;
+      pState->Huffman.CurrentCodeLength = 0;
+    }
+
+    break;
+  }
 
   case RESOURCE_LOADER_DEFLATE_STAGE_HUFFMAN_DECODE:
     ASSERT_RETURN(pState->CompressionType != 0, DEFLATE_CANNOT_UNCOMPRESS_T0);

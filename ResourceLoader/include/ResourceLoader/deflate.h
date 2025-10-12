@@ -12,9 +12,14 @@ enum EResourceLoader_Deflate_Stage {
   RESOURCE_LOADER_DEFLATE_STAGE_T2_READING_HEADER_HLIT,
   RESOURCE_LOADER_DEFLATE_STAGE_T2_READING_HEADER_HDIST,
   RESOURCE_LOADER_DEFLATE_STAGE_T2_READING_HEADER_HCLEN,
+
   RESOURCE_LOADER_DEFLATE_STAGE_T2_READING_CODE_LENGTHS_FOR_CL_ALPHABET,
+  RESOURCE_LOADER_DEFLATE_STAGE_T2_READING_CODE_LENGTHS_FOR_LITERAL_LENGTH_ALPHABET,
   RESOURCE_LOADER_DEFLATE_STAGE_T2_READING_CODE_LENGTHS_FOR_DISTANCE_ALPHABET,
-  RESOURCE_LOADER_DEFLATE_STAGE_T2_READING_CODE_LENGTHS,
+
+  RESOURCE_LOADER_DEFLATE_STAGE_T2_READING_COPY_EXTRA_BIT_1_FOR_CODE_LENGTHS,
+  RESOURCE_LOADER_DEFLATE_STAGE_T2_READING_COPY_EXTRA_BIT_2_FOR_CODE_LENGTHS,
+  RESOURCE_LOADER_DEFLATE_STAGE_T2_READING_ZERO_EXTRA_BITS_FOR_CODE_LENGTHS,
 
   RESOURCE_LOADER_DEFLATE_STAGE_HUFFMAN_DECODE,
 };
@@ -38,17 +43,30 @@ struct ResourceLoader_Deflate_State {
     struct {
       LengthData InfoForLength[k_MaxBits + 1];
       uint16_t NumberProvided;
-      uint16_t Tree[31];
-    } Distance;
+      uint16_t Tree[288];
+    } LiteralLength;
 
     struct {
       LengthData InfoForLength[k_MaxBits + 1];
       uint16_t NumberProvided;
-      uint16_t Tree[287];
-    } LiteralLength;
+      uint16_t Tree[32];
+    } Distance;
+
+    EResourceLoader_Deflate_Stage ReturnStage;
 
     uint16_t CurrentCode;
-    uint8_t CurrentCodeBitOffset;
+
+    // Value for code length or literal/length
+    uint16_t CurrentValue0;
+    // Value for backwards distance
+    uint16_t CurrentValue1;
+
+    // Extra bits for code length or literal/length
+    uint16_t ExtraBitsValue0;
+    // Extra bits for backwards distance
+    uint16_t ExtraBitsValue1;
+
+    uint8_t CurrentCodeLength;
   };
 
   union {

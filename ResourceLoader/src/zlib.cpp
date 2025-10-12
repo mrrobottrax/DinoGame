@@ -36,7 +36,7 @@ RESOURCE_LOADER_API int ResourceLoader_zlib_read_header(
 
   const uint8_t *file = (uint8_t *)pFile;
   pHeader->CM = file[0] & 0b00001111;
-  pHeader->CINFO = file[0] & 0b11110000;
+  pHeader->CINFO = (file[0] & 0b11110000u) >> 4;
 
   uint32_t CMF = file[0];
   uint32_t FLG = file[1];
@@ -45,7 +45,7 @@ RESOURCE_LOADER_API int ResourceLoader_zlib_read_header(
   ASSERT_RETURN(pHeader->CM == 8, ZLIB_HEADER_UNSUPPORTED_CM);
 
   pHeader->PresetDict = FLG & 0b100000;
-  pHeader->CompressionLevel = (FLG & 0b11000000) >> 6;
+  pHeader->CompressionLevel = (FLG & 0b11000000u) >> 6;
 
   if (pHeader->PresetDict) {
     ASSERT_RETURN(fileSize >= 6, ZLIB_HEADER_NO_SPACE);
