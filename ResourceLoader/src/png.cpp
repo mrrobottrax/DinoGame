@@ -228,6 +228,9 @@ static int chunk_IHDR(const uint8_t *data, size_t len, PngInfo *pOut,
   state.Data = (uint8_t *)arena_allocate(state.Arena, requiredSpace);
   state.Size = requiredSpace;
 
+  state.DeflateState.pOutStream = state.Data;
+  state.DeflateState.OutStreamSize = state.Size;
+
   pOut->Data = state.Data;
   pOut->Size = state.Size;
 
@@ -249,7 +252,7 @@ static int chunk_PLTE(const uint8_t *data, size_t len, State &state) {
 }
 
 static int chunk_IDAT(const uint8_t *data, size_t len, State &state) {
-  ASSERT_CHUNK_ORDER(STAGE_READ_HEADER, STAGE_READ_DATA);
+  ASSERT_CHUNK_ORDER(STAGE_READ_HEADER, STAGE_END);
 
   ASSERT_RETURN(state.CompressionMethod == 0,
                 PNG_IHDR_UNSUPPORTED_COMPRESSION_METHOD);
