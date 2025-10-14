@@ -198,6 +198,7 @@ static int chunk_IHDR(const uint8_t *data, size_t len, PngInfo *pOut,
   }
 
   size_t colors = 0;
+  size_t outBitDepth = state.BitDepth;
   switch (state.ColorType) {
   case 0:
     colors = 1;
@@ -206,6 +207,7 @@ static int chunk_IHDR(const uint8_t *data, size_t len, PngInfo *pOut,
     colors = 3;
     break;
   case 3:
+    outBitDepth = 8;
     colors = 3;
     break;
   case 4:
@@ -216,8 +218,9 @@ static int chunk_IHDR(const uint8_t *data, size_t len, PngInfo *pOut,
     break;
   }
   ASSERT(colors != 0);
-  size_t requiredSpace = (size_t)state.Width * state.Height *
-                         (((size_t)state.BitDepth + 7) / 8) * colors;
+
+  size_t stride = 1 + (state.Width * outBitDepth * colors + 7) / 8;
+  size_t requiredSpace = state.Width * stride;
 
   constexpr size_t k_ScanlinePrefix = 1;
   requiredSpace += state.Height * k_ScanlinePrefix;
@@ -263,7 +266,7 @@ static int chunk_IDAT(const uint8_t *data, size_t len, State &state) {
   return 0;
 }
 
-static int chunk_IEND(const uint8_t *data, size_t len, State &state) {
+static int chunk_IEND(State &state) {
   ASSERT_CHUNK_ORDER(STAGE_READ_DATA, STAGE_END);
   state.Stage = STAGE_END;
 
@@ -278,7 +281,7 @@ static int chunk_IEND(const uint8_t *data, size_t len, State &state) {
     colors = 3;
     break;
   case 3:
-    colors = 3;
+    colors = 1;
     break;
   case 4:
     colors = 2;
@@ -288,15 +291,87 @@ static int chunk_IEND(const uint8_t *data, size_t len, State &state) {
     break;
   }
 
-  uint8_t pixelSize = ((state.BitDepth + 7) / 9) * colors;
-  size_t stride = 1 + (size_t)pixelSize * state.Width;
+  size_t strideNoFilter =
+      ((size_t)state.BitDepth * colors * state.Width + 7) / 8;
+  size_t pixelOffset = colors * (((size_t)state.BitDepth + 7) / 8);
 
   for (size_t scanLine = 0; scanLine < state.Height; ++scanLine) {
-    uint8_t *pStart = &state.Data[stride * scanLine];
-    uint8_t filterType = pStart[0];
+    uint8_t *pLineOld = &state.Data[(strideNoFilter + 1) * scanLine];
+    uint8_t *pLine = &state.Data[strideNoFilter * scanLine];
+    uint8_t filterType = pLineOld[0];
 
-    for (size_t i = 1; i < stride; ++i) {
+    ASSERT(pLine >= state.Data);
 
+    for (size_t i = 0; i < strideNoFilter; ++i) {
+      pLine[i] = pLineOld[i + 1];
+    }
+
+    if (filterType == 0) {
+    } else if (filterType == 1) {
+      for (size_t i = 0; i < strideNoFilter; ++i) {
+        uint8_t x = pLine[i];
+        uint8_t ra = 0;
+        if (i >= 1) {
+          ra = pLine[i - pixelOffset];
+        }
+
+        pLine[i] = x + ra;
+      }
+    } else if (filterType == 2) {
+      for (size_t i = 0; i < strideNoFilter; ++i) {
+        uint8_t x = pLine[i];
+        uint8_t rb = 0;
+        if (scanLine >= 1) {
+          rb = pLine[i - strideNoFilter];
+        }
+
+        pLine[i] = x + rb;
+      }
+    } else if (filterType == 3) {
+      for (size_t i = 0; i < strideNoFilter; ++i) {
+        uint8_t x = pLine[i];
+        uint8_t ra = 0;
+        if (i >= 1) {
+          ra = pLine[i - pixelOffset];
+        }
+        uint8_t rb = 0;
+        if (scanLine >= 1) {
+          rb = pLine[i - strideNoFilter];
+        }
+
+        pLine[i] = x + ((uint32_t)ra + rb) / 2;
+      }
+    } else if (filterType == 4) {
+      for (size_t i = 0; i < strideNoFilter; ++i) {
+        uint8_t x = pLine[i];
+        uint8_t ra = 0;
+        if (i >= 1) {
+          ra = pLine[i - pixelOffset];
+        }
+        uint8_t rb = 0;
+        if (scanLine >= 1) {
+          rb = pLine[i - strideNoFilter];
+        }
+        uint8_t rc = 0;
+        if (i >= 1 && scanLine >= 1) {
+          rc = pLine[i - strideNoFilter - pixelOffset];
+        }
+
+        int32_t p = ra + rb - rc;
+        int32_t pa = abs(p - ra);
+        int32_t pb = abs(p - rb);
+        int32_t pc = abs(p - rc);
+
+        uint32_t pr;
+        if (pa <= pb && pa <= pc)
+          pr = ra;
+        else if (pb <= pc)
+          pr = rb;
+        else
+          pr = rc;
+
+        pLine[i] = x + (uint8_t)pr;
+      }
     }
   }
 
@@ -373,7 +448,7 @@ ResourceLoader_decompress_png(const void *pFile, size_t fileSize, PngInfo *pOut,
       SWITCH_CHUNK(IHDR, pData, dataLen, pOut, state);
       SWITCH_CHUNK(PLTE, pData, dataLen, state);
       SWITCH_CHUNK(IDAT, pData, dataLen, state);
-      SWITCH_CHUNK(IEND, pData, dataLen, state);
+      SWITCH_CHUNK(IEND, state);
       SWITCH_CHUNK(sRGB, pData, dataLen, pOut, state);
 
     default:

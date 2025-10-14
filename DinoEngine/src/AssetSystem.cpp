@@ -129,7 +129,6 @@ GPUImage AssetSystem::load_png(const char *path) {
   ResourceLoader_arena0_reset();
 
   PngInfo png2 = png1;
-
   // PngInfo png2;
   // ASSERT_CODE_ALWAYS(
   //     ResourceLoader_png_to_rgba8(&png1, &png2, ResourceLoader_arena0));
@@ -221,7 +220,7 @@ GPUImage AssetSystem::load_png(const char *path) {
   for (size_t y = 0; y < png2.Height; ++y) {
     for (size_t x = 0; x < png2.Width; ++x) {
       size_t i = y * pitch + x * 4;
-      size_t j = y * png2.Width * 4 + x * 4;
+      size_t j = (png2.Height - y - 1) * png2.Width * 4 + x * 4;
       m_StagingBufferMap[i + 0] = png2.Data[j + 0];
       m_StagingBufferMap[i + 1] = png2.Data[j + 1];
       m_StagingBufferMap[i + 2] = png2.Data[j + 2];
