@@ -3,7 +3,6 @@
 #include "arenas_private.h"
 #include "deflate.h"
 #include "png.h"
-#include "zlib.h"
 
 #define PNG_OUT_OF_MEMORY MAKE_ERROR(00, 00, 00)
 
@@ -30,11 +29,7 @@
 #define PNG_PLTE_INVALID_COLOR_TYPE MAKE_ERROR(04, 00, 00)
 #define PNG_PLTE_INVALID_SIZE MAKE_ERROR(04, 00, 01)
 
-#define PNG_IDAT_ZLIB_HEADER_ERROR MAKE_ERROR(05, 00, 00)
-#define PNG_IDAT_ZLIB_ADLER_ERROR MAKE_ERROR(05, 00, 01)
-#define PNG_IDAT_ZLIB_UNSUPPORTED_CM MAKE_ERROR(05, 00, 02)
-
-#define PNG_IDAT_DEFLATE_HEADER_ERROR MAKE_ERROR(05, 01, 00)
+#define PNG_IDAT_DEFLATE_ERROR MAKE_ERROR(05, 00, 00)
 
 static uint32_t s_CrcTable[256];
 static bool s_CrcTableComputed;
@@ -223,7 +218,7 @@ static int chunk_IHDR(const uint8_t *data, size_t len, PngInfo *pOut,
                          (((size_t)state.BitDepth + 7) / 8) * colors;
 
   constexpr size_t k_ScanlinePrefix = 1;
-  requiredSpace += state.Width * k_ScanlinePrefix;
+  requiredSpace += state.Height * k_ScanlinePrefix;
 
   state.Data = (uint8_t *)arena_allocate(state.Arena, requiredSpace);
   state.Size = requiredSpace;
@@ -257,22 +252,9 @@ static int chunk_IDAT(const uint8_t *data, size_t len, State &state) {
   ASSERT_RETURN(state.CompressionMethod == 0,
                 PNG_IHDR_UNSUPPORTED_COMPRESSION_METHOD);
 
-  // Read ZLIB header
-  if (state.Stage < STAGE_READ_DATA) {
-    ResourceLoader_Zlib_Header header;
-    CHECK_CODE(ResourceLoader_zlib_read_header(data, len, &header),
-               PNG_IDAT_ZLIB_HEADER_ERROR);
-
-    ASSERT_RETURN(header.CM == 8, PNG_IDAT_ZLIB_UNSUPPORTED_CM);
-    ASSERT_RETURN(header.CINFO <= 7, PNG_IDAT_ZLIB_UNSUPPORTED_CM);
-
-    data += header.HeaderSize;
-    len -= header.HeaderSize;
-  }
-
   CHECK_CODE(
       ResourceLoader_deflate_read_partial(data, len, &state.DeflateState),
-      PNG_IDAT_DEFLATE_HEADER_ERROR);
+      PNG_IDAT_DEFLATE_ERROR);
 
   state.Stage = STAGE_READ_DATA;
 
@@ -282,6 +264,8 @@ static int chunk_IDAT(const uint8_t *data, size_t len, State &state) {
 static int chunk_IEND(const uint8_t *data, size_t len, State &state) {
   ASSERT_CHUNK_ORDER(STAGE_READ_DATA, STAGE_END);
   state.Stage = STAGE_END;
+
+  // TODO: Deprocess
 
   return 0;
 }

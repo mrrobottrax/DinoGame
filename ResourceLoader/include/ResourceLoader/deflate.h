@@ -2,9 +2,14 @@
 
 enum EResourceLoader_Deflate_Stage {
   RESOURCE_LOADER_DEFLATE_STAGE_INITIAL,
+
+  RESOURCE_LOADER_DEFLATE_STAGE_ZLIB_HEADER,
+
   RESOURCE_LOADER_DEFLATE_STAGE_READING_HEADER_BFINAL,
   RESOURCE_LOADER_DEFLATE_STAGE_READING_HEADER_BTYPE,
 
+  RESOURCE_LOADER_DEFLATE_STAGE_T0_SKIP_BYTE,
+  RESOURCE_LOADER_DEFLATE_STAGE_T0_READ_LEN_NLEN,
   RESOURCE_LOADER_DEFLATE_STAGE_T0_COPY_DATA,
 
   RESOURCE_LOADER_DEFLATE_STAGE_T1_SETUP_STATIC_TREE,
@@ -26,6 +31,8 @@ enum EResourceLoader_Deflate_Stage {
   RESOURCE_LOADER_DEFLATE_STAGE_HUFFMAN_DECODE_DISTANCE_EXTRA_BITS,
 
   RESOURCE_LOADER_DEFLATE_STAGE_END,
+
+  RESOURCE_LOADER_DEFLATE_STAGE_ZLIB_CHECK_ADLER,
 };
 
 struct ResourceLoader_Deflate_State {
@@ -73,19 +80,32 @@ struct ResourceLoader_Deflate_State {
     uint8_t CurrentCodeLength;
   };
 
+  uint8_t *pOutStream;
+  size_t OutStreamSize;
+
+  size_t OutStreamOffset;
+
   union {
     struct {
       uint16_t LEN;
       uint16_t NLEN;
+
+      uint8_t CurrentByte;
     } Uncompressed;
 
     HuffmanState Huffman;
   };
 
-  uint8_t *pOutStream;
-  size_t OutStreamSize;
+  struct {
+    uint32_t DictId;
+    uint32_t Adler;
 
-  size_t OutStreamOffset;
+    uint8_t Method;
+    uint8_t Info;
+    uint8_t Level;
+
+    bool UsePresetDict;
+  } ZlibHeader;
 
   EResourceLoader_Deflate_Stage Stage;
   uint32_t SubStage;
@@ -93,6 +113,9 @@ struct ResourceLoader_Deflate_State {
   uint8_t CompressionType;
 
   bool IsFinalChunk;
+
+  // Stream has no Zlib header
+  bool NoZlib;
 };
 
 // Stream size is in bytes. It's likely that the end bit of the DEFLATE stream

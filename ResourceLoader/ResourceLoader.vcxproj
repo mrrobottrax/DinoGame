@@ -65,7 +65,6 @@
     <ClInclude Include="include\ResourceLoader\arenas.h" />
     <ClInclude Include="include\ResourceLoader\deflate.h" />
     <ClInclude Include="include\ResourceLoader\file.h" />
-    <ClInclude Include="include\ResourceLoader\zlib.h" />
     <ClInclude Include="include\resource_loader.h" />
     <ClInclude Include="include\ResourceLoader\png.h" />
     <ClInclude Include="include\ResourceLoader\setup.h" />
@@ -82,7 +81,6 @@
     </ClCompile>
     <ClCompile Include="src\png.cpp" />
     <ClCompile Include="src\setup.cpp" />
-    <ClCompile Include="src\zlib.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\tier0\tier0.vcxproj">
