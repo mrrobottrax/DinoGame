@@ -12,6 +12,7 @@
 #define DEFLATE_FAILED_ALLOCATION MAKE_ERROR(00, 00, 07);
 
 #define DEFLATE_ZLIB_BAD_HEADER MAKE_ERROR(01, 00, 00);
+#define DEFLATE_ZLIB_ADLER_FAILED MAKE_ERROR(01, 00, 01);
 
 typedef ResourceLoader_Deflate_State::HuffmanState HuffmanState;
 
@@ -173,9 +174,7 @@ static int bit_state_machine(ResourceLoader_Deflate_State *pState, bool bit) {
       uint8_t value = pState->Uncompressed.CurrentByte;
       pState->Uncompressed.CurrentByte = 0;
 
-      pState->pOutStream[pState->OutStreamOffset] = value;
-      ++pState->OutStreamOffset;
-
+      pState->pOutStream[pState->OutStreamOffset++] = value;
       ASSERT_RETURN(pState->OutStreamOffset <= pState->OutStreamSize,
                     DEFLATE_OUT_BUFFER_TOO_SMALL);
 
@@ -500,13 +499,9 @@ static int bit_state_machine(ResourceLoader_Deflate_State *pState, bool bit) {
     pState->SubStage = 0;
 
     if (value <= 255) {
-      pState->pOutStream[pState->OutStreamOffset] = (uint8_t)value;
-      ++pState->OutStreamOffset;
-
+      pState->pOutStream[pState->OutStreamOffset++] = (uint8_t)value;
       ASSERT_RETURN(pState->OutStreamOffset <= pState->OutStreamSize,
                     DEFLATE_OUT_BUFFER_TOO_SMALL);
-    } else if (value == 256) {
-      pState->Stage = RESOURCE_LOADER_DEFLATE_STAGE_END;
     } else if (value >= 257) {
       pState->Stage =
           RESOURCE_LOADER_DEFLATE_STAGE_HUFFMAN_DECODE_LITERAL_LENGTH_EXTRA_BITS;
@@ -515,6 +510,10 @@ static int bit_state_machine(ResourceLoader_Deflate_State *pState, bool bit) {
         // extraBitCount == 0, don't read next bit
         pState->Stage = RESOURCE_LOADER_DEFLATE_STAGE_HUFFMAN_DECODE_DISTANCE;
       }
+    } else if (value == 256) {
+      pState->Stage = RESOURCE_LOADER_DEFLATE_STAGE_END;
+    } else {
+      ASSERT(false);
     }
     break;
   }
@@ -527,7 +526,7 @@ static int bit_state_machine(ResourceLoader_Deflate_State *pState, bool bit) {
     }
 
     if (extraBitsCount) {
-      pState->Huffman.ExtraBitsValue0 = bit << pState->SubStage;
+      pState->Huffman.ExtraBitsValue0 |= bit << pState->SubStage;
       ++pState->SubStage;
     }
 
@@ -588,7 +587,7 @@ static int bit_state_machine(ResourceLoader_Deflate_State *pState, bool bit) {
     }
 
     if (extraBitsCount) {
-      pState->Huffman.ExtraBitsValue1 = bit << pState->SubStage;
+      pState->Huffman.ExtraBitsValue1 |= bit << pState->SubStage;
       ++pState->SubStage;
     }
 
@@ -601,7 +600,7 @@ static int bit_state_machine(ResourceLoader_Deflate_State *pState, bool bit) {
     uint16_t incrementSize;
 
     // length
-    constexpr uint16_t lengthBuckets[] = {0, 11, 19, 35, 67, 131, 258};
+    constexpr uint16_t lengthBuckets[] = {3, 11, 19, 35, 67, 131, 258};
 
     uint16_t length = 0;
     if (pState->Huffman.CurrentValue0 >= 265 &&
@@ -649,8 +648,8 @@ static int bit_state_machine(ResourceLoader_Deflate_State *pState, bool bit) {
 
     size_t start = pState->OutStreamOffset - distance;
     for (uint16_t i = 0; i < length; ++i) {
-      pState->pOutStream[pState->OutStreamOffset++] = pState->pOutStream[start];
-      ++start;
+      pState->pOutStream[pState->OutStreamOffset++] =
+          pState->pOutStream[start++];
     }
 
     pState->Huffman.CurrentCode = 0;
@@ -732,8 +731,6 @@ ResourceLoader_deflate_read_partial(const uint8_t *pStream, size_t streamSize,
         }
 
         if (pState->Stage == RESOURCE_LOADER_DEFLATE_STAGE_END) {
-          pState->SubStage = 0;
-
           if (pState->IsFinalChunk) {
             if (!pState->NoZlib) {
               pState->Stage = RESOURCE_LOADER_DEFLATE_STAGE_ZLIB_CHECK_ADLER;
@@ -761,15 +758,29 @@ ResourceLoader_deflate_read_partial(const uint8_t *pStream, size_t streamSize,
   if (pState->Stage == RESOURCE_LOADER_DEFLATE_STAGE_ZLIB_CHECK_ADLER) {
     for (; byte < streamSize; ++byte) {
       uint8_t b = *(pStream + byte);
-      ++pState->SubStage;
 
       pState->ZlibHeader.Adler = (pState->ZlibHeader.Adler << 8) | b;
+      ++pState->SubStage;
 
       if (pState->SubStage >= 4) {
-        // TODO: check adler
-        return 0;
+        break;
       }
     }
+
+    uint32_t s1 = 1;
+    uint32_t s2 = 0;
+    for (size_t i = 0; i < pState->OutStreamOffset; ++i) {
+      uint8_t v = pState->pOutStream[i];
+      s1 = (s1 + v) % 65521;
+      s2 = (s2 + s1) % 65521;
+    }
+
+    uint32_t adler32 = (s2 << 16) | s1;
+
+    ASSERT_RETURN(adler32 == pState->ZlibHeader.Adler,
+                  DEFLATE_ZLIB_ADLER_FAILED);
+
+    return 0;
   }
 
   return 0;

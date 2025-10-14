@@ -31,6 +31,8 @@
 
 #define PNG_IDAT_DEFLATE_ERROR MAKE_ERROR(05, 00, 00)
 
+#define PNG_IEND_UNSUPPORTED_FILTER_METHOD MAKE_ERROR(06, 00, 00)
+
 static uint32_t s_CrcTable[256];
 static bool s_CrcTableComputed;
 
@@ -265,7 +267,38 @@ static int chunk_IEND(const uint8_t *data, size_t len, State &state) {
   ASSERT_CHUNK_ORDER(STAGE_READ_DATA, STAGE_END);
   state.Stage = STAGE_END;
 
-  // TODO: Deprocess
+  ASSERT(state.FilterMethod == 0);
+
+  uint8_t colors = 0;
+  switch (state.ColorType) {
+  case 0:
+    colors = 1;
+    break;
+  case 2:
+    colors = 3;
+    break;
+  case 3:
+    colors = 3;
+    break;
+  case 4:
+    colors = 2;
+    break;
+  case 6:
+    colors = 4;
+    break;
+  }
+
+  uint8_t pixelSize = ((state.BitDepth + 7) / 9) * colors;
+  size_t stride = 1 + (size_t)pixelSize * state.Width;
+
+  for (size_t scanLine = 0; scanLine < state.Height; ++scanLine) {
+    uint8_t *pStart = &state.Data[stride * scanLine];
+    uint8_t filterType = pStart[0];
+
+    for (size_t i = 1; i < stride; ++i) {
+
+    }
+  }
 
   return 0;
 }
@@ -274,7 +307,9 @@ static int chunk_sRGB(const uint8_t *data, size_t len, PngInfo *pOut,
                       State &state) {
   ASSERT_CHUNK_ORDER(STAGE_READ_HEADER, STAGE_READ_PALETTE);
 
-  return 1;
+  // TODO:
+
+  return 0;
 }
 
 RESOURCE_LOADER_API int
