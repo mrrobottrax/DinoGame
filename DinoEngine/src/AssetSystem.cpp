@@ -280,5 +280,6 @@ GPUImage AssetSystem::load_png(const char *path, bool raw) {
   ResourceLoader_arena0_reset();
   ResourceLoader_arena1_reset();
 
-  return GPUImage(gpuHandle, m_LevelDescriptorHeap.Get());
+  return GPUImage(gpuHandle, m_LevelDescriptorHeap.Get(), png.Width,
+                  png.Height);
 }
