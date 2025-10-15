@@ -671,9 +671,10 @@ ResourceLoader_png_to_rgba8(PngInfo *pPng, ResourceLoader_arena_t arena) {
 
       size_t outX = i * 4;
       size_t inByte = (i * pPng->BitDepth) / 8;
-      size_t inBit = (i * pPng->BitDepth) % 8;
+      uint8_t inBit = (i * pPng->BitDepth) % 8;
 
-      uint8_t index = pPng->Data[inByte] & (mask >> inBit);
+      uint8_t index = (pPng->Data[inByte] & (mask >> inBit)) >>
+                      (8u - pPng->BitDepth - inBit);
 
       ASSERT(index < pPng->PaletteCount);
 
@@ -691,15 +692,16 @@ ResourceLoader_png_to_rgba8(PngInfo *pPng, ResourceLoader_arena_t arena) {
     uint8_t max = 0;
     for (uint8_t i = 0; i < pPng->BitDepth; ++i) {
       mask = (mask >> 1u) | 0b10000000u;
-      max = (mask << 1u) | 0b1u;
+      max = (max << 1u) | 0b1u;
     }
     for (size_t i = 0; i < (size_t)pPng->Width * pPng->Height; ++i) {
 
       size_t outX = i * 4;
       size_t inByte = (i * pPng->BitDepth) / 8;
-      size_t inBit = (i * pPng->BitDepth) % 8;
+      uint8_t inBit = (i * pPng->BitDepth) % 8;
 
-      uint8_t value = pPng->Data[inByte] & (mask >> inBit);
+      uint8_t value = (pPng->Data[inByte] & (mask >> inBit)) >>
+                      (8u - pPng->BitDepth - inBit);
       value = (uint8_t)(((float)value / max) * 255);
 
       pData[outX + 0] = value;

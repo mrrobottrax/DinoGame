@@ -4,7 +4,7 @@ GAME_API void load_main_menu() {
   console_log("Loading main menu");
 
   IAssetSystem *assetSystem = get_asset_system_interface();
-  GPUImage logo = assetSystem->load_png("interlace-test.png");
+  GPUImage logo = assetSystem->load_png("EngineLogo.png");
 
   DGUI_ColoredPanel *mainMenuCentred = new DGUI_ColoredPanel();
   DGUI_get_top_panel()->add_child(mainMenuCentred);
