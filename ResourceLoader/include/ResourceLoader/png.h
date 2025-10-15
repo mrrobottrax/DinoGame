@@ -21,5 +21,4 @@ RESOURCE_LOADER_API int
 ResourceLoader_deinterlace_png(PngInfo *pPng, ResourceLoader_arena_t arena);
 
 RESOURCE_LOADER_API int
-ResourceLoader_png_to_rgba8(const PngInfo *pSrc, PngInfo *pDst,
-                            ResourceLoader_arena_t arena);
+ResourceLoader_png_to_rgba8(PngInfo *pPng, ResourceLoader_arena_t arena);

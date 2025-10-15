@@ -35,6 +35,8 @@
 
 #define PNG_DEINTERLACE_BAD_INPUT MAKE_ERROR(07, 00, 00)
 
+#define PNG_CONVERT_UNSUPPORTED_FORMAT MAKE_ERROR(08, 00, 00)
+
 static uint32_t s_CrcTable[256];
 static bool s_CrcTableComputed;
 
@@ -363,7 +365,8 @@ static int chunk_IEND(State &state) {
     get_pass_heights(state.Height, passHeights);
   }
 
-  uint8_t *pData = state.Data;
+  uint8_t *pDataOld = state.Data;
+  uint8_t *pDataNew = state.Data;
 
   for (int pass = 0; pass < passes; ++pass) {
     size_t strideNoFilter =
@@ -371,11 +374,9 @@ static int chunk_IEND(State &state) {
     uint32_t pixelOffset = colors * ((state.BitDepth + 7) / 8);
 
     for (size_t scanLine = 0; scanLine < passHeights[pass]; ++scanLine) {
-      uint8_t *pLineOld = &pData[(strideNoFilter + 1) * scanLine];
-      uint8_t *pLine = &pData[strideNoFilter * scanLine];
+      uint8_t *pLineOld = &pDataOld[(strideNoFilter + 1) * scanLine];
+      uint8_t *pLine = &pDataNew[strideNoFilter * scanLine];
       uint8_t filterType = pLineOld[0];
-
-      ASSERT(pLine >= pData);
 
       for (size_t i = 0; i < strideNoFilter; ++i) {
         pLine[i] = pLineOld[i + 1];
@@ -450,7 +451,8 @@ static int chunk_IEND(State &state) {
       }
     }
 
-    pData += (strideNoFilter + 1) * passHeights[pass];
+    pDataOld += (strideNoFilter + 1) * passHeights[pass];
+    pDataNew += (strideNoFilter + 0) * passHeights[pass];
   }
 
   return 0;
@@ -501,8 +503,6 @@ ResourceLoader_decompress_png(const void *pFile, size_t fileSize, PngInfo *pOut,
     const uint32_t crc1 = calc_crc(pName, dataLen + 4);
     if (crc != crc1)
       return PNG_BAD_CRC;
-
-    console_log_debug("Reading chunk: %s", chunk);
 
 #define SWITCH_CHUNK(name, ...)                                                \
   {                                                                            \
@@ -573,7 +573,7 @@ ResourceLoader_deinterlace_png(PngInfo *pPng, ResourceLoader_arena_t arena) {
 
   uint8_t mask = 0;
   for (uint8_t i = 0; i < clampedBitDepth; ++i) {
-    mask = (mask << 1) | 1u;
+    mask = (mask >> 1u) | 0b10000000u;
   }
 
   size_t widths[7] = {};
@@ -586,7 +586,7 @@ ResourceLoader_deinterlace_png(PngInfo *pPng, ResourceLoader_arena_t arena) {
   uint32_t stride_row[7] = {8, 8, 8, 4, 4, 2, 2};
   uint32_t stride_col[7] = {8, 8, 4, 4, 2, 2, 1};
 
-  uint8_t *pInScanLine = pData;
+  uint8_t *pInScanLine = pPng->Data;
 
   memset(pData, 0, scanLineSize * pPng->Height);
 
@@ -604,12 +604,12 @@ ResourceLoader_deinterlace_png(PngInfo *pPng, ResourceLoader_arena_t arena) {
 
       for (uint32_t col = 0; col < (uint32_t)clampedWidth; ++col) {
 
-        uint32_t out_x = starting_col[pass] + col * stride_col[pass];
+        uint32_t out_x = starting_col[pass] + (col * stride_col[pass]);
 
         uint32_t in_byte_x = (col * clampedBitDepth) / 8;
         uint32_t in_bit = (col * clampedBitDepth) % 8;
 
-        uint8_t pixel = pInScanLine[in_byte_x] & (mask << in_bit);
+        uint8_t pixel = pInScanLine[in_byte_x] & (mask >> in_bit);
 
         pOutLine[out_x] = (pOutLine[out_x] << 1) | pixel;
       }
@@ -622,5 +622,110 @@ ResourceLoader_deinterlace_png(PngInfo *pPng, ResourceLoader_arena_t arena) {
   pPng->Palette = pPalette;
   pPng->Data = pData;
 
+  return 0;
+}
+
+RESOURCE_LOADER_API int
+ResourceLoader_png_to_rgba8(PngInfo *pPng, ResourceLoader_arena_t arena) {
+  size_t requiredSpace = (size_t)pPng->Width * pPng->Height * 4;
+
+  uint8_t *pData = (uint8_t *)arena_allocate(arena, requiredSpace);
+
+  if (pPng->ColorType == 6) {
+    size_t skip = pPng->BitDepth / 8;
+    for (size_t i = 0; i < requiredSpace; ++i) {
+      // NOTE: This is slightly innacurate. Refer to PNG spec for a more
+      // accurate method.
+      pData[i] = pPng->Data[i * skip];
+    }
+  } else if (pPng->ColorType == 2) {
+    size_t skip = pPng->BitDepth / 8;
+    for (size_t i = 0; i < (size_t)pPng->Width * pPng->Height; ++i) {
+      // NOTE: This is slightly innacurate. Refer to PNG spec for a more
+      // accurate method.
+      size_t inX = i * 3;
+      size_t outX = i * 4;
+      pData[outX + 0] = pPng->Data[(inX + 0) * skip];
+      pData[outX + 1] = pPng->Data[(inX + 1) * skip];
+      pData[outX + 2] = pPng->Data[(inX + 2) * skip];
+      pData[outX + 3] = 255;
+    }
+  } else if (pPng->ColorType == 4) {
+    size_t skip = pPng->BitDepth / 8;
+    for (size_t i = 0; i < (size_t)pPng->Width * pPng->Height; ++i) {
+      // NOTE: This is slightly innacurate. Refer to PNG spec for a more
+      // accurate method.
+      size_t inX = i * 2;
+      size_t outX = i * 4;
+      pData[outX + 0] = pPng->Data[(inX + 0) * skip];
+      pData[outX + 1] = pPng->Data[(inX + 0) * skip];
+      pData[outX + 2] = pPng->Data[(inX + 0) * skip];
+      pData[outX + 3] = pPng->Data[(inX + 1) * skip];
+    }
+  } else if (pPng->ColorType == 3) {
+    uint8_t mask = 0;
+    for (uint8_t i = 0; i < pPng->BitDepth; ++i) {
+      mask = (mask >> 1u) | 0b10000000u;
+    }
+    for (size_t i = 0; i < (size_t)pPng->Width * pPng->Height; ++i) {
+
+      size_t outX = i * 4;
+      size_t inByte = (i * pPng->BitDepth) / 8;
+      size_t inBit = (i * pPng->BitDepth) % 8;
+
+      uint8_t index = pPng->Data[inByte] & (mask >> inBit);
+
+      ASSERT(index < pPng->PaletteCount);
+
+      uint8_t r = pPng->Palette[index * 3 + 0];
+      uint8_t g = pPng->Palette[index * 3 + 1];
+      uint8_t b = pPng->Palette[index * 3 + 2];
+
+      pData[outX + 0] = r;
+      pData[outX + 1] = g;
+      pData[outX + 2] = b;
+      pData[outX + 3] = 255;
+    }
+  } else if (pPng->ColorType == 0 && pPng->BitDepth <= 8) {
+    uint8_t mask = 0;
+    uint8_t max = 0;
+    for (uint8_t i = 0; i < pPng->BitDepth; ++i) {
+      mask = (mask >> 1u) | 0b10000000u;
+      max = (mask << 1u) | 0b1u;
+    }
+    for (size_t i = 0; i < (size_t)pPng->Width * pPng->Height; ++i) {
+
+      size_t outX = i * 4;
+      size_t inByte = (i * pPng->BitDepth) / 8;
+      size_t inBit = (i * pPng->BitDepth) % 8;
+
+      uint8_t value = pPng->Data[inByte] & (mask >> inBit);
+      value = (uint8_t)(((float)value / max) * 255);
+
+      pData[outX + 0] = value;
+      pData[outX + 1] = value;
+      pData[outX + 2] = value;
+      pData[outX + 3] = 255;
+    }
+  } else if (pPng->ColorType == 0 && pPng->BitDepth == 16) {
+    for (size_t i = 0; i < (size_t)pPng->Width * pPng->Height; ++i) {
+      // NOTE: This is slightly innacurate. Refer to PNG spec for a more
+      // accurate method.
+      size_t outX = i * 4;
+
+      uint8_t value = pPng->Data[i * 2];
+
+      pData[outX + 0] = value;
+      pData[outX + 1] = value;
+      pData[outX + 2] = value;
+      pData[outX + 3] = 255;
+    }
+  } else {
+    ASSERT_RETURN(false, PNG_CONVERT_UNSUPPORTED_FORMAT);
+  }
+
+  pPng->ColorType = 6;
+  pPng->BitDepth = 8;
+  pPng->Data = pData;
   return 0;
 }

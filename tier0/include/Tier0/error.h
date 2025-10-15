@@ -44,8 +44,7 @@ T0_API void crash_windows_hresult(HRESULT result, const char *format, ...);
     exit(1);                                                                   \
   }
 
-#define MAKE_ERROR(Group, Major, Minor)                                        \
-  (Group * 10000 + Major * 100 + Minor + 100000)
+#define MAKE_ERROR(Group, Major, Minor) (1##Group##Major##Minor)
 
 // Always asserts not stripped out in release builds. Use for critical error
 // checking.
@@ -62,6 +61,7 @@ T0_API void crash_windows_hresult(HRESULT result, const char *format, ...);
 #define DEBUG_BREAK()
 #endif
 
+// These are critical and never removed!
 #define CHECK_CODE(expression, returnVal, ...)                                 \
   {                                                                            \
     int code = expression;                                                     \
@@ -85,7 +85,6 @@ T0_API void crash_windows_hresult(HRESULT result, const char *format, ...);
     }                                                                          \
   }
 
-// These are critical and never removed!
 #define ASSERT_RETURN(expression, returnVal, ...)                              \
   {                                                                            \
     if (expression) {                                                          \
@@ -170,6 +169,7 @@ T0_API void crash_windows_hresult(HRESULT result, const char *format, ...);
 #define ASSERT_CODE(...) ID(ASSERT_CODE_ALWAYS(__VA_ARGS__))
 
 #ifndef NO_SLOW_ASSERTS
+
 #define ASSERT_WIN_SLOW(...) ID(ASSERT_WIN_ALWAYS(__VA_ARGS__))
 #define ASSERT_WIN_EXP_SLOW(...) ID(ASSERT_WIN_EXP_ALWAYS(__VA_ARGS__))
 #define ASSERT_WIN_CODE_SLOW(...) ID(ASSERT_WIN_CODE_ALWAYS(__VA_ARGS__))

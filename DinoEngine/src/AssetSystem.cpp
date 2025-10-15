@@ -133,9 +133,9 @@ GPUImage AssetSystem::load_png(const char *path, bool raw) {
     nextArena = ResourceLoader_arena1;
   }
 
-  // ASSERT_CODE_ALWAYS(ResourceLoader_png_to_rgba8(&png, nextArena));
+  ASSERT_CODE_ALWAYS(ResourceLoader_png_to_rgba8(&png, nextArena));
 
-  ASSERT(png.ColorType == 4);
+  ASSERT(png.ColorType == 6);
   ASSERT(png.BitDepth == 8);
   ASSERT(png.InterlaceMethod == 0);
 
