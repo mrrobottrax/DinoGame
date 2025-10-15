@@ -33,6 +33,8 @@
 
 #define PNG_IEND_UNSUPPORTED_FILTER_METHOD MAKE_ERROR(06, 00, 00)
 
+#define PNG_DEINTERLACE_BAD_INPUT MAKE_ERROR(07, 00, 00)
+
 static uint32_t s_CrcTable[256];
 static bool s_CrcTableComputed;
 
@@ -53,6 +55,7 @@ struct State {
   ResourceLoader_arena_t Arena;
   uint32_t Width;
   uint32_t Height;
+  uint32_t PaletteCount;
   EStage Stage;
   uint8_t BitDepth;
   uint8_t ColorType;
@@ -124,6 +127,103 @@ static uint8_t png_u8(const uint8_t *pValue) { return *pValue; }
   ASSERT_RETURN(state.Stage >= afterOrDuring && state.Stage < before,          \
                 PNG_BAD_CHUNK_ORDERING)
 
+static uint32_t get_colors(uint32_t colorType) {
+  uint32_t colors = 0;
+  switch (colorType) {
+  case 0:
+    colors = 1;
+    break;
+  case 2:
+    colors = 3;
+    break;
+  case 3:
+    colors = 1;
+    break;
+  case 4:
+    colors = 2;
+    break;
+  case 6:
+    colors = 4;
+    break;
+  }
+  ASSERT(colors != 0);
+
+  return colors;
+}
+
+static void get_pass_widths(size_t width, size_t widths[7]) {
+  widths[0] = (width + 7) / 8;
+  widths[1] = (width + 3) / 8;
+  widths[2] = (width + 3) / 4;
+  widths[3] = (width + 1) / 4;
+  widths[4] = (width + 1) / 2;
+  widths[5] = (width + 0) / 2;
+  widths[6] = (width + 0) / 1;
+}
+
+static void get_pass_heights(uint32_t height, uint32_t heights[7]) {
+  heights[0] = (height + 7) / 8;
+  heights[1] = (height + 7) / 8;
+  heights[2] = (height + 3) / 8;
+  heights[3] = (height + 3) / 4;
+  heights[4] = (height + 1) / 4;
+  heights[5] = (height + 1) / 2;
+  heights[6] = (height + 0) / 2;
+}
+
+static int allocate_decompression_buffer(PngInfo *pOut, State &state) {
+  uint32_t colors = get_colors(state.ColorType);
+
+  size_t stride = 1 + ((size_t)state.Width * state.BitDepth * colors + 7) / 8;
+  size_t requiredSpace = state.Height * stride;
+
+  if (state.InterlaceMethod == 1) {
+    size_t passWidths[7];
+    get_pass_widths(state.Width, passWidths);
+
+    uint32_t passHeights[7];
+    get_pass_heights(state.Height, passHeights);
+
+    // get width in bytes
+    // no data = no scanline filter byte
+    for (int i = 0; i < 7; ++i) {
+      if (passWidths[i] != 0)
+        passWidths[i] = 1 + (passWidths[i] * state.BitDepth * colors + 7) / 8;
+    }
+
+    requiredSpace = 0;
+    for (int i = 0; i < 7; ++i) {
+      requiredSpace += passWidths[i] * passHeights[i];
+    }
+  }
+
+  size_t paletteSize = 0;
+  if (state.ColorType == 3) {
+    paletteSize = (size_t)state.PaletteCount * 3;
+    requiredSpace += paletteSize;
+  }
+
+  state.Data = (uint8_t *)arena_allocate(state.Arena, requiredSpace);
+  state.Size = requiredSpace;
+
+  if (state.ColorType == 3) {
+    pOut->Palette = state.Data;
+    pOut->PaletteCount = state.PaletteCount;
+
+    state.Data += paletteSize;
+    state.Size -= paletteSize;
+  }
+
+  state.DeflateState.pOutStream = state.Data;
+  state.DeflateState.OutStreamSize = state.Size;
+
+  pOut->Data = state.Data;
+
+  ASSERT_RETURN(state.Data, PNG_OUT_OF_MEMORY);
+
+  return 0;
+}
+
 static int chunk_IHDR(const uint8_t *data, size_t len, PngInfo *pOut,
                       State &state) {
   ASSERT_CHUNK_ORDER(STAGE_INITIAL, STAGE_READ_HEADER);
@@ -135,6 +235,7 @@ static int chunk_IHDR(const uint8_t *data, size_t len, PngInfo *pOut,
   pOut->Height = png_u32(&data[4]);
   pOut->BitDepth = png_u8(&data[8]);
   pOut->ColorType = png_u8(&data[9]);
+  pOut->InterlaceMethod = png_u8(&data[12]);
 
   state.Width = png_u32(&data[0]);
   state.Height = png_u32(&data[4]);
@@ -197,47 +298,15 @@ static int chunk_IHDR(const uint8_t *data, size_t len, PngInfo *pOut,
     return PNG_IHDR_UNSUPPORTED_COLOR_TYPE;
   }
 
-  size_t colors = 0;
-  size_t outBitDepth = state.BitDepth;
-  switch (state.ColorType) {
-  case 0:
-    colors = 1;
-    break;
-  case 2:
-    colors = 3;
-    break;
-  case 3:
-    outBitDepth = 8;
-    colors = 3;
-    break;
-  case 4:
-    colors = 2;
-    break;
-  case 6:
-    colors = 4;
-    break;
+  if (state.ColorType != 3) {
+    PROPAGATE_CODE(allocate_decompression_buffer(pOut, state));
   }
-  ASSERT(colors != 0);
-
-  size_t stride = 1 + (state.Width * outBitDepth * colors + 7) / 8;
-  size_t requiredSpace = state.Width * stride;
-
-  constexpr size_t k_ScanlinePrefix = 1;
-  requiredSpace += state.Height * k_ScanlinePrefix;
-
-  state.Data = (uint8_t *)arena_allocate(state.Arena, requiredSpace);
-  state.Size = requiredSpace;
-
-  state.DeflateState.pOutStream = state.Data;
-  state.DeflateState.OutStreamSize = state.Size;
-
-  pOut->Data = state.Data;
-  pOut->Size = state.Size;
 
   return 0;
 }
 
-static int chunk_PLTE(const uint8_t *data, size_t len, State &state) {
+static int chunk_PLTE(const uint8_t *data, size_t len, PngInfo *pOut,
+                      State &state) {
   ASSERT_CHUNK_ORDER(STAGE_READ_HEADER, STAGE_READ_PALETTE);
   state.Stage = STAGE_READ_PALETTE;
 
@@ -247,12 +316,21 @@ static int chunk_PLTE(const uint8_t *data, size_t len, State &state) {
   ASSERT_RETURN(len % 3 == 0, PNG_PLTE_INVALID_SIZE);
 
   state.Palette = data;
+  state.PaletteCount = (uint32_t)(len / 3);
+
+  PROPAGATE_CODE(allocate_decompression_buffer(pOut, state));
+
+  ASSERT_RETURN(pOut->Palette, PNG_OUT_OF_MEMORY);
+  ASSERT_RETURN(state.Palette, PNG_OUT_OF_MEMORY);
+  memcpy(pOut->Palette, state.Palette, len);
 
   return 0;
 }
 
 static int chunk_IDAT(const uint8_t *data, size_t len, State &state) {
   ASSERT_CHUNK_ORDER(STAGE_READ_HEADER, STAGE_END);
+
+  ASSERT_RETURN(state.Data, PNG_OUT_OF_MEMORY);
 
   ASSERT_RETURN(state.CompressionMethod == 0,
                 PNG_IHDR_UNSUPPORTED_COMPRESSION_METHOD);
@@ -272,117 +350,108 @@ static int chunk_IEND(State &state) {
 
   ASSERT(state.FilterMethod == 0);
 
-  uint8_t colors = 0;
-  switch (state.ColorType) {
-  case 0:
-    colors = 1;
-    break;
-  case 2:
-    colors = 3;
-    break;
-  case 3:
-    colors = 1;
-    break;
-  case 4:
-    colors = 2;
-    break;
-  case 6:
-    colors = 4;
-    break;
+  uint32_t colors = get_colors(state.ColorType);
+
+  size_t passWidths[7] = {state.Width};
+  uint32_t passHeights[7] = {state.Height};
+
+  int passes = 1;
+  if (state.InterlaceMethod == 1) {
+    passes = 7;
+
+    get_pass_widths(state.Width, passWidths);
+    get_pass_heights(state.Height, passHeights);
   }
 
-  size_t strideNoFilter =
-      ((size_t)state.BitDepth * colors * state.Width + 7) / 8;
-  size_t pixelOffset = colors * (((size_t)state.BitDepth + 7) / 8);
+  uint8_t *pData = state.Data;
 
-  for (size_t scanLine = 0; scanLine < state.Height; ++scanLine) {
-    uint8_t *pLineOld = &state.Data[(strideNoFilter + 1) * scanLine];
-    uint8_t *pLine = &state.Data[strideNoFilter * scanLine];
-    uint8_t filterType = pLineOld[0];
+  for (int pass = 0; pass < passes; ++pass) {
+    size_t strideNoFilter =
+        (passWidths[pass] * state.BitDepth * colors + 7) / 8;
+    uint32_t pixelOffset = colors * ((state.BitDepth + 7) / 8);
 
-    ASSERT(pLine >= state.Data);
+    for (size_t scanLine = 0; scanLine < passHeights[pass]; ++scanLine) {
+      uint8_t *pLineOld = &pData[(strideNoFilter + 1) * scanLine];
+      uint8_t *pLine = &pData[strideNoFilter * scanLine];
+      uint8_t filterType = pLineOld[0];
 
-    for (size_t i = 0; i < strideNoFilter; ++i) {
-      pLine[i] = pLineOld[i + 1];
+      ASSERT(pLine >= pData);
+
+      for (size_t i = 0; i < strideNoFilter; ++i) {
+        pLine[i] = pLineOld[i + 1];
+      }
+
+      if (filterType == 0) {
+      } else if (filterType == 1) {
+        for (size_t i = 0; i < strideNoFilter; ++i) {
+          uint8_t x = pLine[i];
+          uint8_t ra = 0;
+          if (i >= 1) {
+            ra = pLine[i - pixelOffset];
+          }
+
+          pLine[i] = x + ra;
+        }
+      } else if (filterType == 2) {
+        for (size_t i = 0; i < strideNoFilter; ++i) {
+          uint8_t x = pLine[i];
+          uint8_t rb = 0;
+          if (scanLine >= 1) {
+            rb = pLine[i - strideNoFilter];
+          }
+
+          pLine[i] = x + rb;
+        }
+      } else if (filterType == 3) {
+        for (size_t i = 0; i < strideNoFilter; ++i) {
+          uint8_t x = pLine[i];
+          uint8_t ra = 0;
+          if (i >= 1) {
+            ra = pLine[i - pixelOffset];
+          }
+          uint8_t rb = 0;
+          if (scanLine >= 1) {
+            rb = pLine[i - strideNoFilter];
+          }
+
+          pLine[i] = x + ((uint32_t)ra + rb) / 2;
+        }
+      } else if (filterType == 4) {
+        for (size_t i = 0; i < strideNoFilter; ++i) {
+          uint8_t x = pLine[i];
+          uint8_t ra = 0;
+          if (i >= 1) {
+            ra = pLine[i - pixelOffset];
+          }
+          uint8_t rb = 0;
+          if (scanLine >= 1) {
+            rb = pLine[i - strideNoFilter];
+          }
+          uint8_t rc = 0;
+          if (i >= 1 && scanLine >= 1) {
+            rc = pLine[i - strideNoFilter - pixelOffset];
+          }
+
+          int32_t p = ra + rb - rc;
+          int32_t pa = abs(p - ra);
+          int32_t pb = abs(p - rb);
+          int32_t pc = abs(p - rc);
+
+          uint32_t pr;
+          if (pa <= pb && pa <= pc)
+            pr = ra;
+          else if (pb <= pc)
+            pr = rb;
+          else
+            pr = rc;
+
+          pLine[i] = x + (uint8_t)pr;
+        }
+      }
     }
 
-    if (filterType == 0) {
-    } else if (filterType == 1) {
-      for (size_t i = 0; i < strideNoFilter; ++i) {
-        uint8_t x = pLine[i];
-        uint8_t ra = 0;
-        if (i >= 1) {
-          ra = pLine[i - pixelOffset];
-        }
-
-        pLine[i] = x + ra;
-      }
-    } else if (filterType == 2) {
-      for (size_t i = 0; i < strideNoFilter; ++i) {
-        uint8_t x = pLine[i];
-        uint8_t rb = 0;
-        if (scanLine >= 1) {
-          rb = pLine[i - strideNoFilter];
-        }
-
-        pLine[i] = x + rb;
-      }
-    } else if (filterType == 3) {
-      for (size_t i = 0; i < strideNoFilter; ++i) {
-        uint8_t x = pLine[i];
-        uint8_t ra = 0;
-        if (i >= 1) {
-          ra = pLine[i - pixelOffset];
-        }
-        uint8_t rb = 0;
-        if (scanLine >= 1) {
-          rb = pLine[i - strideNoFilter];
-        }
-
-        pLine[i] = x + ((uint32_t)ra + rb) / 2;
-      }
-    } else if (filterType == 4) {
-      for (size_t i = 0; i < strideNoFilter; ++i) {
-        uint8_t x = pLine[i];
-        uint8_t ra = 0;
-        if (i >= 1) {
-          ra = pLine[i - pixelOffset];
-        }
-        uint8_t rb = 0;
-        if (scanLine >= 1) {
-          rb = pLine[i - strideNoFilter];
-        }
-        uint8_t rc = 0;
-        if (i >= 1 && scanLine >= 1) {
-          rc = pLine[i - strideNoFilter - pixelOffset];
-        }
-
-        int32_t p = ra + rb - rc;
-        int32_t pa = abs(p - ra);
-        int32_t pb = abs(p - rb);
-        int32_t pc = abs(p - rc);
-
-        uint32_t pr;
-        if (pa <= pb && pa <= pc)
-          pr = ra;
-        else if (pb <= pc)
-          pr = rb;
-        else
-          pr = rc;
-
-        pLine[i] = x + (uint8_t)pr;
-      }
-    }
+    pData += (strideNoFilter + 1) * passHeights[pass];
   }
-
-  return 0;
-}
-
-static int chunk_sRGB(const uint8_t *data, size_t len, PngInfo *pOut,
-                      State &state) {
-  ASSERT_CHUNK_ORDER(STAGE_READ_HEADER, STAGE_READ_PALETTE);
-
-  // TODO:
 
   return 0;
 }
@@ -446,10 +515,9 @@ ResourceLoader_decompress_png(const void *pFile, size_t fileSize, PngInfo *pOut,
 
     switch (chunkId) {
       SWITCH_CHUNK(IHDR, pData, dataLen, pOut, state);
-      SWITCH_CHUNK(PLTE, pData, dataLen, state);
+      SWITCH_CHUNK(PLTE, pData, dataLen, pOut, state);
       SWITCH_CHUNK(IDAT, pData, dataLen, state);
       SWITCH_CHUNK(IEND, state);
-      SWITCH_CHUNK(sRGB, pData, dataLen, pOut, state);
 
     default:
       if (ancillary)
@@ -464,11 +532,95 @@ ResourceLoader_decompress_png(const void *pFile, size_t fileSize, PngInfo *pOut,
 
     if (state.Stage == STAGE_END)
       break;
-
-    ASSERT_RETURN(state.Data, PNG_OUT_OF_MEMORY);
   }
 
   ASSERT(size - offset == 0);
+
+  return 0;
+}
+
+RESOURCE_LOADER_API int
+ResourceLoader_deinterlace_png(PngInfo *pPng, ResourceLoader_arena_t arena) {
+  ASSERT_RETURN(pPng->InterlaceMethod == 1, PNG_DEINTERLACE_BAD_INPUT);
+
+  uint32_t colors = get_colors(pPng->ColorType);
+
+  size_t scanLineSize = ((size_t)pPng->Width * pPng->BitDepth * colors + 7) / 8;
+  size_t requiredSpace = scanLineSize * pPng->Height;
+
+  size_t paletteSize = (size_t)pPng->PaletteCount * 3;
+  if (pPng->ColorType == 3) {
+    ASSERT_RETURN(pPng->Palette, PNG_DEINTERLACE_BAD_INPUT);
+    ASSERT_RETURN(pPng->PaletteCount, PNG_DEINTERLACE_BAD_INPUT);
+    requiredSpace += paletteSize;
+  }
+
+  uint8_t *pData = (uint8_t *)arena_allocate(arena, requiredSpace);
+  size_t dataSize = requiredSpace;
+
+  uint8_t *pPalette = nullptr;
+
+  if (pPng->ColorType == 3) {
+    pPalette = pData;
+
+    pData += paletteSize;
+    dataSize -= paletteSize;
+
+    memcpy(pPalette, pPng->Palette, paletteSize);
+  }
+
+  uint8_t clampedBitDepth = min(pPng->BitDepth, 8);
+
+  uint8_t mask = 0;
+  for (uint8_t i = 0; i < clampedBitDepth; ++i) {
+    mask = (mask << 1) | 1u;
+  }
+
+  size_t widths[7] = {};
+  uint32_t heights[7] = {};
+  get_pass_widths(pPng->Width, widths);
+  get_pass_heights(pPng->Height, heights);
+
+  uint32_t starting_row[7] = {0, 0, 4, 0, 2, 0, 1};
+  uint32_t starting_col[7] = {0, 4, 0, 2, 0, 1, 0};
+  uint32_t stride_row[7] = {8, 8, 8, 4, 4, 2, 2};
+  uint32_t stride_col[7] = {8, 8, 4, 4, 2, 2, 1};
+
+  uint8_t *pInScanLine = pData;
+
+  memset(pData, 0, scanLineSize * pPng->Height);
+
+  for (uint32_t pass = 0; pass < 7; ++pass) {
+
+    uint32_t clampedWidth =
+        ((uint32_t)widths[pass] * pPng->BitDepth) / clampedBitDepth;
+    uint32_t height = heights[pass];
+
+    for (uint32_t row = 0; row < height; ++row) {
+
+      uint8_t *pOutLine =
+          &pData[((size_t)row * stride_row[pass] + starting_row[pass]) *
+                 scanLineSize];
+
+      for (uint32_t col = 0; col < (uint32_t)clampedWidth; ++col) {
+
+        uint32_t out_x = starting_col[pass] + col * stride_col[pass];
+
+        uint32_t in_byte_x = (col * clampedBitDepth) / 8;
+        uint32_t in_bit = (col * clampedBitDepth) % 8;
+
+        uint8_t pixel = pInScanLine[in_byte_x] & (mask << in_bit);
+
+        pOutLine[out_x] = (pOutLine[out_x] << 1) | pixel;
+      }
+
+      pInScanLine += ((uint32_t)widths[pass] * pPng->BitDepth * colors + 7) / 8;
+    }
+  }
+
+  pPng->InterlaceMethod = 0;
+  pPng->Palette = pPalette;
+  pPng->Data = pData;
 
   return 0;
 }

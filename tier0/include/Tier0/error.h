@@ -81,11 +81,6 @@ T0_API void crash_windows_hresult(HRESULT result, const char *format, ...);
     int code = expression;                                                     \
     if (code == 0) {                                                           \
     } else {                                                                   \
-      DEBUG_BREAK();                                                           \
-      console_log(#expression " failed: %i", code);                            \
-      console_log_debug(#expression                                            \
-                        " failed\r\nFile: " __FILE__                           \
-                        "\r\nLine:" STRINGIZE(__LINE__) "\r\n" __VA_ARGS__);   \
       return code;                                                             \
     }                                                                          \
   }

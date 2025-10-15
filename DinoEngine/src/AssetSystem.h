@@ -9,7 +9,7 @@ public:
 
   void wipe_level_assets();
 
-  virtual GPUImage load_png(const char *path) override;
+  virtual GPUImage load_png(const char *path, bool raw) override;
 
 private:
   size_t m_LevelHeapCapacity;

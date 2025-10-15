@@ -17,7 +17,7 @@ private:
 
 class DINO_API IAssetSystem {
 public:
-  virtual GPUImage load_png(const char *path) = 0;
+  virtual GPUImage load_png(const char *path, bool raw = false) = 0;
 };
 
 DINO_API IAssetSystem *get_asset_system_interface();
