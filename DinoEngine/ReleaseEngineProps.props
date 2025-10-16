@@ -15,6 +15,7 @@
       <AdditionalDependencies>ucrt.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreSpecificDefaultLibraries>libucrt.lib</IgnoreSpecificDefaultLibraries>
     </Link>
+    <FxCompile />
   </ItemDefinitionGroup>
   <ItemGroup />
 </Project>
