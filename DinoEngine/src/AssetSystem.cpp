@@ -4,8 +4,6 @@
 #include "GameDllSystem.h"
 #include "RenderingSystem.h"
 
-constexpr size_t k_DecompressionBufferSize = 1 << 20; // 1MB
-
 DINO_API IAssetSystem *get_asset_system_interface() {
   return (IAssetSystem *)&g_AssetSystem;
 }
