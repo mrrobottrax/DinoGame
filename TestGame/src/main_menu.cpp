@@ -3,7 +3,7 @@
 GAME_API void load_main_menu() {
   console_log("Loading main menu");
 
-  IAssetSystem *assetSystem = get_asset_system_interface();
+  IAssetSystem *assetSystem = g_IAssetSystem;
   GPUImage logo = assetSystem->load_png("EngineLogo.png");
 
   DGUI_ColoredPanel *mainMenuCentred = new DGUI_ColoredPanel();

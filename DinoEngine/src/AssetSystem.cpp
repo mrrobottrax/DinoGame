@@ -4,9 +4,7 @@
 #include "GameDllSystem.h"
 #include "RenderingSystem.h"
 
-DINO_API IAssetSystem *get_asset_system_interface() {
-  return (IAssetSystem *)&g_AssetSystem;
-}
+DINO_API IAssetSystem *g_IAssetSystem = (IAssetSystem *)&g_AssetSystem;
 
 void AssetSystem::init() {
   ASSERT_ALWAYS(g_RenderingSystem.is_initialized());

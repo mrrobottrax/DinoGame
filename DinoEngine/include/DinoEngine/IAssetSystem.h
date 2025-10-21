@@ -28,4 +28,4 @@ public:
   virtual GPUImage load_png(const char *path, bool raw = false) = 0;
 };
 
-DINO_API IAssetSystem *get_asset_system_interface();
+DINO_API extern IAssetSystem *g_IAssetSystem;
