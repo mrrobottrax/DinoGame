@@ -82,9 +82,6 @@
     <ClInclude Include="src\WindowSystem.h" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\DinoGUI\DinoGUI.vcxproj">
-      <Project>{f3b79259-c768-456b-9998-30ab54d46bc4}</Project>
-    </ProjectReference>
     <ProjectReference Include="..\ResourceLoader\ResourceLoader.vcxproj">
       <Project>{2ea99c61-d7a4-4ed4-a18a-ee9d34492910}</Project>
     </ProjectReference>

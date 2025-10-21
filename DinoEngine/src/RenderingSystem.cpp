@@ -362,10 +362,10 @@ void RenderingSystem::frame() {
   D3D12_RESOURCE_DESC1 backBufferDesc =
       m_FrameData[iFrame].backbuffer->GetDesc1();
   ASSERT(backBufferDesc.Width <= UINT_MAX);
-  static unsigned int s_Count = 0;
-  DGUI_add_render_commands(fd.commandList.Get(),
-                           (unsigned int)backBufferDesc.Width,
-                           backBufferDesc.Height);
+  
+  //DGUI_add_render_commands(fd.commandList.Get(),
+  //                         (unsigned int)backBufferDesc.Width,
+  //                         backBufferDesc.Height);
 
   D3D12_RESOURCE_BARRIER renderTargetToPresentBarrier{
       .Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION,

@@ -77,9 +77,6 @@
     <ProjectReference Include="..\DinoEngine\DinoEngine.vcxproj">
       <Project>{832a6abc-6790-4278-ad4c-273f657b2f59}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\DinoGUI\DinoGUI.vcxproj">
-      <Project>{f3b79259-c768-456b-9998-30ab54d46bc4}</Project>
-    </ProjectReference>
     <ProjectReference Include="..\tier0\tier0.vcxproj">
       <Project>{6c45eb36-f46a-474f-9ad5-f3a50d90579a}</Project>
     </ProjectReference>

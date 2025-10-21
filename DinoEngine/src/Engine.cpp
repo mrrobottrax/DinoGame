@@ -51,7 +51,7 @@ void Engine::init() {
   g_RenderingSystem.init();
   g_AssetSystem.init();
 
-  DGUI_init(g_RenderingSystem.get_device());
+  //DGUI_init(g_RenderingSystem.get_device());
 
   ResourceLoader_SetupInfo resourceLoaderSetup{};
   ASSERT_ALWAYS(ResourceLoader_setup(&resourceLoaderSetup, nullptr));
@@ -64,7 +64,7 @@ void Engine::init() {
 
 void Engine::stop() {
   ResourceLoader_close();
-  DGUI_stop();
+  //DGUI_stop();
 
   g_AssetSystem.stop();
   g_RenderingSystem.stop();
