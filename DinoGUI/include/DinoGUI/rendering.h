@@ -5,8 +5,8 @@ DGUI_add_render_commands(ID3D12GraphicsCommandList10 *pCommandList,
                          unsigned int w, unsigned int h);
 
 struct ShaderData {
-  Microsoft::WRL::ComPtr<ID3D12PipelineState> pPipelineState;
-  Microsoft::WRL::ComPtr<ID3D12RootSignature> pRootSignature;
+  ComPtr<ID3D12PipelineState> pPipelineState;
+  ComPtr<ID3D12RootSignature> pRootSignature;
 };
 
 /// <summary>

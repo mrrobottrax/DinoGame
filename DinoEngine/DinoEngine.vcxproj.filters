@@ -59,9 +59,6 @@
     <ClInclude Include="include\DinoEngine\callbacks.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\dino_platform.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="include\DinoEngine\IAssetSystem.h">
       <Filter>Header Files</Filter>
     </ClInclude>

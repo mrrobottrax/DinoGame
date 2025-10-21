@@ -1,12 +1,11 @@
 #pragma once
 
-#include "dino_platform.h"
-
 #include "tier0.h"
 
 #include "Tier0/control.h"
 
-#include "dino_gui.h"
 #include "resource_loader.h"
+
+using namespace Microsoft::WRL;
 
 #define DINO_API _declspec(dllexport)
