@@ -56,11 +56,7 @@
     <CustomBuildStep />
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <ClCompile>
-      <FunctionLevelLinking>true</FunctionLevelLinking>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
-      <TreatWarningAsError>true</TreatWarningAsError>
-    </ClCompile>
+    <ClCompile />
     <Link />
     <FxCompile />
     <CustomBuildStep />
