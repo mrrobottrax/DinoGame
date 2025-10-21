@@ -115,6 +115,7 @@ static uint32_t png_u32(const uint8_t *pValue) {
     uint8_t p1[4];
   } u;
 
+  ENDIAN_TODO
   u.p1[0] = pValue[3];
   u.p1[1] = pValue[2];
   u.p1[2] = pValue[1];

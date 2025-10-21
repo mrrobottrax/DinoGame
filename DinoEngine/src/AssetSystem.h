@@ -2,49 +2,36 @@
 
 #include "IAssetSystem.h"
 
-class AssetSystem : IAssetSystem {
+class AssetSystem : public IAssetSystem {
 public:
   void start();
   void stop();
 
   void wipe_level_assets();
 
-  bool is_initialized() const { return m_Initialized; }
+  virtual void get_default_quad_state_desc(
+      D3D12_GRAPHICS_PIPELINE_STATE_DESC *pStateDesc) override;
 
-  virtual HAsset_Binary
-  load_raw(const char *path, EAssetScope scope = ASSET_SCOPE_LEVEL) override {
-    return HAsset_Binary{};
+  virtual uint8_t *load_raw(const char *path,
+                            EAssetScope scope = ASSET_SCOPE_LEVEL) override {
+    return nullptr;
   }
-  virtual HAsset_Texture
+
+  virtual Asset_Texture
   load_png(const char *path, bool rawTexture = false,
            EAssetScope scope = ASSET_SCOPE_LEVEL) override {
-    return HAsset_Texture{};
+    return {};
   }
 
-  virtual HAsset_Shader
+  virtual Asset_Shader
   load_shader(const char *vertexPath, const char *fragmentPath,
-              const char *assetName,
+              D3D12_GRAPHICS_PIPELINE_STATE_DESC *pState,
               ID3D12RootSignature *pRootSignature = nullptr,
-              EAssetScope scope = ASSET_SCOPE_LEVEL);
-
-  virtual void const *get_data(HAsset_Binary hAsset) override {
-    return nullptr;
-  }
-  virtual Asset_TextureData const *
-  get_texture_data(HAsset_Texture hAsset) override {
-    return nullptr;
-  }
-  virtual Asset_ShaderData const *
-  get_shader_data(HAsset_Shader hAsset) override {
-    return nullptr;
-  }
+              EAssetScope scope = ASSET_SCOPE_LEVEL) override;
 
 private:
-  bool m_Initialized;
-
   size_t m_LevelHeapCapacity;
   size_t m_LevelResourceCapacity;
-  uint32_t m_ShaderCapacity;
 
   ComPtr<ID3D12Resource2> m_StagingBuffer;
   size_t m_StagingBufferCapacity;
@@ -68,23 +55,13 @@ private:
   ID3D12Resource2 **m_LevelResources;
   size_t m_LevelResourceCount;
 
-  struct ShaderContainer {
-    union {
-      struct {
-        Asset_ShaderData Data;
-      };
+  uint32_t m_StaticShaderCapacity;
+  uint32_t m_StaticShaderCount;
+  uint32_t m_DynamicShaderCapacity;
+  uint32_t m_DynamicShaderCount;
 
-      struct {
-        ShaderContainer *pNextEmpty;
-        size_t BlockSize;
-      };
-    };
-
-    uint32_t Version;
-  };
-
-  ShaderContainer *m_pShaders;
-  ShaderContainer *m_pFirstEmptyShader;
+  Asset_Shader *m_StaticShaders;
+  Asset_Shader *m_DynamicShaders;
 };
 
 inline AssetSystem g_AssetSystem;

@@ -13,13 +13,23 @@ void AssetSystem::start() {
   m_LevelResourceCapacity =
       g_GameDllSystem.GameInfo.StaticLevelResourceCapacity;
   m_StagingBufferCapacity = g_GameDllSystem.GameInfo.StagingBufferCapacity;
-  m_ShaderCapacity = g_GameDllSystem.GameInfo.ShaderCapacity;
 
-  m_pShaders =
-      (ShaderContainer *)calloc(1, sizeof(ShaderContainer) * m_ShaderCapacity);
-  ASSERT_ALWAYS(m_pShaders);
-  m_pFirstEmptyShader = m_pShaders;
-  m_pFirstEmptyShader->BlockSize = sizeof(ShaderContainer) * m_ShaderCapacity;
+  // Set up shader buffers
+  {
+    m_StaticShaderCapacity = g_GameDllSystem.GameInfo.StaticShaderCapacity;
+    m_DynamicShaderCapacity = g_GameDllSystem.GameInfo.DynamicShaderCapacity;
+
+    m_StaticShaderCount = 0;
+    m_DynamicShaderCapacity = 0;
+
+    m_StaticShaders = (Asset_Shader *)calloc(1, sizeof(Asset_Shader) *
+                                                    m_StaticShaderCapacity);
+    ASSERT_ALWAYS(m_StaticShaders);
+
+    m_DynamicShaders = (Asset_Shader *)calloc(1, sizeof(Asset_Shader) *
+                                                     m_DynamicShaderCapacity);
+    ASSERT_ALWAYS(m_DynamicShaders);
+  }
 
   ID3D12Device9 *pDevice = g_RenderingSystem.get_device();
 
@@ -118,68 +128,19 @@ void AssetSystem::wipe_level_assets() {
   m_LevelResourceCount = 0;
 }
 
-HAsset_Shader AssetSystem::load_shader(const char *vertexPath,
-                                       const char *fragmentPath,
-                                       const char *assetName,
-                                       ID3D12RootSignature *pRootSignature,
-                                       EAssetScope scope) {
-  ASSERT_ALWAYS(g_RenderingSystem.is_initialized());
-  ASSERT_ALWAYS(is_initialized());
-  ID3D12Device9 *pDevice = g_RenderingSystem.get_device();
-
-  ASSERT_ALWAYS(m_pFirstEmptyShader, "Shader capacity exceeded");
-  ASSERT_ALWAYS(m_pFirstEmptyShader->BlockSize >= sizeof(ShaderContainer),
-                "Shader capacity exceeded");
-
-  void *pVertexFile;
-  size_t vertexFileSize;
-  ASSERT_CODE_ALWAYS(ResourceLoader_load_file(
-      vertexPath, &pVertexFile, &vertexFileSize, ResourceLoader_arena0));
-
-  void *pFragmentFile;
-  size_t fragmentFileSize;
-  ASSERT_CODE_ALWAYS(ResourceLoader_load_file(
-      fragmentPath, &pFragmentFile, &fragmentFileSize, ResourceLoader_arena1));
-
-  if (!pRootSignature) {
-    // get root signature from shader
-    ComPtr<ID3DBlob> pVSRootSignatureBlob;
-    ASSERT_WIN_ALWAYS(D3DGetBlobPart(pVertexFile, vertexFileSize,
-                                     D3D_BLOB_ROOT_SIGNATURE, 0,
-                                     &pVSRootSignatureBlob));
-
-    ComPtr<ID3DBlob> pPSRootSignatureBlob;
-    ASSERT_WIN_ALWAYS(D3DGetBlobPart(pFragmentFile, fragmentFileSize,
-                                     D3D_BLOB_ROOT_SIGNATURE, 0,
-                                     &pPSRootSignatureBlob));
-
-    bool rootSignaturesEqual = false;
-    if (pVSRootSignatureBlob.Get() && pPSRootSignatureBlob.Get() &&
-        pVSRootSignatureBlob->GetBufferSize() ==
-            pPSRootSignatureBlob->GetBufferSize()) {
-      rootSignaturesEqual = memcmp(pVSRootSignatureBlob->GetBufferPointer(),
-                                   pPSRootSignatureBlob->GetBufferPointer(),
-                                   pVSRootSignatureBlob->GetBufferSize()) == 0;
-    }
-
-    ASSERT_WIN_ALWAYS(pDevice->CreateRootSignature(
-        0, pVSRootSignatureBlob->GetBufferPointer(),
-        pVSRootSignatureBlob->GetBufferSize(), IID_PPV_ARGS(&pRootSignature)));
-  } else {
-    pRootSignature->AddRef();
-  }
-
+void AssetSystem::get_default_quad_state_desc(
+    D3D12_GRAPHICS_PIPELINE_STATE_DESC *pState) {
   D3D12_GRAPHICS_PIPELINE_STATE_DESC graphicsPipelineStateDesc{
-      .pRootSignature = pRootSignature,
+      .pRootSignature = nullptr,
       .VS =
           {
-              .pShaderBytecode = pVertexFile,
-              .BytecodeLength = vertexFileSize,
+              .pShaderBytecode = nullptr,
+              .BytecodeLength = 0,
           },
       .PS =
           {
-              .pShaderBytecode = pFragmentFile,
-              .BytecodeLength = fragmentFileSize,
+              .pShaderBytecode = nullptr,
+              .BytecodeLength = 0,
           },
       .DS = {},
       .HS = {},
@@ -254,42 +215,108 @@ HAsset_Shader AssetSystem::load_shader(const char *vertexPath,
       .CachedPSO = {.pCachedBlob = nullptr, .CachedBlobSizeInBytes = 0},
       .Flags = D3D12_PIPELINE_STATE_FLAG_NONE,
   };
+  *pState = graphicsPipelineStateDesc;
+}
+
+Asset_Shader
+AssetSystem::load_shader(const char *vertexPath, const char *fragmentPath,
+                         D3D12_GRAPHICS_PIPELINE_STATE_DESC *pStateDesc,
+                         ID3D12RootSignature *pRootSignature,
+                         EAssetScope scope) {
+  if (!vertexPath || !fragmentPath) {
+    return {};
+  }
+
+  XXH64_hash_t hash;
+  {
+    size_t vPathLen = strnlen_s(vertexPath, k_MaxPathString);
+    size_t fPathLen = strnlen_s(fragmentPath, k_MaxPathString);
+    XXH3_state_t hashState;
+    XXH3_64bits_reset(&hashState);
+    XXH3_64bits_update(&hashState, vertexPath, vPathLen);
+    XXH3_64bits_update(&hashState, fragmentPath, fPathLen);
+    hash = XXH3_64bits_digest(&hashState);
+  }
+
+  Asset_Shader *Shaders;
+  uint32_t Capacity;
+  uint32_t *pCount;
+  if (scope == ASSET_SCOPE_LEVEL) {
+    Shaders = m_DynamicShaders;
+    Capacity = m_DynamicShaderCapacity;
+    pCount = &m_DynamicShaderCount;
+  } else if (scope == ASSET_SCOPE_STATIC) {
+    Shaders = m_StaticShaders;
+    Capacity = m_StaticShaderCapacity;
+    pCount = &m_StaticShaderCount;
+  } else {
+    ASSERT(false);
+  }
+
+  ASSERT(g_RenderingSystem.is_initialized());
+  ASSERT(is_initialized());
+  ID3D12Device9 *pDevice = g_RenderingSystem.get_device();
+  ASSERT(pDevice);
+
+  ASSERT(*pCount < Capacity, "Shader capacity exceeded");
+
+  void *pVertexFile;
+  size_t vertexFileSize;
+  ASSERT_CODE_ALWAYS(ResourceLoader_load_file(
+      vertexPath, &pVertexFile, &vertexFileSize, ResourceLoader_arena0));
+
+  void *pFragmentFile;
+  size_t fragmentFileSize;
+  ASSERT_CODE_ALWAYS(ResourceLoader_load_file(
+      fragmentPath, &pFragmentFile, &fragmentFileSize, ResourceLoader_arena1));
+
+  if (!pRootSignature) {
+    // get root signature from shader
+    ComPtr<ID3DBlob> pVSRootSignatureBlob;
+    ASSERT_WIN_ALWAYS(D3DGetBlobPart(pVertexFile, vertexFileSize,
+                                     D3D_BLOB_ROOT_SIGNATURE, 0,
+                                     &pVSRootSignatureBlob));
+
+    ComPtr<ID3DBlob> pPSRootSignatureBlob;
+    ASSERT_WIN_ALWAYS(D3DGetBlobPart(pFragmentFile, fragmentFileSize,
+                                     D3D_BLOB_ROOT_SIGNATURE, 0,
+                                     &pPSRootSignatureBlob));
+
+    bool rootSignaturesEqual = false;
+    if (pVSRootSignatureBlob.Get() && pPSRootSignatureBlob.Get() &&
+        pVSRootSignatureBlob->GetBufferSize() ==
+            pPSRootSignatureBlob->GetBufferSize()) {
+      rootSignaturesEqual = memcmp(pVSRootSignatureBlob->GetBufferPointer(),
+                                   pPSRootSignatureBlob->GetBufferPointer(),
+                                   pVSRootSignatureBlob->GetBufferSize()) == 0;
+    }
+
+    ASSERT_WIN_ALWAYS(pDevice->CreateRootSignature(
+        0, pVSRootSignatureBlob->GetBufferPointer(),
+        pVSRootSignatureBlob->GetBufferSize(), IID_PPV_ARGS(&pRootSignature)));
+  } else {
+    pRootSignature->AddRef();
+  }
+
+  pStateDesc->pRootSignature = pRootSignature;
+  pStateDesc->VS.pShaderBytecode = pVertexFile;
+  pStateDesc->VS.BytecodeLength = vertexFileSize;
+  pStateDesc->PS.pShaderBytecode = pFragmentFile;
+  pStateDesc->PS.BytecodeLength = fragmentFileSize;
 
   ID3D12PipelineState *pPipelineState;
-
   ASSERT_WIN_ALWAYS(pDevice->CreateGraphicsPipelineState(
-      &graphicsPipelineStateDesc, IID_PPV_ARGS(&pPipelineState)));
+      pStateDesc, IID_PPV_ARGS(&pPipelineState)));
 
   ResourceLoader_arena0_reset();
   ResourceLoader_arena1_reset();
 
-  Asset_ShaderData shaderData{
-      .pPipelineState = pPipelineState,
-      .pRootSignature = pRootSignature,
-  };
+  uint32_t index = *pCount;
 
-  ShaderContainer *container;
-  if (m_pFirstEmptyShader->BlockSize >= sizeof(ShaderContainer) * 2) {
-    // split the block
-    container = m_pFirstEmptyShader;
-    ++m_pFirstEmptyShader;
+  Shaders[index].pPipelineState = pPipelineState;
+  Shaders[index].pRootSignature = pRootSignature;
 
-    m_pFirstEmptyShader->BlockSize =
-        container->BlockSize - sizeof(ShaderContainer);
-    m_pFirstEmptyShader->pNextEmpty = container->pNextEmpty;
-  } else {
-    // next block
-    container = m_pFirstEmptyShader;
-    m_pFirstEmptyShader = container->pNextEmpty;
-  }
-
-  container->Data = shaderData;
-  ++container->Version;
-
-  return HAsset_Shader{
-      .m_Index = (uint32_t)(container - m_pShaders),
-      .m_Version = container->Version,
-  };
+  return Shaders[index];
 }
 
 // GPUImage AssetSystem::load_png(const char *path, bool raw) {

@@ -9,6 +9,22 @@ T0_API void crash_windows_code(int code, const char *format, ...);
 T0_API void crash_windows_hresult(HRESULT result);
 T0_API void crash_windows_hresult(HRESULT result, const char *format, ...);
 
+#define ASSUME(expression, ...) __assume(expression)
+
+#define MAKE_ERROR(Group, Major, Minor) (1##Group##Major##Minor)
+
+#define DEBUG_BREAK_ALWAYS()                                                   \
+  if (IsDebuggerPresent()) {                                                   \
+    __debugbreak();                                                            \
+  } else {                                                                     \
+  }
+
+#ifdef DEBUG
+#define DEBUG_BREAK() DEBUG_BREAK_ALWAYS()
+#else
+#define DEBUG_BREAK()
+#endif
+
 // No runtime impact so static asserts are always active
 #define _ASSERT_GLUE(a, b) a##b
 #define ASSERT_GLUE(a, b) _ASSERT_GLUE(a, b)
@@ -23,7 +39,7 @@ T0_API void crash_windows_hresult(HRESULT result, const char *format, ...);
     }                                                                          \
     crash("File: " __FILE__                                                    \
           "\r\nLine: " STRINGIZE(__LINE__) "\r\n" __VA_ARGS__);                \
-    exit(1);                                                                   \
+    ASSUME(0);                                                                 \
   }
 
 #define CRASH_IMMEDIATE()                                                      \
@@ -41,27 +57,11 @@ T0_API void crash_windows_hresult(HRESULT result, const char *format, ...);
     }                                                                          \
     crash_windows("File: " __FILE__                                            \
                   "\r\nLine: " STRINGIZE(__LINE__) "\r\n" __VA_ARGS__);        \
-    exit(1);                                                                   \
+    ASSUME(0);                                                                 \
   }
-
-#define MAKE_ERROR(Group, Major, Minor) (1##Group##Major##Minor)
 
 // Always asserts not stripped out in release builds. Use for critical error
 // checking.
-
-#define DEBUG_BREAK_ALWAYS()                                                   \
-  if (IsDebuggerPresent()) {                                                   \
-    __debugbreak();                                                            \
-  } else {                                                                     \
-  }
-
-#ifdef DEBUG
-#define DEBUG_BREAK() DEBUG_BREAK_ALWAYS()
-#else
-#define DEBUG_BREAK()
-#endif
-
-// These are critical and never removed!
 #define CHECK_CODE(expression, returnVal, ...)                                 \
   {                                                                            \
     int code = expression;                                                     \
@@ -107,7 +107,7 @@ T0_API void crash_windows_hresult(HRESULT result, const char *format, ...);
           result,                                                              \
           #expression " failed.\r\nFile: " __FILE__                            \
                       "\r\nLine: " STRINGIZE(__LINE__) "\r\n" __VA_ARGS__);    \
-      exit(1);                                                                 \
+      ASSUME(0);                                                               \
     }                                                                          \
   }
 
@@ -118,7 +118,7 @@ T0_API void crash_windows_hresult(HRESULT result, const char *format, ...);
       DEBUG_BREAK_ALWAYS();                                                    \
       crash_windows("Assertion Failed: " #expression "\r\nFile: " __FILE__     \
                     "\r\nLine: " STRINGIZE(__LINE__) "\r\n" __VA_ARGS__);      \
-      exit(1);                                                                 \
+      ASSUME(0);                                                               \
     }                                                                          \
   }
 
@@ -131,7 +131,7 @@ T0_API void crash_windows_hresult(HRESULT result, const char *format, ...);
       crash_windows_code(code, #expression                                     \
                          " failed.\r\nFile: " __FILE__                         \
                          "\r\nLine: " STRINGIZE(__LINE__) "\r\n" __VA_ARGS__); \
-      exit(1);                                                                 \
+      ASSUME(0);                                                               \
     }                                                                          \
   }
 
@@ -142,7 +142,7 @@ T0_API void crash_windows_hresult(HRESULT result, const char *format, ...);
       DEBUG_BREAK_ALWAYS();                                                    \
       crash("Assertion Failed: " #expression "\r\nFile: " __FILE__             \
             "\r\nLine: " STRINGIZE(__LINE__) "\r\n" __VA_ARGS__);              \
-      exit(1);                                                                 \
+      ASSUME(0);                                                               \
     }                                                                          \
   }
 
@@ -155,7 +155,7 @@ T0_API void crash_windows_hresult(HRESULT result, const char *format, ...);
       crash_code(code, #expression                                             \
                  " failed.\r\nFile: " __FILE__                                 \
                  "\r\nLine: " STRINGIZE(__LINE__) "\r\n" __VA_ARGS__);         \
-      exit(1);                                                                 \
+      ASSUME(0);                                                               \
     }                                                                          \
   }
 
@@ -179,30 +179,30 @@ T0_API void crash_windows_hresult(HRESULT result, const char *format, ...);
 
 #else
 
-#define ASSERT_WIN_SLOW(...)
-#define ASSERT_WIN_EXP_SLOW(...)
-#define ASSERT_WIN_CODE_SLOW(...)
+#define ASSERT_WIN_SLOW(...) ID(ASSUME(__VA_ARGS__))
+#define ASSERT_WIN_EXP_SLOW(...) ID(ASSUME(__VA_ARGS__))
+#define ASSERT_WIN_CODE_SLOW(...) ID(ASSUME(__VA_ARGS__))
 
-#define ASSERT_SLOW(...)
-#define ASSERT_CODE_SLOW(...)
+#define ASSERT_SLOW(...) ID(ASSUME(__VA_ARGS__))
+#define ASSERT_CODE_SLOW(...) ID(ASSUME(__VA_ARGS__))
 
 #endif
 
 #else
 
-#define ASSERT_WIN(...)
-#define ASSERT_WIN_EXP(...)
-#define ASSERT_WIN_CODE(...)
+#define ASSERT_WIN(...) ID(ASSUME(__VA_ARGS__))
+#define ASSERT_WIN_EXP(...) ID(ASSUME(__VA_ARGS__))
+#define ASSERT_WIN_CODE(...) ID(ASSUME(__VA_ARGS__))
 
-#define ASSERT(...)
-#define ASSERT_CODE(...)
+#define ASSERT(...) ID(ASSUME(__VA_ARGS__))
+#define ASSERT_CODE(...) ID(ASSUME(__VA_ARGS__))
 
-#define ASSERT_WIN_SLOW(...)
-#define ASSERT_WIN_EXP_SLOW(...)
-#define ASSERT_WIN_CODE_SLOW(...)
+#define ASSERT_WIN_SLOW(...) ID(ASSUME(__VA_ARGS__))
+#define ASSERT_WIN_EXP_SLOW(...) ID(ASSUME(__VA_ARGS__))
+#define ASSERT_WIN_CODE_SLOW(...) ID(ASSUME(__VA_ARGS__))
 
-#define ASSERT_SLOW(...)
-#define ASSERT_CODE_SLOW(...)
+#define ASSERT_SLOW(...) ID(ASSUME(__VA_ARGS__))
+#define ASSERT_CODE_SLOW(...) ID(ASSUME(__VA_ARGS__))
 
 #endif
 

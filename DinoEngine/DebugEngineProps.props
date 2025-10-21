@@ -9,6 +9,9 @@
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
     </ClCompile>
     <FxCompile />
+    <FxCompile>
+      <AdditionalOptions>-Qembed_debug</AdditionalOptions>
+    </FxCompile>
   </ItemDefinitionGroup>
   <ItemGroup />
 </Project>

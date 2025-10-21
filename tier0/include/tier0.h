@@ -6,5 +6,10 @@
 #include "Tier0/platform.h"
 #include "Tier0/ucrt.h"
 
-#include "Tier0/console.h"
 #include "Tier0/error.h"
+#include "Tier0/todo.h"
+
+#include "Tier0/console.h"
+#include "Tier0/xxhash.h"
+
+constexpr size_t k_MaxPathString = 259;

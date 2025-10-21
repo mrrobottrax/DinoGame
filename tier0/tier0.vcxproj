@@ -70,6 +70,8 @@
     <ClInclude Include="include\Tier0\error.h" />
     <ClInclude Include="include\Tier0\platform.h" />
     <ClInclude Include="include\Tier0\control.h" />
+    <ClInclude Include="include\Tier0\xxhash.h" />
+    <ClInclude Include="include\Tier0\todo.h" />
     <ClInclude Include="src\console_private.h" />
     <ClInclude Include="src\error_private.h" />
     <ClInclude Include="src\memory.h" />

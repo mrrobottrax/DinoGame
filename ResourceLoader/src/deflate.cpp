@@ -2,6 +2,8 @@
 
 #include "deflate.h"
 
+ENDIAN_TODO
+
 #define DEFLATE_HEADER_UNSUPPORTED_COMPRESSION_TYPE MAKE_ERROR(00, 00, 00);
 #define DEFLATE_T0_NLEN_MISMATCH MAKE_ERROR(00, 00, 01);
 #define DEFLATE_UNSUPPORTED_STAGE MAKE_ERROR(00, 00, 02);
@@ -20,7 +22,7 @@ static int
 calc_tree(const uint16_t *pLengths, uint16_t *pTree, size_t nLengths,
           HuffmanState::LengthData pLengthInfo[HuffmanState::k_MaxBits + 1]) {
   // copy length info onto stack
-  uint16_t *pLengthsNew = (uint16_t *)alloca(sizeof(uint16_t) * nLengths);
+  uint16_t *pLengthsNew = (uint16_t *)_malloca(sizeof(uint16_t) * nLengths);
   ASSERT_RETURN(pLengthsNew, DEFLATE_FAILED_ALLOCATION);
   memcpy(pLengthsNew, pLengths, sizeof(uint16_t) * nLengths);
   pLengths = pLengthsNew;

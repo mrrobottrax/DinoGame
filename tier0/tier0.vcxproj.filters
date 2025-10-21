@@ -48,6 +48,12 @@
     <ClInclude Include="include\Tier0\control.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\Tier0\xxhash.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Tier0\todo.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\pch.cpp">

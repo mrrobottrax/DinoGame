@@ -5,7 +5,7 @@
   <PropertyGroup />
   <ItemDefinitionGroup>
     <ClCompile>
-      <PreprocessorDefinitions>DINO_ENGINE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>XXH_INLINE_ALL;XXH_NO_STDLIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ExceptionHandling>false</ExceptionHandling>
       <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
       <LanguageStandard>stdcpp20</LanguageStandard>
@@ -26,7 +26,6 @@
     </Link>
     <FxCompile>
       <AdditionalIncludeDirectories>$(ProjectDir)shaders;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalOptions>-Qembed_debug</AdditionalOptions>
       <ShaderModel>6.0</ShaderModel>
       <ObjectFileOutput>$(OutDir)content\shaders\$(ProjectName)_%(Filename).cso</ObjectFileOutput>
     </FxCompile>
