@@ -14,8 +14,11 @@ public:
                                  EAssetScope scope = ASSET_SCOPE_LEVEL) = 0;
   virtual HAsset_Texture load_png(const char *path, bool rawTexture = false,
                                   EAssetScope scope = ASSET_SCOPE_LEVEL) = 0;
-  virtual HAsset_Shader load_shader(const char *path,
-                                    EAssetScope scope = ASSET_SCOPE_LEVEL) = 0;
+  virtual HAsset_Shader
+  load_shader(const char *vertexPath, const char *fragmentPath,
+              const char *assetName,
+              ID3D12RootSignature *pRootSignature = nullptr,
+              EAssetScope scope = ASSET_SCOPE_LEVEL) = 0;
 
   // get asset data from handle
   // NOTE: Asset pointers are volatile and may change on defragmentation.

@@ -9,6 +9,8 @@ public:
 
   void wipe_level_assets();
 
+  bool is_initialized() const { return m_Initialized; }
+
   virtual HAsset_Binary
   load_raw(const char *path, EAssetScope scope = ASSET_SCOPE_LEVEL) override {
     return HAsset_Binary{};
@@ -18,11 +20,12 @@ public:
            EAssetScope scope = ASSET_SCOPE_LEVEL) override {
     return HAsset_Texture{};
   }
+
   virtual HAsset_Shader
-  load_shader(const char *path,
-              EAssetScope scope = ASSET_SCOPE_LEVEL) override {
-    return HAsset_Shader{};
-  }
+  load_shader(const char *vertexPath, const char *fragmentPath,
+              const char *assetName,
+              ID3D12RootSignature *pRootSignature = nullptr,
+              EAssetScope scope = ASSET_SCOPE_LEVEL);
 
   virtual void const *get_data(HAsset_Binary hAsset) override {
     return nullptr;
@@ -37,8 +40,11 @@ public:
   }
 
 private:
+  bool m_Initialized;
+
   size_t m_LevelHeapCapacity;
   size_t m_LevelResourceCapacity;
+  uint32_t m_ShaderCapacity;
 
   ComPtr<ID3D12Resource2> m_StagingBuffer;
   size_t m_StagingBufferCapacity;
@@ -61,6 +67,24 @@ private:
   /// </summary>
   ID3D12Resource2 **m_LevelResources;
   size_t m_LevelResourceCount;
+
+  struct ShaderContainer {
+    union {
+      struct {
+        Asset_ShaderData Data;
+      };
+
+      struct {
+        ShaderContainer *pNextEmpty;
+        size_t BlockSize;
+      };
+    };
+
+    uint32_t Version;
+  };
+
+  ShaderContainer *m_pShaders;
+  ShaderContainer *m_pFirstEmptyShader;
 };
 
 inline AssetSystem g_AssetSystem;

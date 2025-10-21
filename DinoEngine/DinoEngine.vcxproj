@@ -61,6 +61,7 @@
     <ClCompile Include="src\Engine.cpp" />
     <ClCompile Include="src\GameDllSystem.cpp" />
     <ClCompile Include="src\RenderingSystem.cpp" />
+    <ClCompile Include="src\UISystem.cpp" />
     <ClCompile Include="src\win_main.cpp" />
     <ClCompile Include="src\pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>

@@ -47,12 +47,12 @@ DGUI_API void DGUI_compile_shader(ID3D12Device9 *pDevice,
   ASSERT_ALWAYS(liVSFileSize.QuadPart <= DWORD_MAX);
   ASSERT_ALWAYS(liPSFileSize.QuadPart <= DWORD_MAX);
 
-  void *pVSBlob = alloca(liVSFileSize.QuadPart);
+  void *pVSBlob = _malloca(liVSFileSize.QuadPart);
   ASSERT_ALWAYS(pVSBlob);
   ASSERT_WIN_EXP_ALWAYS(
       ReadFile(hVSFile, pVSBlob, (DWORD)liVSFileSize.QuadPart, NULL, NULL));
 
-  void *pPSBlob = alloca(liPSFileSize.QuadPart);
+  void *pPSBlob = _malloca(liPSFileSize.QuadPart);
   ASSERT_ALWAYS(pPSBlob);
   ASSERT_WIN_EXP_ALWAYS(
       ReadFile(hPSFile, pPSBlob, (DWORD)liPSFileSize.QuadPart, NULL, NULL));

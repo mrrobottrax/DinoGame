@@ -1,6 +1,7 @@
 #pragma once
 
 class UISystem {
+public:
   void start();
   void stop();
 };

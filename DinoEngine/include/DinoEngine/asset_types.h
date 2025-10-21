@@ -18,8 +18,8 @@ struct Asset_TextureData {
 };
 
 struct Asset_ShaderData {
-  Microsoft::WRL::ComPtr<ID3D12PipelineState> pPipelineState;
-  Microsoft::WRL::ComPtr<ID3D12RootSignature> pRootSignature;
+  ID3D12PipelineState *pPipelineState;
+  ID3D12RootSignature *pRootSignature;
 };
 
 #undef DEFINE_ASSET_TYPE

@@ -14,6 +14,7 @@ struct GameInfo {
   size_t StaticLevelHeapSize = (1 << 20) * 256; // Default: 256MB
   size_t StaticLevelResourceCapacity = 1024;    // Default: 1024
   size_t StagingBufferCapacity = 1 << 26;       // Default: 64MB
+  uint32_t ShaderCapacity = 1024;
 };
 
 DEFINE_CALLBACK(GameInfo, get_game_info);

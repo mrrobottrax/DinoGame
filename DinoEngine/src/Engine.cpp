@@ -5,6 +5,7 @@
 #include "AssetSystem.h"
 #include "GameDllSystem.h"
 #include "RenderingSystem.h"
+#include "UISysem.h"
 #include "WindowSystem.h"
 
 constexpr size_t k_MaxArgvLength = 256;
@@ -50,8 +51,7 @@ void Engine::start() {
   g_WindowSystem.start(g_GameDllSystem.GameInfo.WindowName, 1280, 720, true);
   g_RenderingSystem.start();
   g_AssetSystem.start();
-
-  //DGUI_init(g_RenderingSystem.get_device());
+  g_UISystem.start();
 
   ResourceLoader_SetupInfo resourceLoaderSetup{};
   ASSERT_ALWAYS(ResourceLoader_setup(&resourceLoaderSetup, nullptr));
@@ -64,8 +64,7 @@ void Engine::start() {
 
 void Engine::stop() {
   ResourceLoader_close();
-  //DGUI_stop();
-
+  g_UISystem.stop();
   g_AssetSystem.stop();
   g_RenderingSystem.stop();
   g_WindowSystem.stop();
