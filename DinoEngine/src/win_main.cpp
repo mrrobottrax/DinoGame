@@ -7,7 +7,7 @@
 int wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
              _In_ LPWSTR lpCmdLine, _In_ int nShowCmd) {
 
-  t0_init();
+  t0_start();
 
   int nArgv;
   LPWSTR *argv = CommandLineToArgvW(lpCmdLine, &nArgv);
@@ -16,7 +16,7 @@ int wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 
   LocalFree(argv);
 
-  g_Engine.init();
+  g_Engine.start();
   g_Engine.loop();
   g_Engine.stop();
 

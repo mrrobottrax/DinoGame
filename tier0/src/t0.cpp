@@ -9,10 +9,10 @@
 #include "console_private.h"
 #include "memory.h"
 
-T0_API void t0_init() {
+T0_API void t0_start() {
   setlocale(LC_ALL, ".UTF8");
 
-  error_handling_init();
+  error_handling_start();
 
   console_create();
   memory_start_debug();

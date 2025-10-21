@@ -78,6 +78,7 @@
     <ClInclude Include="src\GameDllSystem.h" />
     <ClInclude Include="src\pch.h" />
     <ClInclude Include="src\RenderingSystem.h" />
+    <ClInclude Include="src\UISysem.h" />
     <ClInclude Include="src\WindowSystem.h" />
   </ItemGroup>
   <ItemGroup>

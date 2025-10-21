@@ -4,7 +4,7 @@
 
 class AssetSystem : IAssetSystem {
 public:
-  void init();
+  void start();
   void stop();
 
   void wipe_level_assets();

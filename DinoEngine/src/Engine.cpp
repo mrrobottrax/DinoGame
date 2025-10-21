@@ -36,7 +36,7 @@ void Engine::parse_argv(wchar_t **argv, int nArgs) {
   }
 }
 
-void Engine::init() {
+void Engine::start() {
   if (m_GameName == nullptr) {
     constexpr wchar_t k_DefaultGame[] = L"TestGame";
     m_GameName = (wchar_t *)malloc(sizeof(k_DefaultGame));
@@ -47,9 +47,9 @@ void Engine::init() {
 
   g_GameDllSystem.load_game(m_GameName);
 
-  g_WindowSystem.init(g_GameDllSystem.GameInfo.WindowName, 1280, 720, true);
-  g_RenderingSystem.init();
-  g_AssetSystem.init();
+  g_WindowSystem.start(g_GameDllSystem.GameInfo.WindowName, 1280, 720, true);
+  g_RenderingSystem.start();
+  g_AssetSystem.start();
 
   //DGUI_init(g_RenderingSystem.get_device());
 

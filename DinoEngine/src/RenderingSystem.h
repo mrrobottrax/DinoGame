@@ -4,7 +4,7 @@ constexpr UINT k_FramesInFlight = 2;
 
 class RenderingSystem {
 public:
-  void init();
+  void start();
   void stop();
   void frame();
   void try_resize(unsigned int w, unsigned int h);

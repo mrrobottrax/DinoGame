@@ -44,7 +44,7 @@ static LRESULT CALLBACK window_proc(HWND m_hWnd, UINT uMsg, WPARAM wParam,
   return 0;
 }
 
-void WindowSystem::init(const char *name, int width, int height,
+void WindowSystem::start(const char *name, int width, int height,
                         bool resizeable) {
   // create window class
   if (s_WndClass.hInstance == nullptr) {

@@ -68,6 +68,9 @@
     <ClInclude Include="include\DinoEngine\asset_types.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\UISysem.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="shaders\LinearToSrgb.hlsl" />

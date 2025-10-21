@@ -34,7 +34,7 @@ static void __stdcall d3d12_message_callback(D3D12_MESSAGE_CATEGORY Category,
 }
 #endif //  defined(_DEBUG)
 
-void RenderingSystem::init() {
+void RenderingSystem::start() {
   ASSERT(g_WindowSystem.get_hWnd() != NULL);
 
 #if defined(_DEBUG)

@@ -6,7 +6,7 @@
 
 DINO_API IAssetSystem *g_IAssetSystem = (IAssetSystem *)&g_AssetSystem;
 
-void AssetSystem::init() {
+void AssetSystem::start() {
   ASSERT_ALWAYS(g_RenderingSystem.is_initialized());
 
   m_LevelHeapCapacity = g_GameDllSystem.GameInfo.StaticLevelHeapSize;

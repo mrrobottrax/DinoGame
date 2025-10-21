@@ -3,7 +3,7 @@
 class Engine {
 public:
   void parse_argv(wchar_t **argv, int nArgs);
-  void init();
+  void start();
   void loop();
   void stop();
 

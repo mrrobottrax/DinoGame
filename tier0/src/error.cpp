@@ -166,7 +166,7 @@ static void append_return_code(const char *format, int code) {
   strncat_s(s_MbFormatBuffer, k_ErrorBufferLength, s_MbErrorBuffer, len1);
 }
 
-void error_handling_init() {
+void error_handling_start() {
   InitializeCriticalSection(&s_CrashLock);
   SetThreadDescription(GetCurrentThread(), L"Main Thread");
 }
