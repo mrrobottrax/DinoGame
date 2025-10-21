@@ -3,8 +3,7 @@
 GAME_API void load_main_menu() {
   console_log("Loading main menu");
 
-  IAssetSystem *assetSystem = g_IAssetSystem;
-  GPUImage logo = assetSystem->load_png("EngineLogo.png");
+  HAsset_Texture hLogo = g_IAssetSystem->load_png("EngineLogo.png");
 
   DGUI_ColoredPanel *mainMenuCentred = new DGUI_ColoredPanel();
   DGUI_get_top_panel()->add_child(mainMenuCentred);
@@ -14,13 +13,10 @@ GAME_API void load_main_menu() {
   mainMenuCentred->set_position_dimensions(0, 0, 800, 0, 0.5f, 0);
   mainMenuCentred->set_color(1, 1, 1, 0.1f);
 
-  DGUI_Image *image = new DGUI_Image();
-  mainMenuCentred->add_child(image);
-  image->TextureHandle = logo.get_handle();
-  image->TextureHeap = logo.get_heap();
-  image->ImageWidth = logo.get_width();
-  image->ImageHeight = logo.get_height();
-  image->Anchor[0] = 0.5f;
-  image->Anchor[1] = 1;
-  image->set_position_dimensions(0, -80, 900, 400, 0.5f, 1);
+  //DGUI_Image *image = new DGUI_Image();
+  //mainMenuCentred->add_child(image);
+  //image->Texture = hLogo;
+  //image->Anchor[0] = 0.5f;
+  //image->Anchor[1] = 1;
+  //image->set_position_dimensions(0, -80, 900, 400, 0.5f, 1);
 }

@@ -9,7 +9,32 @@ public:
 
   void wipe_level_assets();
 
-  virtual GPUImage load_png(const char *path, bool raw) override;
+  virtual HAsset_Binary
+  load_raw(const char *path, EAssetScope scope = ASSET_SCOPE_LEVEL) override {
+    return HAsset_Binary{};
+  }
+  virtual HAsset_Texture
+  load_png(const char *path, bool rawTexture = false,
+           EAssetScope scope = ASSET_SCOPE_LEVEL) override {
+    return HAsset_Texture{};
+  }
+  virtual HAsset_Shader
+  load_shader(const char *path,
+              EAssetScope scope = ASSET_SCOPE_LEVEL) override {
+    return HAsset_Shader{};
+  }
+
+  virtual void const *get_data(HAsset_Binary hAsset) override {
+    return nullptr;
+  }
+  virtual Asset_TextureData const *
+  get_texture_data(HAsset_Texture hAsset) override {
+    return nullptr;
+  }
+  virtual Asset_ShaderData const *
+  get_shader_data(HAsset_Shader hAsset) override {
+    return nullptr;
+  }
 
 private:
   size_t m_LevelHeapCapacity;

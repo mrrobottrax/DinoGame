@@ -9,10 +9,8 @@ enum DGUI_Image_DisplayMode {
 
 class DGUI_API DGUI_Image : public DGUI_Panel {
 public:
-  ID3D12DescriptorHeap *TextureHeap;
-  D3D12_GPU_DESCRIPTOR_HANDLE TextureHandle;
+  //HAsset_Texture Texture;
   DGUI_Image_DisplayMode DisplayMode;
-  uint32_t ImageWidth, ImageHeight;
   float Color[4] = {1, 1, 1, 1};
 
   virtual void add_render_commands(ID3D12GraphicsCommandList10 *pCommandList,

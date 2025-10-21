@@ -6,7 +6,7 @@
 
 void DGUI_Image::add_render_commands(ID3D12GraphicsCommandList10 *pCommandList,
                                      float x, float y, float w, float h) {
-  ASSERT(m_Parent != nullptr);
+  /*ASSERT(m_Parent != nullptr);
   if (!TextureHandle.ptr)
     return;
 
@@ -41,5 +41,5 @@ void DGUI_Image::add_render_commands(ID3D12GraphicsCommandList10 *pCommandList,
   pCommandList->SetDescriptorHeaps(1, &TextureHeap);
   pCommandList->SetGraphicsRootDescriptorTable(1, TextureHandle);
 
-  pCommandList->DrawInstanced(4, 1, 0, 0);
+  pCommandList->DrawInstanced(4, 1, 0, 0);*/
 }

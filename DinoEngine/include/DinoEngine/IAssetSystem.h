@@ -1,31 +1,28 @@
 #pragma once
 
-class GPUImage {
-public:
-  GPUImage(D3D12_GPU_DESCRIPTOR_HANDLE handle, ID3D12DescriptorHeap *heap,
-           uint32_t width, uint32_t height) {
-    m_Handle = handle;
-    m_Heap = heap;
-    m_Width = width;
-    m_Height = height;
-  }
+#include "asset_types.h"
 
-  D3D12_GPU_DESCRIPTOR_HANDLE get_handle() const { return m_Handle; }
-  ID3D12DescriptorHeap *get_heap() const { return m_Heap; }
-
-  uint32_t get_width() const { return m_Width; }
-  uint32_t get_height() const { return m_Height; }
-
-private:
-  D3D12_GPU_DESCRIPTOR_HANDLE m_Handle;
-  ID3D12DescriptorHeap *m_Heap;
-
-  uint32_t m_Width, m_Height;
+enum EAssetScope {
+  ASSET_SCOPE_GLOBAL, // Asset is global
+  ASSET_SCOPE_LEVEL   // Asset may be unloaded on scene change
 };
 
 class DINO_API IAssetSystem {
 public:
-  virtual GPUImage load_png(const char *path, bool raw = false) = 0;
+  // load asset types into memory
+  virtual HAsset_Binary load_raw(const char *path,
+                                 EAssetScope scope = ASSET_SCOPE_LEVEL) = 0;
+  virtual HAsset_Texture load_png(const char *path, bool rawTexture = false,
+                                  EAssetScope scope = ASSET_SCOPE_LEVEL) = 0;
+  virtual HAsset_Shader load_shader(const char *path,
+                                    EAssetScope scope = ASSET_SCOPE_LEVEL) = 0;
+
+  // get asset data from handle
+  // NOTE: Asset pointers are volatile and may change on defragmentation.
+  // Defragmentation can occur on level change or when a new asset is loaded.
+  virtual void const *get_data(HAsset_Binary hAsset) = 0;
+  virtual Asset_TextureData const *get_texture_data(HAsset_Texture hAsset) = 0;
+  virtual Asset_ShaderData const *get_shader_data(HAsset_Shader hAsset) = 0;
 };
 
 DINO_API extern IAssetSystem *g_IAssetSystem;

@@ -62,13 +62,13 @@
     <ClInclude Include="src\dino_platform.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\UISystem.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="include\DinoEngine\IAssetSystem.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\AssetSystem.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\DinoEngine\asset_types.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

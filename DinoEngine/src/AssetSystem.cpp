@@ -107,175 +107,175 @@ void AssetSystem::wipe_level_assets() {
   m_LevelResourceCount = 0;
 }
 
-GPUImage AssetSystem::load_png(const char *path, bool raw) {
-  ResourceLoader_arena0_reset();
-  ResourceLoader_arena1_reset();
-
-  void *file;
-  size_t fileSize;
-  ASSERT_WIN_CODE_ALWAYS(
-      ResourceLoader_load_file(path, &file, &fileSize, ResourceLoader_arena0),
-      "Failed to load file: %s", path);
-
-  PngInfo png;
-  ASSERT_CODE_ALWAYS(ResourceLoader_decompress_png(file, fileSize, &png,
-                                                   ResourceLoader_arena1));
-  ResourceLoader_arena0_reset();
-
-  ResourceLoader_arena_t nextArena = ResourceLoader_arena0;
-  if (png.InterlaceMethod != 0) {
-    ASSERT_CODE_ALWAYS(
-        ResourceLoader_deinterlace_png(&png, ResourceLoader_arena0));
-    nextArena = ResourceLoader_arena1;
-  }
-
-  ASSERT_CODE_ALWAYS(ResourceLoader_png_to_rgba8(&png, nextArena));
-
-  ASSERT(png.ColorType == 6);
-  ASSERT(png.BitDepth == 8);
-  ASSERT(png.InterlaceMethod == 0);
-
-  DXGI_FORMAT format;
-  if (raw)
-    format = DXGI_FORMAT_R8G8B8A8_UNORM;
-  else
-    format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
-
-  ID3D12Device9 *pDevice = g_RenderingSystem.get_device();
-
-  // Check allocation info
-  D3D12_RESOURCE_DESC desc{
-      .Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D,
-      .Alignment = 0,
-      .Width = png.Width,
-      .Height = png.Height,
-      .DepthOrArraySize = 1,
-      .MipLevels = 1,
-      .Format = format,
-      .SampleDesc = {1, 0},
-      .Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN,
-      .Flags = D3D12_RESOURCE_FLAG_NONE,
-  };
-
-  D3D12_RESOURCE_ALLOCATION_INFO info =
-      pDevice->GetResourceAllocationInfo(0, 1, &desc);
-
-  desc.Alignment = info.Alignment;
-
-  // Check if has room
-  size_t alignedOffset =
-      ((m_LevelHeapOffset + info.Alignment - 1) / info.Alignment) *
-      info.Alignment;
-  m_LevelHeapOffset = alignedOffset + info.SizeInBytes;
-
-  if (m_LevelHeapOffset > m_LevelHeapCapacity) {
-    CRASH("Out of room in level data heap!");
-  }
-
-  if (m_LevelDescriptorCount + 1 > m_LevelResourceCapacity) {
-    CRASH("Out of level descriptors!");
-  }
-
-  // Get descriptor handles
-  D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle =
-      m_LevelDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
-  cpuHandle.ptr +=
-      m_LevelDescriptorCount * pDevice->GetDescriptorHandleIncrementSize(
-                                   D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-
-  D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle =
-      m_LevelDescriptorHeap->GetGPUDescriptorHandleForHeapStart();
-  gpuHandle.ptr +=
-      m_LevelDescriptorCount * pDevice->GetDescriptorHandleIncrementSize(
-                                   D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-
-  // Create resource
-  ASSERT_WIN_ALWAYS(pDevice->CreatePlacedResource(
-      m_LevelHeap.Get(), alignedOffset, &desc, D3D12_RESOURCE_STATE_COPY_DEST,
-      nullptr, IID_PPV_ARGS(&m_LevelResources[m_LevelResourceCount])));
-
-  // Create view
-  D3D12_SHADER_RESOURCE_VIEW_DESC viewDesc{
-      .Format = format,
-      .ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D,
-      .Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING,
-      .Texture2D =
-          {
-              .MostDetailedMip = 0,
-              .MipLevels = 1,
-              .PlaneSlice = 0,
-              .ResourceMinLODClamp = 0,
-          },
-  };
-  pDevice->CreateShaderResourceView(m_LevelResources[m_LevelResourceCount],
-                                    &viewDesc, cpuHandle);
-
-  UINT pitch = ((png.Width * 4 + D3D12_TEXTURE_DATA_PITCH_ALIGNMENT - 1) /
-                D3D12_TEXTURE_DATA_PITCH_ALIGNMENT) *
-               D3D12_TEXTURE_DATA_PITCH_ALIGNMENT;
-
-  if ((size_t)pitch * png.Height > m_StagingBufferCapacity) {
-    CRASH("Staging buffer too small!");
-  }
-
-  // Copy into staging buffer
-  for (size_t y = 0; y < png.Height; ++y) {
-    for (size_t x = 0; x < png.Width; ++x) {
-      size_t i = y * pitch + x * 4;
-      size_t j = (png.Height - y - 1) * png.Width * 4 + x * 4;
-      m_StagingBufferMap[i + 0] = png.Data[j + 0];
-      m_StagingBufferMap[i + 1] = png.Data[j + 1];
-      m_StagingBufferMap[i + 2] = png.Data[j + 2];
-      m_StagingBufferMap[i + 3] = png.Data[j + 3];
-    }
-  }
-
-  // Copy from staging buffer
-  ID3D12GraphicsCommandList10 *pList = g_RenderingSystem.record_staging_list();
-
-  D3D12_TEXTURE_COPY_LOCATION dst{
-      .pResource = m_LevelResources[m_LevelResourceCount],
-      .Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX,
-      .SubresourceIndex = 0,
-  };
-  D3D12_TEXTURE_COPY_LOCATION src{
-      .pResource = m_StagingBuffer.Get(),
-      .Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT,
-      .PlacedFootprint =
-          {
-              .Offset = 0,
-              .Footprint =
-                  {
-                      .Format = format,
-                      .Width = png.Width,
-                      .Height = png.Height,
-                      .Depth = 1,
-                      .RowPitch = pitch,
-                  },
-          },
-  };
-  pList->CopyTextureRegion(&dst, 0, 0, 0, &src, nullptr);
-
-  D3D12_RESOURCE_BARRIER barrier{
-      .Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION,
-      .Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE,
-      .Transition = {
-          .pResource = m_LevelResources[m_LevelResourceCount],
-          .Subresource = 0,
-          .StateBefore = D3D12_RESOURCE_STATE_COPY_DEST,
-          .StateAfter = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE |
-                        D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
-      }};
-  pList->ResourceBarrier(1, &barrier);
-
-  g_RenderingSystem.execute_staging_list();
-
-  ++m_LevelDescriptorCount;
-  ++m_LevelResourceCount;
-
-  ResourceLoader_arena0_reset();
-  ResourceLoader_arena1_reset();
-
-  return GPUImage(gpuHandle, m_LevelDescriptorHeap.Get(), png.Width,
-                  png.Height);
-}
+//GPUImage AssetSystem::load_png(const char *path, bool raw) {
+//  ResourceLoader_arena0_reset();
+//  ResourceLoader_arena1_reset();
+//
+//  void *file;
+//  size_t fileSize;
+//  ASSERT_WIN_CODE_ALWAYS(
+//      ResourceLoader_load_file(path, &file, &fileSize, ResourceLoader_arena0),
+//      "Failed to load file: %s", path);
+//
+//  PngInfo png;
+//  ASSERT_CODE_ALWAYS(ResourceLoader_decompress_png(file, fileSize, &png,
+//                                                   ResourceLoader_arena1));
+//  ResourceLoader_arena0_reset();
+//
+//  ResourceLoader_arena_t nextArena = ResourceLoader_arena0;
+//  if (png.InterlaceMethod != 0) {
+//    ASSERT_CODE_ALWAYS(
+//        ResourceLoader_deinterlace_png(&png, ResourceLoader_arena0));
+//    nextArena = ResourceLoader_arena1;
+//  }
+//
+//  ASSERT_CODE_ALWAYS(ResourceLoader_png_to_rgba8(&png, nextArena));
+//
+//  ASSERT(png.ColorType == 6);
+//  ASSERT(png.BitDepth == 8);
+//  ASSERT(png.InterlaceMethod == 0);
+//
+//  DXGI_FORMAT format;
+//  if (raw)
+//    format = DXGI_FORMAT_R8G8B8A8_UNORM;
+//  else
+//    format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+//
+//  ID3D12Device9 *pDevice = g_RenderingSystem.get_device();
+//
+//  // Check allocation info
+//  D3D12_RESOURCE_DESC desc{
+//      .Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D,
+//      .Alignment = 0,
+//      .Width = png.Width,
+//      .Height = png.Height,
+//      .DepthOrArraySize = 1,
+//      .MipLevels = 1,
+//      .Format = format,
+//      .SampleDesc = {1, 0},
+//      .Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN,
+//      .Flags = D3D12_RESOURCE_FLAG_NONE,
+//  };
+//
+//  D3D12_RESOURCE_ALLOCATION_INFO info =
+//      pDevice->GetResourceAllocationInfo(0, 1, &desc);
+//
+//  desc.Alignment = info.Alignment;
+//
+//  // Check if has room
+//  size_t alignedOffset =
+//      ((m_LevelHeapOffset + info.Alignment - 1) / info.Alignment) *
+//      info.Alignment;
+//  m_LevelHeapOffset = alignedOffset + info.SizeInBytes;
+//
+//  if (m_LevelHeapOffset > m_LevelHeapCapacity) {
+//    CRASH("Out of room in level data heap!");
+//  }
+//
+//  if (m_LevelDescriptorCount + 1 > m_LevelResourceCapacity) {
+//    CRASH("Out of level descriptors!");
+//  }
+//
+//  // Get descriptor handles
+//  D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle =
+//      m_LevelDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+//  cpuHandle.ptr +=
+//      m_LevelDescriptorCount * pDevice->GetDescriptorHandleIncrementSize(
+//                                   D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+//
+//  D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle =
+//      m_LevelDescriptorHeap->GetGPUDescriptorHandleForHeapStart();
+//  gpuHandle.ptr +=
+//      m_LevelDescriptorCount * pDevice->GetDescriptorHandleIncrementSize(
+//                                   D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+//
+//  // Create resource
+//  ASSERT_WIN_ALWAYS(pDevice->CreatePlacedResource(
+//      m_LevelHeap.Get(), alignedOffset, &desc, D3D12_RESOURCE_STATE_COPY_DEST,
+//      nullptr, IID_PPV_ARGS(&m_LevelResources[m_LevelResourceCount])));
+//
+//  // Create view
+//  D3D12_SHADER_RESOURCE_VIEW_DESC viewDesc{
+//      .Format = format,
+//      .ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D,
+//      .Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING,
+//      .Texture2D =
+//          {
+//              .MostDetailedMip = 0,
+//              .MipLevels = 1,
+//              .PlaneSlice = 0,
+//              .ResourceMinLODClamp = 0,
+//          },
+//  };
+//  pDevice->CreateShaderResourceView(m_LevelResources[m_LevelResourceCount],
+//                                    &viewDesc, cpuHandle);
+//
+//  UINT pitch = ((png.Width * 4 + D3D12_TEXTURE_DATA_PITCH_ALIGNMENT - 1) /
+//                D3D12_TEXTURE_DATA_PITCH_ALIGNMENT) *
+//               D3D12_TEXTURE_DATA_PITCH_ALIGNMENT;
+//
+//  if ((size_t)pitch * png.Height > m_StagingBufferCapacity) {
+//    CRASH("Staging buffer too small!");
+//  }
+//
+//  // Copy into staging buffer
+//  for (size_t y = 0; y < png.Height; ++y) {
+//    for (size_t x = 0; x < png.Width; ++x) {
+//      size_t i = y * pitch + x * 4;
+//      size_t j = (png.Height - y - 1) * png.Width * 4 + x * 4;
+//      m_StagingBufferMap[i + 0] = png.Data[j + 0];
+//      m_StagingBufferMap[i + 1] = png.Data[j + 1];
+//      m_StagingBufferMap[i + 2] = png.Data[j + 2];
+//      m_StagingBufferMap[i + 3] = png.Data[j + 3];
+//    }
+//  }
+//
+//  // Copy from staging buffer
+//  ID3D12GraphicsCommandList10 *pList = g_RenderingSystem.record_staging_list();
+//
+//  D3D12_TEXTURE_COPY_LOCATION dst{
+//      .pResource = m_LevelResources[m_LevelResourceCount],
+//      .Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX,
+//      .SubresourceIndex = 0,
+//  };
+//  D3D12_TEXTURE_COPY_LOCATION src{
+//      .pResource = m_StagingBuffer.Get(),
+//      .Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT,
+//      .PlacedFootprint =
+//          {
+//              .Offset = 0,
+//              .Footprint =
+//                  {
+//                      .Format = format,
+//                      .Width = png.Width,
+//                      .Height = png.Height,
+//                      .Depth = 1,
+//                      .RowPitch = pitch,
+//                  },
+//          },
+//  };
+//  pList->CopyTextureRegion(&dst, 0, 0, 0, &src, nullptr);
+//
+//  D3D12_RESOURCE_BARRIER barrier{
+//      .Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION,
+//      .Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE,
+//      .Transition = {
+//          .pResource = m_LevelResources[m_LevelResourceCount],
+//          .Subresource = 0,
+//          .StateBefore = D3D12_RESOURCE_STATE_COPY_DEST,
+//          .StateAfter = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE |
+//                        D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+//      }};
+//  pList->ResourceBarrier(1, &barrier);
+//
+//  g_RenderingSystem.execute_staging_list();
+//
+//  ++m_LevelDescriptorCount;
+//  ++m_LevelResourceCount;
+//
+//  ResourceLoader_arena0_reset();
+//  ResourceLoader_arena1_reset();
+//
+//  return GPUImage(gpuHandle, m_LevelDescriptorHeap.Get(), png.Width,
+//                  png.Height);
+//}
