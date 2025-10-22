@@ -8,13 +8,13 @@ void GameDllSystem::load_game(const wchar_t *gameName) {
 
   ASSERT_ALWAYS(m_GameModule != NULL, "Failed to load game DLL");
 
-  // get callbacks
-#define GET_CALLBACK(name)                                                     \
-  name = (name##_ptr)GetProcAddress(m_GameModule, name##_name);                \
+#define GAME_CALLBACK(returnType, name)                                        \
+  name = (name##_t)GetProcAddress(m_GameModule, name##_name);                  \
   ASSERT_ALWAYS(name != nullptr, "Could not find callback.")
 
-  GET_CALLBACK(get_game_info);
-  GET_CALLBACK(load_main_menu);
+  GAME_CALLBACKS_LIST
+
+#undef GAME_CALLBACK
 
   GameInfo = get_game_info();
 }

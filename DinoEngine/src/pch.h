@@ -6,8 +6,10 @@
 
 #include "Tier0/control.h"
 
+#include "dino_math.h"
 #include "resource_loader.h"
 
 using namespace Microsoft::WRL;
 
 #define DINO_API _declspec(dllexport)
+#define ASSET_DIR "content\\"

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "DGUI_Panel.h"
+#include "UI_Panel.h"
 
-class DINO_API DGUI_ColoredPanel : public DGUI_Panel {
+class DINO_API UI_ColoredPanel : public UI_Panel {
 public:
   virtual void add_render_commands(ID3D12GraphicsCommandList10 *pCommandList,
                                    float x, float y, float w, float h) override;

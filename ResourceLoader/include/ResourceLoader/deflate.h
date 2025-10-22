@@ -121,6 +121,6 @@ struct ResourceLoader_Deflate_State {
 // Stream size is in bytes. It's likely that the end bit of the DEFLATE stream
 // doesn't land on a byte boundary. That's fine as long as the byte stream
 // contains the entire DEFLATE stream.
-RESOURCE_LOADER_API int
+RESOURCE_LOADER_API code_t
 ResourceLoader_deflate_read_partial(const uint8_t *pStream, size_t streamSize,
                                     ResourceLoader_Deflate_State *pState);

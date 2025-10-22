@@ -1,14 +1,5 @@
 #pragma once
 
-#if DINO_ENGINE
-#define DEFINE_CALLBACK(returnType, name, ...)                                 \
-  typedef returnType (*##name##_ptr)(__VA_ARGS__);                             \
-  constexpr char name##_name[] = #name
-#else
-#define DEFINE_CALLBACK(returnType, name, ...)                                 \
-  GAME_API returnType name##(__VA_ARGS__)
-#endif
-
 struct GameInfo {
   const char *WindowName = "Dino Engine";
   size_t GPUHeapSize = (1 << 20) * 256;      // Default: 256MB
@@ -17,7 +8,19 @@ struct GameInfo {
   uint32_t ShaderCapacity = 256;             // Max number of shaders
 };
 
-DEFINE_CALLBACK(GameInfo, get_game_info);
-DEFINE_CALLBACK(void, load_main_menu);
+#define GAME_CALLBACKS_LIST                                                         \
+  GAME_CALLBACK(GameInfo, get_game_info);                                      \
+  GAME_CALLBACK(void, load_main_menu);
 
-#undef DEFINE_CALLBACK
+#if DINO_ENGINE
+#define GAME_CALLBACK(returnType, name, ...)                                   \
+  typedef returnType (*##name##_t)(__VA_ARGS__);                               \
+  constexpr char name##_name[] = #name
+#else
+#define GAME_CALLBACK(returnType, name, ...)                                 \
+  GAME_API returnType name##(__VA_ARGS__)
+#endif
+
+GAME_CALLBACKS_LIST
+
+#undef GAME_CALLBACK

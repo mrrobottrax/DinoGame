@@ -57,9 +57,11 @@
     <Link />
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\DGUI_ColoredPanel.cpp" />
     <ClCompile Include="src\DGUI_Panel.cpp" />
     <ClCompile Include="src\Engine.cpp" />
     <ClCompile Include="src\GameDllSystem.cpp" />
+    <ClCompile Include="src\LevelSystem.cpp" />
     <ClCompile Include="src\placeholder.cpp" />
     <ClCompile Include="src\RenderingSystem.cpp" />
     <ClCompile Include="src\UISystem.cpp" />
@@ -73,16 +75,20 @@
   <ItemGroup>
     <ClInclude Include="include\DinoEngine\asset_types.h" />
     <ClInclude Include="include\DinoEngine\callbacks.h" />
-    <ClInclude Include="include\DinoEngine\DGUI_Image.h" />
+    <ClInclude Include="include\DinoEngine\ILevelSystem.h" />
+    <ClInclude Include="include\DinoEngine\IRenderingSystem.h" />
+    <ClInclude Include="include\DinoEngine\UI_Image.h" />
+    <ClInclude Include="include\DinoEngine\IUISystem.h" />
     <ClInclude Include="include\DinoEngine\placeholder.h" />
     <ClInclude Include="include\dino_engine.h" />
-    <ClInclude Include="include\DinoEngine\DGUI_ColoredPanel.h" />
-    <ClInclude Include="include\DinoEngine\DGUI_Panel.h" />
+    <ClInclude Include="include\DinoEngine\UI_ColoredPanel.h" />
+    <ClInclude Include="include\DinoEngine\UI_Panel.h" />
     <ClInclude Include="src\Engine.h" />
     <ClInclude Include="src\GameDllSystem.h" />
+    <ClInclude Include="src\LevelSystem.h" />
     <ClInclude Include="src\pch.h" />
     <ClInclude Include="src\RenderingSystem.h" />
-    <ClInclude Include="src\UISysem.h" />
+    <ClInclude Include="src\UISystem.h" />
     <ClInclude Include="src\WindowSystem.h" />
   </ItemGroup>
   <ItemGroup>
@@ -98,6 +104,17 @@
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compute</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Compute</ShaderType>
     </FxCompile>
+    <FxCompile Include="shaders\UI_QuadPixel.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="shaders\UI_QuadVertex.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
+    </FxCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="shaders\UI_Quad.hlsli" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

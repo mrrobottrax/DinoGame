@@ -459,7 +459,7 @@ static int chunk_IEND(State &state) {
   return 0;
 }
 
-RESOURCE_LOADER_API int
+RESOURCE_LOADER_API code_t
 ResourceLoader_decompress_png(const void *pFile, size_t fileSize, PngInfo *pOut,
                               ResourceLoader_arena_t arena) {
   const uint8_t *file = (uint8_t *)pFile;
@@ -540,7 +540,7 @@ ResourceLoader_decompress_png(const void *pFile, size_t fileSize, PngInfo *pOut,
   return 0;
 }
 
-RESOURCE_LOADER_API int
+RESOURCE_LOADER_API code_t
 ResourceLoader_deinterlace_png(PngInfo *pPng, ResourceLoader_arena_t arena) {
   ASSERT_RETURN(pPng->InterlaceMethod == 1, PNG_DEINTERLACE_BAD_INPUT);
 
@@ -626,7 +626,7 @@ ResourceLoader_deinterlace_png(PngInfo *pPng, ResourceLoader_arena_t arena) {
   return 0;
 }
 
-RESOURCE_LOADER_API int
+RESOURCE_LOADER_API code_t
 ResourceLoader_png_to_rgba8(PngInfo *pPng, ResourceLoader_arena_t arena) {
   size_t requiredSpace = (size_t)pPng->Width * pPng->Height * 4;
 

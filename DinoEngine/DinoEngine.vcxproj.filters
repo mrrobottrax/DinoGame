@@ -33,13 +33,19 @@
     <ClCompile Include="src\GameDllSystem.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\UISystem.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\placeholder.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\DGUI_Panel.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\DGUI_ColoredPanel.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\UISystem.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\LevelSystem.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -65,26 +71,43 @@
     <ClInclude Include="include\DinoEngine\callbacks.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\DinoEngine\asset_types.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\UISysem.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="include\DinoEngine\placeholder.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\DinoEngine\DGUI_Panel.h">
+    <ClInclude Include="include\DinoEngine\UI_Panel.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\DinoEngine\DGUI_ColoredPanel.h">
+    <ClInclude Include="include\DinoEngine\UI_ColoredPanel.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\DinoEngine\DGUI_Image.h">
+    <ClInclude Include="include\DinoEngine\UI_Image.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\DinoEngine\IUISystem.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\UISystem.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\DinoEngine\ILevelSystem.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\LevelSystem.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\DinoEngine\IRenderingSystem.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\DinoEngine\asset_types.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="shaders\LinearToSrgb.hlsl" />
+    <FxCompile Include="shaders\UI_QuadPixel.hlsl" />
+    <FxCompile Include="shaders\UI_QuadVertex.hlsl" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="shaders\UI_Quad.hlsli" />
   </ItemGroup>
 </Project>

@@ -1,5 +1,7 @@
 #pragma once
 
+typedef int code_t;
+
 T0_API void crash();
 T0_API void crash(const char *format, ...);
 T0_API void crash_code(int code, const char *format, ...);
@@ -12,6 +14,8 @@ T0_API void crash_windows_hresult(HRESULT result, const char *format, ...);
 #define ASSUME(expression, ...) __assume(expression)
 
 #define MAKE_ERROR(Group, Major, Minor) (1##Group##Major##Minor)
+
+#define CODE_SUCCESS(code) (code == 0)
 
 #define DEBUG_BREAK_ALWAYS()                                                   \
   if (IsDebuggerPresent()) {                                                   \
@@ -64,7 +68,7 @@ T0_API void crash_windows_hresult(HRESULT result, const char *format, ...);
 // checking.
 #define CHECK_CODE(expression, returnVal, ...)                                 \
   {                                                                            \
-    int code = expression;                                                     \
+    code_t code = expression;                                                  \
     if (code == 0) {                                                           \
     } else {                                                                   \
       DEBUG_BREAK();                                                           \
@@ -78,7 +82,7 @@ T0_API void crash_windows_hresult(HRESULT result, const char *format, ...);
 
 #define PROPAGATE_CODE(expression, ...)                                        \
   {                                                                            \
-    int code = expression;                                                     \
+    code_t code = expression;                                                  \
     if (code == 0) {                                                           \
     } else {                                                                   \
       return code;                                                             \
@@ -124,7 +128,7 @@ T0_API void crash_windows_hresult(HRESULT result, const char *format, ...);
 
 #define ASSERT_WIN_CODE_ALWAYS(expression, ...)                                \
   {                                                                            \
-    int code = expression;                                                     \
+    code_t code = expression;                                                  \
     if (code == 0) {                                                           \
     } else {                                                                   \
       DEBUG_BREAK_ALWAYS();                                                    \
@@ -148,7 +152,7 @@ T0_API void crash_windows_hresult(HRESULT result, const char *format, ...);
 
 #define ASSERT_CODE_ALWAYS(expression, ...)                                    \
   {                                                                            \
-    int code = expression;                                                     \
+    code_t code = expression;                                                  \
     if (code == 0) {                                                           \
     } else {                                                                   \
       DEBUG_BREAK_ALWAYS();                                                    \

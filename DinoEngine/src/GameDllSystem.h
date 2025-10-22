@@ -2,8 +2,6 @@
 
 #include "callbacks.h"
 
-#define MCALLBACK(name) name##_ptr name
-
 class GameDllSystem {
 public:
   void load_game(const wchar_t *gameName);
@@ -14,11 +12,9 @@ private:
 public:
   GameInfo GameInfo;
 
-  // callbacks
-  MCALLBACK(get_game_info);
-  MCALLBACK(load_main_menu);
+#define GAME_CALLBACK(returnType, name) name##_t name
+  GAME_CALLBACKS_LIST
+#undef GAME_CALLBACK
 };
-
-#undef MCALLBACK
 
 inline GameDllSystem g_GameDllSystem{};

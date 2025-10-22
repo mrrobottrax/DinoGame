@@ -3,20 +3,31 @@
 GAME_API void load_main_menu() {
   console_log("Loading main menu");
 
-  //HAsset_Texture hLogo = g_IAssetSystem->load_png("EngineLogo.png");
+  /*
+  g_ILevelSystem->set_skybox("Menu_Sky.png");
 
-  DGUI_ColoredPanel *mainMenuCentred = new DGUI_ColoredPanel();
-  DGUI_get_top_panel()->add_child(mainMenuCentred);
-  mainMenuCentred->Anchor[0] = 0.5f;
-  mainMenuCentred->Anchor[1] = 0;
-  mainMenuCentred->Flags |= DGUI_PANEL_FLAG_SUBTRACTIVE_SIZE_Y;
-  mainMenuCentred->set_position_dimensions(0, 0, 800, 0, 0.5f, 0);
+  UI_ColoredPanel &mainMenuCentred = ui_create<UI_ColoredPanel>();
+  mainMenuCentred->Flags |= UI_PANEL_FLAG_SUBTRACTIVE_SIZE_Y;
+  mainMenuCentred->set_anchor(0.5f, 0);
+  mainMenuCentred->set_pivot(0.5f, 0);
+  mainMenuCentred->set_position(0, 0);
+  mainMenuCentred->set_dimensions(800, 0);
   mainMenuCentred->set_color(1, 1, 1, 0.1f);
 
-  //DGUI_Image *image = new DGUI_Image();
-  //mainMenuCentred->add_child(image);
-  //image->Texture = hLogo;
-  //image->Anchor[0] = 0.5f;
-  //image->Anchor[1] = 1;
-  //image->set_position_dimensions(0, -80, 900, 400, 0.5f, 1);
+  UI_Image &image = ui_create<UI_Image>(mainMenuCentred);
+  image->set_texture("EngineLogo.png");
+  image->Anchor[0] = 0.5f;
+  image->Anchor[1] = 1;
+  image->set_position_dimensions(0, -80, 900, 400, 0.5f, 1);
+
+  DyanmicProp &cube = entity_spawn<DyanmicProp>();
+  cube->set_position(0, 0, 0);
+  cube->set_model("MenuCube.gltf");
+  cube->set_animation("spin");
+
+  Camera &camera = entity_spawn<Camera>();
+  camera.set_position(0, -5, 0);
+
+  playsound_loop("menu.wav", SND_MUSIC);
+  */
 }

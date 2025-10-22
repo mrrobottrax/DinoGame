@@ -3,8 +3,9 @@
 #include "Engine.h"
 
 #include "GameDllSystem.h"
+#include "LevelSystem.h"
 #include "RenderingSystem.h"
-#include "UISysem.h"
+#include "UISystem.h"
 #include "WindowSystem.h"
 
 constexpr size_t k_MaxArgvLength = 256;
@@ -37,13 +38,10 @@ void Engine::parse_argv(wchar_t **argv, int nArgs) {
 }
 
 void Engine::start() {
-  if (m_GameName == nullptr) {
-    constexpr wchar_t k_DefaultGame[] = L"TestGame";
-    m_GameName = (wchar_t *)malloc(sizeof(k_DefaultGame));
-    ASSERT_ALWAYS(m_GameName);
-    memcpy_s(m_GameName, sizeof(k_DefaultGame), k_DefaultGame,
-             sizeof(k_DefaultGame));
-  }
+  ASSERT_ALWAYS(m_GameName);
+
+  ResourceLoader_SetupInfo resourceLoaderSetup{};
+  ASSERT_ALWAYS(ResourceLoader_setup(&resourceLoaderSetup, nullptr));
 
   g_GameDllSystem.load_game(m_GameName);
 
@@ -51,15 +49,14 @@ void Engine::start() {
   g_RenderingSystem.start();
   g_UISystem.start();
 
-  ResourceLoader_SetupInfo resourceLoaderSetup{};
-  ASSERT_ALWAYS(ResourceLoader_setup(&resourceLoaderSetup, nullptr));
-
   g_WindowSystem.show_finally();
 
   g_GameDllSystem.load_main_menu();
 }
 
 void Engine::stop() {
+  g_LevelSystem.unload_immediate();
+
   ResourceLoader_close();
   g_UISystem.stop();
   g_RenderingSystem.stop();

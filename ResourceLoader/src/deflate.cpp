@@ -674,7 +674,7 @@ static int bit_state_machine(ResourceLoader_Deflate_State *pState, bool bit) {
   return 0;
 }
 
-RESOURCE_LOADER_API int
+RESOURCE_LOADER_API code_t
 ResourceLoader_deflate_read_partial(const uint8_t *pStream, size_t streamSize,
                                     ResourceLoader_Deflate_State *pState) {
   if (pState->Stage == RESOURCE_LOADER_DEFLATE_STAGE_INITIAL) {
