@@ -14,7 +14,7 @@ public:
   ID3D12Device9 *get_device() { return m_pDevice.Get(); }
   ID3D12CommandQueue *get_queue() { return m_pCommandQueue.Get(); }
 
-  ID3D12GraphicsCommandList10 *record_staging_list();
+  ID3D12GraphicsCommandList10 *reset_staging_list();
   void execute_staging_list();
 
 private:

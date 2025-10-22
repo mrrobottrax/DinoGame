@@ -2,7 +2,6 @@
 
 #include "Engine.h"
 
-#include "AssetSystem.h"
 #include "GameDllSystem.h"
 #include "RenderingSystem.h"
 #include "UISysem.h"
@@ -50,7 +49,6 @@ void Engine::start() {
 
   g_WindowSystem.start(g_GameDllSystem.GameInfo.WindowName, 1280, 720, true);
   g_RenderingSystem.start();
-  g_AssetSystem.start();
   g_UISystem.start();
 
   ResourceLoader_SetupInfo resourceLoaderSetup{};
@@ -58,14 +56,12 @@ void Engine::start() {
 
   g_WindowSystem.show_finally();
 
-  g_AssetSystem.wipe_level_assets();
   g_GameDllSystem.load_main_menu();
 }
 
 void Engine::stop() {
   ResourceLoader_close();
   g_UISystem.stop();
-  g_AssetSystem.stop();
   g_RenderingSystem.stop();
   g_WindowSystem.stop();
 

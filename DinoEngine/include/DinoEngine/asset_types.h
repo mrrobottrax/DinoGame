@@ -11,5 +11,3 @@ struct Asset_Shader {
   ID3D12PipelineState *pPipelineState;
   ID3D12RootSignature *pRootSignature;
 };
-
-#undef DEFINE_ASSET_TYPE

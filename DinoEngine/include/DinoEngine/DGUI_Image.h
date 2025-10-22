@@ -1,15 +1,16 @@
 #pragma once
 
 #include "DGUI_Panel.h"
+#include "asset_types.h"
 
 enum DGUI_Image_DisplayMode {
   DGUI_IMAGE_DISPLAY_FIT,
   DGUI_IMAGE_DISPLAY_STRETCH,
 };
 
-class DGUI_API DGUI_Image : public DGUI_Panel {
+class DINO_API DGUI_Image : public DGUI_Panel {
 public:
-  //HAsset_Texture Texture;
+  Asset_Texture Texture;
   DGUI_Image_DisplayMode DisplayMode;
   float Color[4] = {1, 1, 1, 1};
 

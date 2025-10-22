@@ -33,10 +33,13 @@
     <ClCompile Include="src\GameDllSystem.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\AssetSystem.cpp">
+    <ClCompile Include="src\UISystem.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\UISystem.cpp">
+    <ClCompile Include="src\placeholder.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\DGUI_Panel.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -62,16 +65,22 @@
     <ClInclude Include="include\DinoEngine\callbacks.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\DinoEngine\IAssetSystem.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\AssetSystem.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="include\DinoEngine\asset_types.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\UISysem.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\DinoEngine\placeholder.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\DinoEngine\DGUI_Panel.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\DinoEngine\DGUI_ColoredPanel.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\DinoEngine\DGUI_Image.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

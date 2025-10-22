@@ -11,12 +11,13 @@
 
 struct GameInfo {
   const char *WindowName = "Dino Engine";
-  size_t StaticLevelHeapSize = (1 << 20) * 256; // Default: 256MB
-  size_t StaticLevelResourceCapacity = 1024;    // Default: 1024
-  size_t StagingBufferCapacity = 1 << 26;       // Default: 64MB
-  uint32_t StaticShaderCapacity = 256;          // Static is always loaded
-  uint32_t DynamicShaderCapacity = 256; // Dynamic is unloaded on level change
+  size_t GPUHeapSize = (1 << 20) * 256;      // Default: 256MB
+  size_t GPUStagingBufferCapacity = 1 << 26; // Default: 64MB
+  uint32_t GPUResourceCapacity = 1024;       // Max number of GPU resources
+  uint32_t ShaderCapacity = 256;             // Max number of shaders
 };
 
 DEFINE_CALLBACK(GameInfo, get_game_info);
 DEFINE_CALLBACK(void, load_main_menu);
+
+#undef DEFINE_CALLBACK

@@ -221,7 +221,7 @@ void RenderingSystem::wait_idle() {
   }
 }
 
-ID3D12GraphicsCommandList10 *RenderingSystem::record_staging_list() {
+ID3D12GraphicsCommandList10 *RenderingSystem::reset_staging_list() {
   ASSERT_WIN_ALWAYS(m_pStagingAllocator->Reset());
   ASSERT_WIN_ALWAYS(m_pStagingList->Reset(m_pStagingAllocator.Get(), NULL));
 
