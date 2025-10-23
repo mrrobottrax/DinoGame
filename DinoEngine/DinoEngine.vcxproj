@@ -58,13 +58,14 @@
     </FxCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="src\DGUI_ColoredPanel.cpp" />
-    <ClCompile Include="src\DGUI_Panel.cpp" />
+    <ClCompile Include="src\UI_ColoredPanel.cpp" />
+    <ClCompile Include="src\UI_Panel.cpp" />
     <ClCompile Include="src\Engine.cpp" />
     <ClCompile Include="src\GameDllSystem.cpp" />
     <ClCompile Include="src\LevelSystem.cpp" />
     <ClCompile Include="src\RenderingSystem.cpp" />
     <ClCompile Include="src\UISystem.cpp" />
+    <ClCompile Include="src\UI_Grid.cpp" />
     <ClCompile Include="src\win_main.cpp" />
     <ClCompile Include="src\pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
@@ -77,6 +78,7 @@
     <ClInclude Include="include\DinoEngine\callbacks.h" />
     <ClInclude Include="include\DinoEngine\ILevelSystem.h" />
     <ClInclude Include="include\DinoEngine\IRenderingSystem.h" />
+    <ClInclude Include="include\DinoEngine\UI_Grid.h" />
     <ClInclude Include="include\DinoEngine\UI_Image.h" />
     <ClInclude Include="include\DinoEngine\IUISystem.h" />
     <ClInclude Include="include\dino_engine.h" />

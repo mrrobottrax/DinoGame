@@ -74,14 +74,14 @@ void UISystem::render_recursive(UI_Panel *pPanel,
   h = pPanel->Dimensions[1];
 
   // Dimension flags
-  if (pPanel->Flags & UI_PANEL_FLAG_RELATIVE_SIZE_X)
+  if (pPanel->Flags & UI_PANEL_FLAG_RELATIVE_SIZE_W)
     w *= pw;
   else if (pPanel->Flags & UI_PANEL_FLAG_ABSOLUTE_SIZE_X)
     w = w * 2 * m_InvScreenDimensions[0];
   else
     w = w * 2 * m_ScreenRatio * k_UIPixelScale;
 
-  if (pPanel->Flags & UI_PANEL_FLAG_RELATIVE_SIZE_Y)
+  if (pPanel->Flags & UI_PANEL_FLAG_RELATIVE_SIZE_H)
     h *= ph;
   else if (pPanel->Flags & UI_PANEL_FLAG_ABSOLUTE_SIZE_Y)
     h = h * 2 * m_InvScreenDimensions[1];
@@ -113,7 +113,11 @@ void UISystem::render_recursive(UI_Panel *pPanel,
   x += px + (pPanel->Anchor[0] * pw) - (pPanel->Pivot[0] * w);
   y += py + (pPanel->Anchor[1] * ph) - (pPanel->Pivot[1] * h);
 
-  pPanel->add_render_commands(pCommandList, x, y, w, h);
+  // Flip y
+  const float y2 = -y - h;
+
+  pPanel->add_render_commands(pCommandList, x, y2, w, h);
+  pPanel->position_children();
 
   uint16_t children = pPanel->get_child_count();
   for (uint16_t i = 0; i < children; ++i) {

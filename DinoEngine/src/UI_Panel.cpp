@@ -5,7 +5,7 @@
 UI_Panel::~UI_Panel() { delete_children(); }
 
 void UI_Panel::add_render_commands(ID3D12GraphicsCommandList10 *pCommandList,
-                                     float x, float y, float w, float h) {
+                                   float x, float y, float w, float h) {
   (void)pCommandList;
   (void)x;
   (void)y;
@@ -13,12 +13,14 @@ void UI_Panel::add_render_commands(ID3D12GraphicsCommandList10 *pCommandList,
   (void)h;
 }
 
+void UI_Panel::position_children() {}
+
 void UI_Panel::add_child(UI_Panel *pPanel) {
   if (m_ChildCount + 1 > m_ChildCapacity) {
     m_ChildCapacity = max(m_ChildCapacity, 1) * 2;
 
-    UI_Panel **pNew = (UI_Panel **)realloc(
-        m_Children, m_ChildCapacity * sizeof(UI_Panel *));
+    UI_Panel **pNew =
+        (UI_Panel **)realloc(m_Children, m_ChildCapacity * sizeof(UI_Panel *));
     ASSERT_ALWAYS(pNew);
 
     m_Children = pNew;
@@ -27,6 +29,8 @@ void UI_Panel::add_child(UI_Panel *pPanel) {
   ASSERT(m_Children);
   m_Children[m_ChildCount++] = pPanel;
   pPanel->m_Parent = this;
+
+  ASSERT(m_ChildCount <= 40000);
 }
 
 void UI_Panel::delete_children() {

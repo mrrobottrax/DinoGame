@@ -11,6 +11,9 @@ enum UI_PanelFlags : UI_PanelFlags_t {
   UI_PANEL_FLAG_SUBTRACTIVE_SIZE_W = 1 << 0,
   UI_PANEL_FLAG_SUBTRACTIVE_SIZE_H = 1 << 1,
 
+  UI_PANEL_FLAG_SUBTRACTIVE_SIZE_WH =
+      UI_PANEL_FLAG_SUBTRACTIVE_SIZE_W | UI_PANEL_FLAG_SUBTRACTIVE_SIZE_H,
+
   /// <summary>
   /// Dimensions are not scaled with window size.
   /// </summary>
@@ -26,8 +29,8 @@ enum UI_PanelFlags : UI_PanelFlags_t {
   /// <summary>
   /// Dimensions are a fraction of the parent size.
   /// </summary>
-  UI_PANEL_FLAG_RELATIVE_SIZE_X = 1 << 6,
-  UI_PANEL_FLAG_RELATIVE_SIZE_Y = 1 << 7,
+  UI_PANEL_FLAG_RELATIVE_SIZE_W = 1 << 6,
+  UI_PANEL_FLAG_RELATIVE_SIZE_H = 1 << 7,
 
   /// <summary>
   /// Position is a fraction of the parent size.
@@ -68,7 +71,8 @@ public:
   virtual ~UI_Panel();
 
   virtual void add_render_commands(ID3D12GraphicsCommandList10 *pCommandList,
-                                   float x, float y, float w, float h);
+                                   float px, float py, float pw, float ph);
+  virtual void position_children();
 
   void set_position(float x, float y);
   void set_dimensions(float w, float h);
@@ -125,7 +129,7 @@ inline void UI_Panel::set_absolute() {
 }
 
 inline void UI_Panel::set_relative() {
-  Flags |= UI_PANEL_FLAG_RELATIVE_SIZE_X | UI_PANEL_FLAG_RELATIVE_SIZE_Y |
+  Flags |= UI_PANEL_FLAG_RELATIVE_SIZE_W | UI_PANEL_FLAG_RELATIVE_SIZE_H |
            UI_PANEL_FLAG_RELATIVE_POSITION_X |
            UI_PANEL_FLAG_RELATIVE_POSITION_Y;
 }

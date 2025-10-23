@@ -11,55 +11,41 @@ GAME_API GameInfo get_game_info() {
 GAME_API void game_start() {
   console_log("Editor init");
 
-  UI_ColoredPanel *bg = ui_create<UI_ColoredPanel>();
-  bg->Flags |=
-      UI_PANEL_FLAG_SUBTRACTIVE_SIZE_W | UI_PANEL_FLAG_SUBTRACTIVE_SIZE_H;
-  bg->set_color(EDITOR_COLOR_BACKGROUND);
+  // UI_ColoredPanel *bg = ui_create<UI_ColoredPanel>();
+  // bg->Flags |=
+  //     UI_PANEL_FLAG_SUBTRACTIVE_SIZE_W | UI_PANEL_FLAG_SUBTRACTIVE_SIZE_H;
+  // bg->set_color(EDITOR_COLOR_BACKGROUND);
 
-  UI_ColoredPanel *header = ui_create<UI_ColoredPanel>();
-  header->set_absolute();
-  header->Flags |= UI_PANEL_FLAG_SUBTRACTIVE_SIZE_W;
-  header->set_anchor(0, 1);
-  header->set_pivot(0, 1);
-  header->set_dimensions(0, 30);
+  UI_Grid *vGrid = ui_create<UI_Grid>();
+  vGrid->Flags |= UI_PANEL_FLAG_SUBTRACTIVE_SIZE_WH;
+  vGrid->v_split(30, UI_GRID_FLAG_ABSOLUTE_SIZE);
+
+  UI_ColoredPanel *header = ui_create<UI_ColoredPanel>(vGrid);
   header->set_color(EDITOR_COLOR_MAIN);
+  header->set_dimensions(200, 200);
 
-  UI_ColoredPanel *toolbar = ui_create<UI_ColoredPanel>();
-  toolbar->set_absolute();
-  toolbar->Flags |= UI_PANEL_FLAG_SUBTRACTIVE_SIZE_H;
-  toolbar->set_dimensions(40, 31);
-  toolbar->set_color(EDITOR_COLOR_MAIN);
+  // UI_Grid *hGrid = ui_create<UI_Grid>();
+  // hGrid->Flags |= UI_PANEL_FLAG_SUBTRACTIVE_SIZE_WH;
+  // hGrid->h_split(40, UI_GRID_FLAG_ABSOLUTE_SIZE);
 
-  UI_Panel *editorWindow = ui_create<UI_Panel>();
-  editorWindow->set_absolute();
-  editorWindow->Flags |=
-      UI_PANEL_FLAG_SUBTRACTIVE_SIZE_W | UI_PANEL_FLAG_SUBTRACTIVE_SIZE_H;
-  editorWindow->set_position(41, 0);
-  editorWindow->set_dimensions(41, 31);
+  // UI_ColoredPanel *toolbar = ui_create<UI_ColoredPanel>(hGrid);
+  // toolbar->set_color(EDITOR_COLOR_MAIN);
 
-  UI_ColoredPanel *viewport = ui_create<UI_ColoredPanel>(editorWindow);
-  viewport->set_relative();
-  viewport->set_position(0, 0.5f);
-  viewport->set_dimensions(0.5f, 0.5f);
-  viewport->set_color(1, 0, 0, 0.5f);
+  // UI_Grid *vpGrid = ui_create<UI_Grid>(hGrid);
+  // vpGrid->h_split(0.5f, UI_GRID_FLAG_RELATIVE_SIZE);
+  // vpGrid->v_split(0.5f, UI_GRID_FLAG_RELATIVE_SIZE);
 
-  UI_ColoredPanel *top = ui_create<UI_ColoredPanel>(editorWindow);
-  top->set_relative();
-  top->set_position(0.5f, 0.5f);
-  top->set_dimensions(0.5f, 0.5f);
-  top->set_color(0, 1, 0, 0.5f);
+  // UI_ColoredPanel *viewport = ui_create<UI_ColoredPanel>(vpGrid);
+  // viewport->set_color(1, 0, 0, 0.5f);
 
-  UI_ColoredPanel *front = ui_create<UI_ColoredPanel>(editorWindow);
-  front->set_relative();
-  front->set_position(0, 0);
-  front->set_dimensions(0.5f, 0.5f);
-  front->set_color(0, 0, 1, 0.5f);
+  // UI_ColoredPanel *top = ui_create<UI_ColoredPanel>(vpGrid);
+  // top->set_color(0, 1, 0, 0.5f);
 
-  UI_ColoredPanel *side = ui_create<UI_ColoredPanel>(editorWindow);
-  side->set_relative();
-  side->set_position(0.5f, 0);
-  side->set_dimensions(0.5f, 0.5f);
-  side->set_color(0, 1, 1, 0.5f);
+  // UI_ColoredPanel *front = ui_create<UI_ColoredPanel>(vpGrid);
+  // front->set_color(0, 0, 1, 0.5f);
+
+  // UI_ColoredPanel *side = ui_create<UI_ColoredPanel>(vpGrid);
+  // side->set_color(0, 1, 1, 0.5f);
 
   /*
   g_ILevelSystem->set_skybox("Menu_Sky.png");
