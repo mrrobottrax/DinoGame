@@ -73,22 +73,43 @@ void UISystem::render_recursive(UI_Panel *pPanel,
   w = pPanel->Dimensions[0];
   h = pPanel->Dimensions[1];
 
-  if (pPanel->Flags & UI_PANEL_FLAG_ABSOLUTE_SIZE_X)
+  // Dimension flags
+  if (pPanel->Flags & UI_PANEL_FLAG_RELATIVE_SIZE_X)
+    w *= pw;
+  else if (pPanel->Flags & UI_PANEL_FLAG_ABSOLUTE_SIZE_X)
     w = w * 2 * m_InvScreenDimensions[0];
   else
     w = w * 2 * m_ScreenRatio * k_UIPixelScale;
 
-  if (pPanel->Flags & UI_PANEL_FLAG_ABSOLUTE_SIZE_Y)
+  if (pPanel->Flags & UI_PANEL_FLAG_RELATIVE_SIZE_Y)
+    h *= ph;
+  else if (pPanel->Flags & UI_PANEL_FLAG_ABSOLUTE_SIZE_Y)
     h = h * 2 * m_InvScreenDimensions[1];
   else
     h = h * 2 * k_UIPixelScale;
 
-  if (pPanel->Flags & UI_PANEL_FLAG_SUBTRACTIVE_SIZE_X)
+  if (pPanel->Flags & UI_PANEL_FLAG_SUBTRACTIVE_SIZE_W)
     w = pw - w;
 
-  if (pPanel->Flags & UI_PANEL_FLAG_SUBTRACTIVE_SIZE_Y)
+  if (pPanel->Flags & UI_PANEL_FLAG_SUBTRACTIVE_SIZE_H)
     h = ph - h;
 
+  // Position flags
+  if (pPanel->Flags & UI_PANEL_FLAG_RELATIVE_POSITION_X)
+    x *= pw;
+  else if (pPanel->Flags & UI_PANEL_FLAG_ABSOLUTE_POSITION_X)
+    x = x * 2 * m_InvScreenDimensions[0];
+  else
+    x = x * 2 * m_ScreenRatio * k_UIPixelScale;
+
+  if (pPanel->Flags & UI_PANEL_FLAG_RELATIVE_POSITION_Y)
+    y *= ph;
+  else if (pPanel->Flags & UI_PANEL_FLAG_ABSOLUTE_POSITION_Y)
+    y = y * 2 * m_InvScreenDimensions[1];
+  else
+    y = y * 2 * k_UIPixelScale;
+
+  // Get final position
   x += px + (pPanel->Anchor[0] * pw) - (pPanel->Pivot[0] * w);
   y += py + (pPanel->Anchor[1] * ph) - (pPanel->Pivot[1] * h);
 

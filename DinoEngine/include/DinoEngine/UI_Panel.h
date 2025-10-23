@@ -1,21 +1,39 @@
 #pragma once
 
-typedef char UI_PanelFlags_t;
+typedef uint16_t UI_PanelFlags_t;
 
 enum UI_PanelFlags : UI_PanelFlags_t {
-  UI_PANEL_FLAGS_NONE = 0,
+  UI_PANEL_FLAG_NONE = 0,
 
   /// <summary>
   /// Dimensions start at 100% of parent, then this number is subtracted.
   /// </summary>
-  UI_PANEL_FLAG_SUBTRACTIVE_SIZE_X = 1 << 0,
-  UI_PANEL_FLAG_SUBTRACTIVE_SIZE_Y = 1 << 1,
+  UI_PANEL_FLAG_SUBTRACTIVE_SIZE_W = 1 << 0,
+  UI_PANEL_FLAG_SUBTRACTIVE_SIZE_H = 1 << 1,
 
   /// <summary>
   /// Dimensions are not scaled with window size.
   /// </summary>
   UI_PANEL_FLAG_ABSOLUTE_SIZE_X = 1 << 2,
   UI_PANEL_FLAG_ABSOLUTE_SIZE_Y = 1 << 3,
+
+  /// <summary>
+  /// Position is not scaled with window size.
+  /// </summary>
+  UI_PANEL_FLAG_ABSOLUTE_POSITION_X = 1 << 4,
+  UI_PANEL_FLAG_ABSOLUTE_POSITION_Y = 1 << 5,
+
+  /// <summary>
+  /// Dimensions are a fraction of the parent size.
+  /// </summary>
+  UI_PANEL_FLAG_RELATIVE_SIZE_X = 1 << 6,
+  UI_PANEL_FLAG_RELATIVE_SIZE_Y = 1 << 7,
+
+  /// <summary>
+  /// Position is a fraction of the parent size.
+  /// </summary>
+  UI_PANEL_FLAG_RELATIVE_POSITION_X = 1 << 8,
+  UI_PANEL_FLAG_RELATIVE_POSITION_Y = 1 << 9,
 };
 
 class DINO_API UI_Panel {
@@ -56,6 +74,8 @@ public:
   void set_dimensions(float w, float h);
   void set_anchor(float x, float y);
   void set_pivot(float x, float y);
+  void set_absolute();
+  void set_relative();
 
   void add_child(UI_Panel *pPanel);
   void delete_children();
@@ -63,10 +83,9 @@ public:
   uint16_t get_child_count() const;
   UI_Panel *get_child(uint16_t index);
 
-protected:
+private:
   UI_Panel *m_Parent{};
 
-private:
   UI_Panel **m_Children{};
   uint16_t m_ChildCapacity{};
   uint16_t m_ChildCount{};
@@ -97,4 +116,16 @@ inline void UI_Panel::set_anchor(float x, float y) {
 inline void UI_Panel::set_pivot(float x, float y) {
   Pivot[0] = x;
   Pivot[1] = y;
+}
+
+inline void UI_Panel::set_absolute() {
+  Flags |= UI_PANEL_FLAG_ABSOLUTE_POSITION_X |
+           UI_PANEL_FLAG_ABSOLUTE_POSITION_Y | UI_PANEL_FLAG_ABSOLUTE_SIZE_X |
+           UI_PANEL_FLAG_ABSOLUTE_SIZE_Y;
+}
+
+inline void UI_Panel::set_relative() {
+  Flags |= UI_PANEL_FLAG_RELATIVE_SIZE_X | UI_PANEL_FLAG_RELATIVE_SIZE_Y |
+           UI_PANEL_FLAG_RELATIVE_POSITION_X |
+           UI_PANEL_FLAG_RELATIVE_POSITION_Y;
 }

@@ -7,8 +7,6 @@
 void UI_ColoredPanel::add_render_commands(
     ID3D12GraphicsCommandList10 *pCommandList, float x, float y, float w,
     float h) {
-  ASSERT(m_Parent != nullptr);
-
   mat4_t matrix = mat4_create(x, y, 0, w, h);
 
   g_RenderingSystem.set_shader(g_UI_RectShader, pCommandList);

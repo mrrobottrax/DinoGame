@@ -7,7 +7,7 @@ GAME_API void game_start() {
   g_ILevelSystem->set_skybox("Menu_Sky.png");
 
   UI_ColoredPanel &mainMenuCentred = ui_create<UI_ColoredPanel>();
-  mainMenuCentred->Flags |= UI_PANEL_FLAG_SUBTRACTIVE_SIZE_Y;
+  mainMenuCentred->Flags |= UI_PANEL_FLAG_SUBTRACTIVE_SIZE_H;
   mainMenuCentred->set_anchor(0.5f, 0);
   mainMenuCentred->set_pivot(0.5f, 0);
   mainMenuCentred->set_position(0, 0);
