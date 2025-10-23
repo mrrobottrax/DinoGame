@@ -9,8 +9,6 @@ public:
   void stop();
 
   virtual UI_Panel *get_top_panel() override;
-  virtual float screen_ratio() const override;
-  virtual float inv_screen_ratio() const override;
   virtual Asset_Shader
   compile_transparent_quad_shader(const char *vertPath, const char *fragPath,
                  ID3D12RootSignature *pRootSignature = nullptr) const override;
@@ -20,11 +18,6 @@ public:
 
 private:
   UI_Panel m_TopPanel{};
-
-  float m_ScreenRatio{}, m_InvScreenRatio{};
-
-  uint32_t m_ScreenDimensions[2]{};
-  float m_InvScreenDimensions[2]{};
 
   ID3D12PipelineState *m_pCurrentPipelineState{};
   ID3D12RootSignature *m_pCurrentRootSignature{};
@@ -40,6 +33,3 @@ inline UI_Panel *UISystem::get_top_panel() {
   ASSERT(is_initialized());
   return &m_TopPanel;
 }
-
-inline float UISystem::screen_ratio() const { return m_ScreenRatio; }
-inline float UISystem::inv_screen_ratio() const { return m_InvScreenRatio; }

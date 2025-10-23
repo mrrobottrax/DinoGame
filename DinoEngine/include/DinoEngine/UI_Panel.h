@@ -17,8 +17,11 @@ enum UI_PanelFlags : UI_PanelFlags_t {
   /// <summary>
   /// Dimensions are not scaled with window size.
   /// </summary>
-  UI_PANEL_FLAG_ABSOLUTE_SIZE_X = 1 << 2,
-  UI_PANEL_FLAG_ABSOLUTE_SIZE_Y = 1 << 3,
+  UI_PANEL_FLAG_ABSOLUTE_SIZE_W = 1 << 2,
+  UI_PANEL_FLAG_ABSOLUTE_SIZE_H = 1 << 3,
+
+  UI_PANEL_FLAG_ABSOLUTE_SIZE_WH =
+      UI_PANEL_FLAG_ABSOLUTE_SIZE_W | UI_PANEL_FLAG_ABSOLUTE_SIZE_H,
 
   /// <summary>
   /// Position is not scaled with window size.
@@ -26,17 +29,32 @@ enum UI_PanelFlags : UI_PanelFlags_t {
   UI_PANEL_FLAG_ABSOLUTE_POSITION_X = 1 << 4,
   UI_PANEL_FLAG_ABSOLUTE_POSITION_Y = 1 << 5,
 
+  UI_PANEL_FLAG_ABSOLUTE_POSITION_XY =
+      UI_PANEL_FLAG_ABSOLUTE_POSITION_X | UI_PANEL_FLAG_ABSOLUTE_POSITION_Y,
+
   /// <summary>
   /// Dimensions are a fraction of the parent size.
   /// </summary>
   UI_PANEL_FLAG_RELATIVE_SIZE_W = 1 << 6,
   UI_PANEL_FLAG_RELATIVE_SIZE_H = 1 << 7,
 
+  UI_PANEL_FLAG_RELATIVE_SIZE_WH =
+      UI_PANEL_FLAG_RELATIVE_SIZE_W | UI_PANEL_FLAG_RELATIVE_SIZE_H,
+
   /// <summary>
   /// Position is a fraction of the parent size.
   /// </summary>
   UI_PANEL_FLAG_RELATIVE_POSITION_X = 1 << 8,
   UI_PANEL_FLAG_RELATIVE_POSITION_Y = 1 << 9,
+
+  UI_PANEL_FLAG_RELATIVE_POSITION_XY =
+      UI_PANEL_FLAG_RELATIVE_POSITION_X | UI_PANEL_FLAG_RELATIVE_POSITION_Y,
+
+  UI_PANEL_FLAG_ABSOLUTE =
+      UI_PANEL_FLAG_ABSOLUTE_SIZE_WH | UI_PANEL_FLAG_ABSOLUTE_POSITION_XY,
+
+  UI_PANEL_FLAG_RELATIVE =
+      UI_PANEL_FLAG_RELATIVE_SIZE_WH | UI_PANEL_FLAG_RELATIVE_POSITION_XY,
 };
 
 class DINO_API UI_Panel {
@@ -72,14 +90,12 @@ public:
 
   virtual void add_render_commands(ID3D12GraphicsCommandList10 *pCommandList,
                                    float px, float py, float pw, float ph);
-  virtual void position_children();
+  virtual void position_children(float w, float h, float pw, float ph);
 
   void set_position(float x, float y);
   void set_dimensions(float w, float h);
   void set_anchor(float x, float y);
   void set_pivot(float x, float y);
-  void set_absolute();
-  void set_relative();
 
   void add_child(UI_Panel *pPanel);
   void delete_children();
@@ -120,16 +136,4 @@ inline void UI_Panel::set_anchor(float x, float y) {
 inline void UI_Panel::set_pivot(float x, float y) {
   Pivot[0] = x;
   Pivot[1] = y;
-}
-
-inline void UI_Panel::set_absolute() {
-  Flags |= UI_PANEL_FLAG_ABSOLUTE_POSITION_X |
-           UI_PANEL_FLAG_ABSOLUTE_POSITION_Y | UI_PANEL_FLAG_ABSOLUTE_SIZE_X |
-           UI_PANEL_FLAG_ABSOLUTE_SIZE_Y;
-}
-
-inline void UI_Panel::set_relative() {
-  Flags |= UI_PANEL_FLAG_RELATIVE_SIZE_W | UI_PANEL_FLAG_RELATIVE_SIZE_H |
-           UI_PANEL_FLAG_RELATIVE_POSITION_X |
-           UI_PANEL_FLAG_RELATIVE_POSITION_Y;
 }
