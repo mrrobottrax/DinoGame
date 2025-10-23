@@ -17,12 +17,19 @@ void UISystem::start() {
   m_IsInitialized = true;
 }
 
-void UISystem::stop() { m_IsInitialized = false; }
+void UISystem::stop() {
+  m_IsInitialized = false;
+
+  g_UI_RectShader.release();
+}
 
 void UISystem::add_render_commands(ID3D12GraphicsCommandList10 *pCommandList,
                                    uint32_t w, uint32_t h) {
   m_ScreenDimensions[0] = w;
   m_ScreenDimensions[1] = h;
+
+  m_InvScreenDimensions[0] = 1.0f / w;
+  m_InvScreenDimensions[1] = 1.0f / h;
 
   m_ScreenRatio = (float)h / w;
   m_InvScreenRatio = (float)w / h;
@@ -39,7 +46,14 @@ void UISystem::add_render_commands(ID3D12GraphicsCommandList10 *pCommandList,
       .MinDepth = 0,
       .MaxDepth = 1,
   };
+  D3D12_RECT scissor{
+      .left = 0,
+      .top = 0,
+      .right = (LONG)w,
+      .bottom = (LONG)h,
+  };
   pCommandList->RSSetViewports(1, &viewport);
+  pCommandList->RSSetScissorRects(1, &scissor);
 
   pCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
@@ -52,16 +66,35 @@ void UISystem::render_recursive(UI_Panel *pPanel,
                                 ID3D12GraphicsCommandList10 *pCommandList,
                                 float px, float py, float pw, float ph) {
   float x, y, w, h;
-  x = pPanel->calc_x(pw);
-  y = pPanel->calc_y(ph);
-  w = pPanel->calc_w(pw);
-  h = pPanel->calc_h(ph);
 
-  float clipX = x * m_ScreenRatio * k_UIPixelScale * 2 + px;
-  float clipY = y * k_UIPixelScale * 2 + py;
+  x = pPanel->Position[0] + px + (pPanel->Anchor[0] * pw) -
+      (pPanel->Pivot[0] * pPanel->Dimensions[0]);
+  y = pPanel->Position[1] + py + (pPanel->Anchor[1] * ph) -
+      (pPanel->Pivot[1] * pPanel->Dimensions[1]);
+  w = pPanel->Dimensions[0];
+  h = pPanel->Dimensions[1];
 
-  float clipW = w * m_ScreenRatio * k_UIPixelScale * 2;
-  float clipH = h * k_UIPixelScale * 2;
+  if (pPanel->Flags & UI_PANEL_FLAG_SUBTRACTIVE_SIZE_X)
+    w = pw - w;
+
+  if (pPanel->Flags & UI_PANEL_FLAG_SUBTRACTIVE_SIZE_Y)
+    h = ph - h;
+
+  float clipX = x * k_UIPixelScale * m_ScreenRatio * 2 - 1;
+  float clipY = y * k_UIPixelScale * 2 - 1;
+
+  float clipW;
+  float clipH;
+
+  if (pPanel->Flags & UI_PANEL_FLAG_ABSOLUTE_SIZE_X)
+    clipW = w * m_InvScreenDimensions[0] * 2;
+  else
+    clipW = w * k_UIPixelScale * m_ScreenRatio * 2;
+
+  if (pPanel->Flags & UI_PANEL_FLAG_ABSOLUTE_SIZE_Y)
+    clipH = h * m_InvScreenDimensions[1] * 2;
+  else
+    clipH = h * k_UIPixelScale * 2;
 
   pPanel->add_render_commands(pCommandList, clipX, clipY, clipW, clipH);
 
@@ -79,6 +112,7 @@ Asset_Shader UISystem::compile_transparent_quad_shader(
   ASSERT(device);
 
   ResourceLoader_arena0_reset();
+  ResourceLoader_arena1_reset();
 
   void *vsFile;
   size_t vsSize;
@@ -88,7 +122,7 @@ Asset_Shader UISystem::compile_transparent_quad_shader(
   void *fsFile;
   size_t fsSize;
   ASSERT_CODE_ALWAYS(ResourceLoader_load_file(fragPath, &fsFile, &fsSize,
-                                              ResourceLoader_arena0));
+                                              ResourceLoader_arena1));
 
   if (!pRootSignature) {
     ComPtr<ID3DBlob> pVSRootSignatureBlob;
@@ -205,6 +239,7 @@ Asset_Shader UISystem::compile_transparent_quad_shader(
       &graphicsPipelineStateDesc, IID_PPV_ARGS(&pipelineState)));
 
   ResourceLoader_arena0_reset();
+  ResourceLoader_arena1_reset();
 
   return {
       .pPipelineState = pipelineState,

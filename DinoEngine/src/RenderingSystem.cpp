@@ -412,12 +412,14 @@ void RenderingSystem::try_resize(unsigned int w, unsigned int h) {
 
 void RenderingSystem::set_shader(Asset_Shader shader,
                                  ID3D12GraphicsCommandList10 *pCommandList) {
-  if (m_CurrentShader.pPipelineState != shader.pPipelineState) {
+  if (m_CurrentShader.pPipelineState != shader.pPipelineState &&
+      shader.pPipelineState) {
     pCommandList->SetPipelineState(shader.pPipelineState);
     pCommandList->SetGraphicsRootSignature(shader.pRootSignature);
   }
 
-  if (m_CurrentShader.pRootSignature != shader.pRootSignature) {
+  if (m_CurrentShader.pRootSignature != shader.pRootSignature &&
+      shader.pRootSignature) {
     pCommandList->SetGraphicsRootSignature(shader.pRootSignature);
   }
 

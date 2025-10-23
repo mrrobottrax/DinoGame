@@ -24,6 +24,7 @@ private:
   float m_ScreenRatio{}, m_InvScreenRatio{};
 
   uint32_t m_ScreenDimensions[2]{};
+  float m_InvScreenDimensions[2]{};
 
   ID3D12PipelineState *m_pCurrentPipelineState{};
   ID3D12RootSignature *m_pCurrentRootSignature{};

@@ -10,4 +10,9 @@ struct Asset_Texture {
 struct Asset_Shader {
   ID3D12PipelineState *pPipelineState{};
   ID3D12RootSignature *pRootSignature{};
+
+  void release() {
+    pPipelineState->Release();
+    pRootSignature->Release();
+  }
 };

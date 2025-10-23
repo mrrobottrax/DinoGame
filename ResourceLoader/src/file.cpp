@@ -38,20 +38,19 @@ ResourceLoader_load_file(const char *path, void **ppFile, size_t *pFileSize,
     return LF_FAILED_CONVERT;
 
   HANDLE hFile = CreateFile(
-      (LPWSTR)g_Buffer, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING,
+      (LPWSTR)buffer, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING,
       FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
 
-  if (hFile == NULL)
+  if (hFile == INVALID_HANDLE_VALUE)
     return LF_FAILED_OPEN;
 
   LARGE_INTEGER fileSize;
-  if (!GetFileSizeEx(hFile, &fileSize))
-    return LF_FAILED_SIZE;
+  ASSERT(GetFileSizeEx(hFile, &fileSize));
 
 #ifdef DEBUG
-  console_log("Reading file %s\r\nSize: %llu", path, fileSize.QuadPart);
-  ASSERT_ALWAYS(fileSize.QuadPart < MAXDWORD32);
+  console_log("Reading file %s, Size: %llu", path, fileSize.QuadPart);
 #endif // DEBUG
+  ASSERT_ALWAYS(fileSize.QuadPart < MAXDWORD32);
 
   arena_reset(arena);
 
@@ -62,8 +61,7 @@ ResourceLoader_load_file(const char *path, void **ppFile, size_t *pFileSize,
   *ppFile = alloc;
   *pFileSize = fileSize.QuadPart;
 
-  if (!ReadFile(hFile, g_Buffer, (DWORD)fileSize.QuadPart, NULL, NULL))
-    return LF_FAILED_READ;
+  ASSERT_WIN_EXP(ReadFile(hFile, alloc, (DWORD)fileSize.QuadPart, NULL, NULL));
 
   CloseHandle(hFile);
 

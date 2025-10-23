@@ -29,6 +29,7 @@
       <ShaderModel>6.1</ShaderModel>
       <ObjectFileOutput>$(OutDir)content\shaders\$(ProjectName)\%(Filename).cso</ObjectFileOutput>
       <ShaderType>Vertex</ShaderType>
+      <AdditionalOptions>/Qembed_debug %(AdditionalOptions)</AdditionalOptions>
     </FxCompile>
   </ItemDefinitionGroup>
   <ItemGroup />

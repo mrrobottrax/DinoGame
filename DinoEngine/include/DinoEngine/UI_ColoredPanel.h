@@ -15,5 +15,5 @@ public:
   }
 
 private:
-  float m_Color[4]{};
+  float m_Color[4]{1, 1, 1, 1};
 };

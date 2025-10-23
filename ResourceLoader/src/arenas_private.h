@@ -2,8 +2,8 @@
 
 #include "arenas.h"
 
-inline void *g_Buffer;
-inline size_t g_BufferSize;
+inline void *g_ArenasBuffer;
+inline size_t g_ArenasBufferSize;
 
 /// <summary>
 /// Counts up from bottom of arena.

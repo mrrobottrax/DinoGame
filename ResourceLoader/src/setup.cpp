@@ -30,16 +30,16 @@ ResourceLoader_setup(ResourceLoader_SetupInfo *pInfo,
     pResult->pBuffer = pInfo->pBuffer;
   }
 
-  g_BufferSize = pInfo->BufferSize;
-  g_Buffer = pInfo->pBuffer;
+  g_ArenasBufferSize = pInfo->BufferSize;
+  g_ArenasBuffer = pInfo->pBuffer;
 
   return true;
 }
 
 RESOURCE_LOADER_API void ResourceLoader_close() {
   if (s_BufferIsSelfAllocated) {
-    free(g_Buffer);
-    g_Buffer = nullptr;
-    g_BufferSize = 0;
+    free(g_ArenasBuffer);
+    g_ArenasBuffer = nullptr;
+    g_ArenasBufferSize = 0;
   }
 }

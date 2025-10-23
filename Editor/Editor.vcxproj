@@ -57,6 +57,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="src\colors.h" />
     <ClInclude Include="src\pch.h" />
   </ItemGroup>
   <ItemGroup>
