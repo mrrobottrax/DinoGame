@@ -1,6 +1,6 @@
 #include "UI_Quad.hlsli"
 
-[RootSignature(DefaultRootSignature)]
+[RootSignature(ColorRootSignature)]
 float4 main() : SV_TARGET
 {
 	return bgColor;

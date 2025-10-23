@@ -1,6 +1,6 @@
 #include "pch.h"
 
-GAME_API void load_main_menu() {
+GAME_API void game_start() {
   console_log("Loading main menu");
 
   /*

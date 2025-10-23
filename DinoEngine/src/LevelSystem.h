@@ -11,4 +11,4 @@ public:
   void unload_immediate();
 };
 
-inline LevelSystem g_LevelSystem;
+inline LevelSystem g_LevelSystem{};

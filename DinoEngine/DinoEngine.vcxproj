@@ -20,15 +20,10 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
-    <UseDebugLibraries>true</UseDebugLibraries>
-    <CharacterSet>Unicode</CharacterSet>
     <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
-    <UseDebugLibraries>false</UseDebugLibraries>
-    <WholeProgramOptimization>true</WholeProgramOptimization>
-    <CharacterSet>Unicode</CharacterSet>
     <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
@@ -51,10 +46,16 @@
     <ClCompile />
     <Link />
     <ClCompile />
+    <FxCompile />
+    <FxCompile />
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile />
     <Link />
+    <FxCompile />
+    <FxCompile>
+      <ShaderType>Vertex</ShaderType>
+    </FxCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="src\DGUI_ColoredPanel.cpp" />
@@ -62,7 +63,6 @@
     <ClCompile Include="src\Engine.cpp" />
     <ClCompile Include="src\GameDllSystem.cpp" />
     <ClCompile Include="src\LevelSystem.cpp" />
-    <ClCompile Include="src\placeholder.cpp" />
     <ClCompile Include="src\RenderingSystem.cpp" />
     <ClCompile Include="src\UISystem.cpp" />
     <ClCompile Include="src\win_main.cpp" />
@@ -79,7 +79,6 @@
     <ClInclude Include="include\DinoEngine\IRenderingSystem.h" />
     <ClInclude Include="include\DinoEngine\UI_Image.h" />
     <ClInclude Include="include\DinoEngine\IUISystem.h" />
-    <ClInclude Include="include\DinoEngine\placeholder.h" />
     <ClInclude Include="include\dino_engine.h" />
     <ClInclude Include="include\DinoEngine\UI_ColoredPanel.h" />
     <ClInclude Include="include\DinoEngine\UI_Panel.h" />
@@ -114,6 +113,7 @@
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
+    <None Include="cpp.hint" />
     <None Include="shaders\UI_Quad.hlsli" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -14,4 +14,3 @@
 #include "DinoEngine/UI_Image.h"
 #include "DinoEngine/UI_Panel.h"
 #include "DinoEngine/callbacks.h"
-#include "DinoEngine/placeholder.h"

@@ -8,17 +8,17 @@ struct GameInfo {
   uint32_t ShaderCapacity = 256;             // Max number of shaders
 };
 
-#define GAME_CALLBACKS_LIST                                                         \
-  GAME_CALLBACK(GameInfo, get_game_info);                                      \
-  GAME_CALLBACK(void, load_main_menu);
+#define GAME_CALLBACKS_LIST                                                    \
+  GAME_CALLBACK(GameInfo, get_game_info)                                       \
+  GAME_CALLBACK(void, game_start)
 
 #if DINO_ENGINE
 #define GAME_CALLBACK(returnType, name, ...)                                   \
   typedef returnType (*##name##_t)(__VA_ARGS__);                               \
-  constexpr char name##_name[] = #name
+  constexpr char name##_name[] = #name;
 #else
-#define GAME_CALLBACK(returnType, name, ...)                                 \
-  GAME_API returnType name##(__VA_ARGS__)
+#define GAME_CALLBACK(returnType, name, ...)                                   \
+  GAME_API returnType name##(__VA_ARGS__);
 #endif
 
 GAME_CALLBACKS_LIST

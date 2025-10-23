@@ -10,7 +10,7 @@ public:
                           ID3D12GraphicsCommandList10 *pCommandList) = 0;
 
 protected:
-  bool m_IsInitialized;
+  bool m_IsInitialized{};
 };
 
 DINO_API extern IRenderingSystem *g_IRenderingSystem;

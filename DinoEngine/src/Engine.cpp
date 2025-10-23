@@ -51,7 +51,7 @@ void Engine::start() {
 
   g_WindowSystem.show_finally();
 
-  g_GameDllSystem.load_main_menu();
+  g_GameDllSystem.game_start();
 }
 
 void Engine::stop() {

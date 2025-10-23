@@ -55,7 +55,7 @@ static void print_stack() {
   SymSetOptions(SYMOPT_LOAD_LINES | SYMOPT_UNDNAME);
 
   constexpr size_t k_NameLen = 512;
-  char buffer[sizeof(SYMBOL_INFO) + k_NameLen];
+  char buffer[sizeof(SYMBOL_INFO) + k_NameLen]{};
   SYMBOL_INFO *symbol = (SYMBOL_INFO *)&buffer;
   symbol->MaxNameLen = k_NameLen;
   symbol->SizeOfStruct = sizeof(SYMBOL_INFO);

@@ -2,12 +2,20 @@
 
 GAME_API GameInfo get_game_info() {
   return {
-      .WindowName = "Test Game",
+      .WindowName = "Editor",
   };
 }
 
-GAME_API void load_main_menu() {
-  console_log("Loading main menu");
+GAME_API void game_start() {
+  console_log("Editor init");
+
+  UI_ColoredPanel *mainMenuPanel = ui_create<UI_ColoredPanel>();
+  // mainMenuPanel->Flags |= UI_PANEL_FLAG_SUBTRACTIVE_SIZE_X;
+  // mainMenuPanel->set_anchor(0.5f, 0);
+  // mainMenuPanel->set_pivot(0, 1);
+  // mainMenuPanel->set_position(0, 0);
+  // mainMenuPanel->set_dimensions(0, 40);
+  // mainMenuPanel->set_color(1, 1, 1, 0.1f);
 
   /*
   g_ILevelSystem->set_skybox("Menu_Sky.png");

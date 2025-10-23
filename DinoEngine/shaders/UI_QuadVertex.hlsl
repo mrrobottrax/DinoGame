@@ -8,7 +8,7 @@ static const float3 k_Vertices[] =
 	float3(0, 1, 0),
 };
 
-[RootSignature(DefaultRootSignature)]
+[RootSignature(ColorRootSignature)]
 float4 main(uint index : SV_VertexID) : SV_POSITION
 {
 	return mul(mvpMatrix, float4(k_Vertices[index], 1));

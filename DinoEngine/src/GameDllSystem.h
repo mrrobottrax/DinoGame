@@ -7,12 +7,12 @@ public:
   void load_game(const wchar_t *gameName);
 
 private:
-  HMODULE m_GameModule;
+  HMODULE m_GameModule{};
 
 public:
-  GameInfo GameInfo;
+  GameInfo GameInfo{};
 
-#define GAME_CALLBACK(returnType, name) name##_t name
+#define GAME_CALLBACK(returnType, name) name##_t name##{};
   GAME_CALLBACKS_LIST
 #undef GAME_CALLBACK
 };

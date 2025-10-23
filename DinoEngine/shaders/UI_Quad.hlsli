@@ -1,4 +1,4 @@
-#define DefaultRootSignature \
+#define ColorRootSignature \
     "RootFlags(0), " \
     "RootConstants(num32BitConstants=20, b0)"
 

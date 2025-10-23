@@ -114,16 +114,16 @@ void WindowSystem::start(const char *name, int width, int height,
 
 void WindowSystem::stop() {}
 
-void WindowSystem::show_finally() { ShowWindowAsync(m_hWnd, SW_SHOW); }
+void WindowSystem::show_finally() const { ShowWindowAsync(m_hWnd, SW_SHOW); }
 
-uint32_t WindowSystem::get_width() {
+uint32_t WindowSystem::get_width() const {
   RECT rect;
   ASSERT_WIN_EXP(GetClientRect(m_hWnd, &rect));
 
   return rect.right - rect.left;
 }
 
-uint32_t WindowSystem::get_height() {
+uint32_t WindowSystem::get_height() const {
   RECT rect;
   ASSERT_WIN_EXP(GetClientRect(m_hWnd, &rect));
 

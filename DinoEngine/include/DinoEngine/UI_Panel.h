@@ -18,26 +18,26 @@ public:
   /// Position offset from the anchor point. X is right and Y is up in pixels
   /// based on 1920x1080; Z is depth (0-1).
   /// </summary>
-  float Position[3];
+  float Position[3]{};
 
   /// <summary>
   /// Width and height in pixels based on 1920x1080.
   /// </summary>
-  float Dimensions[2];
+  float Dimensions[2]{};
 
   /// <summary>
   /// Anchor point to start from based on parent dimensions. Normal range is
   /// 0-1.
   /// </summary>
-  float Anchor[2];
+  float Anchor[2]{};
 
   /// <summary>
   /// Pivot point based on internal dimensions. Normal range is
   /// 0-1.
   /// </summary>
-  float Pivot[2];
+  float Pivot[2]{};
 
-  UI_PanelFlags_t Flags;
+  UI_PanelFlags_t Flags{};
 
   UI_Panel() = default;
   UI_Panel(const UI_Panel &) = delete;
@@ -64,12 +64,12 @@ public:
   UI_Panel *get_child(uint16_t index);
 
 protected:
-  UI_Panel *m_Parent;
+  UI_Panel *m_Parent{};
 
 private:
-  UI_Panel **m_Children;
-  uint16_t m_ChildCapacity;
-  uint16_t m_ChildCount;
+  UI_Panel **m_Children{};
+  uint16_t m_ChildCapacity{};
+  uint16_t m_ChildCount{};
 };
 
 inline uint16_t UI_Panel::get_child_count() const { return m_ChildCount; }

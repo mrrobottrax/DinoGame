@@ -8,7 +8,7 @@ public:
   void stop();
 
 private:
-  wchar_t *m_GameName;
+  wchar_t *m_GameName{};
 };
 
 inline Engine g_Engine{};
