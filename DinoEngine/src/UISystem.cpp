@@ -57,7 +57,7 @@ void UISystem::add_render_commands(ID3D12GraphicsCommandList10 *pCommandList,
 
   pCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
-  render_recursive(pPanel, pCommandList, 0, 0, 0, 0);
+  render_recursive(pPanel, pCommandList, -1, -1, 0, 0);
 
   g_RenderingSystem.set_shader(Asset_Shader{}, pCommandList);
 }
@@ -67,12 +67,21 @@ void UISystem::render_recursive(UI_Panel *pPanel,
                                 float px, float py, float pw, float ph) {
   float x, y, w, h;
 
-  x = pPanel->Position[0] + px + (pPanel->Anchor[0] * pw) -
-      (pPanel->Pivot[0] * pPanel->Dimensions[0]);
-  y = pPanel->Position[1] + py + (pPanel->Anchor[1] * ph) -
-      (pPanel->Pivot[1] * pPanel->Dimensions[1]);
+  x = pPanel->Position[0];
+  y = pPanel->Position[1];
+
   w = pPanel->Dimensions[0];
   h = pPanel->Dimensions[1];
+
+  if (pPanel->Flags & UI_PANEL_FLAG_ABSOLUTE_SIZE_X)
+    w = w * 2 * m_InvScreenDimensions[0];
+  else
+    w = w * 2 * m_ScreenRatio * k_UIPixelScale;
+
+  if (pPanel->Flags & UI_PANEL_FLAG_ABSOLUTE_SIZE_Y)
+    h = h * 2 * m_InvScreenDimensions[1];
+  else
+    h = h * 2 * k_UIPixelScale;
 
   if (pPanel->Flags & UI_PANEL_FLAG_SUBTRACTIVE_SIZE_X)
     w = pw - w;
@@ -80,23 +89,10 @@ void UISystem::render_recursive(UI_Panel *pPanel,
   if (pPanel->Flags & UI_PANEL_FLAG_SUBTRACTIVE_SIZE_Y)
     h = ph - h;
 
-  float clipX = x * k_UIPixelScale * m_ScreenRatio * 2 - 1;
-  float clipY = y * k_UIPixelScale * 2 - 1;
+  x += px + (pPanel->Anchor[0] * pw) - (pPanel->Pivot[0] * w);
+  y += py + (pPanel->Anchor[1] * ph) - (pPanel->Pivot[1] * h);
 
-  float clipW;
-  float clipH;
-
-  if (pPanel->Flags & UI_PANEL_FLAG_ABSOLUTE_SIZE_X)
-    clipW = w * m_InvScreenDimensions[0] * 2;
-  else
-    clipW = w * k_UIPixelScale * m_ScreenRatio * 2;
-
-  if (pPanel->Flags & UI_PANEL_FLAG_ABSOLUTE_SIZE_Y)
-    clipH = h * m_InvScreenDimensions[1] * 2;
-  else
-    clipH = h * k_UIPixelScale * 2;
-
-  pPanel->add_render_commands(pCommandList, clipX, clipY, clipW, clipH);
+  pPanel->add_render_commands(pCommandList, x, y, w, h);
 
   uint16_t children = pPanel->get_child_count();
   for (uint16_t i = 0; i < children; ++i) {
