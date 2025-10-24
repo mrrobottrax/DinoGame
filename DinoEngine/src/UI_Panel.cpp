@@ -13,7 +13,10 @@ void UI_Panel::add_render_commands(ID3D12GraphicsCommandList10 *pCommandList,
   (void)h;
 }
 
-void UI_Panel::position_children(float w, float h, float pw, float ph) {}
+void UI_Panel::position_children(float w, float h) {
+  (void)w;
+  (void)h;
+}
 
 void UI_Panel::add_child(UI_Panel *pPanel) {
   if (m_ChildCount + 1 > m_ChildCapacity) {

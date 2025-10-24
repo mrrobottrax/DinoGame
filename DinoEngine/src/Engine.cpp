@@ -45,7 +45,8 @@ void Engine::start() {
 
   g_GameDllSystem.load_game(m_GameName);
 
-  g_WindowSystem.start(g_GameDllSystem.GameInfo.WindowName, 1280, 720, true);
+  g_WindowSystem.start(g_GameDllSystem.GameInfo.WindowName, 1280, 720,
+                       g_GameDllSystem.GameInfo.CanResizeWindow);
   g_RenderingSystem.start();
   g_UISystem.start();
 

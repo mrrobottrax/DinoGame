@@ -90,7 +90,7 @@ public:
 
   virtual void add_render_commands(ID3D12GraphicsCommandList10 *pCommandList,
                                    float px, float py, float pw, float ph);
-  virtual void position_children(float w, float h, float pw, float ph);
+  virtual void position_children(float w, float h);
 
   void set_position(float x, float y);
   void set_dimensions(float w, float h);

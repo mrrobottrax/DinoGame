@@ -23,10 +23,7 @@
     <ClCompile Include="src\pch.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\game_info.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\main_menu.cpp">
+    <ClCompile Include="src\byb.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

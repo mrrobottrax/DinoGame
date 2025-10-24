@@ -5,7 +5,8 @@ struct GameInfo {
   size_t GPUHeapSize = (1 << 20) * 256;      // Default: 256MB
   size_t GPUStagingBufferCapacity = 1 << 26; // Default: 64MB
   uint32_t GPUResourceCapacity = 1024;       // Max number of GPU resources
-  uint32_t ShaderCapacity = 256;             // Max number of shaders
+  uint32_t ShaderCapacity = 128;             // Max number of shaders
+  bool CanResizeWindow = false;              // Can drag to resize window
 };
 
 #define GAME_CALLBACKS_LIST                                                    \

@@ -62,7 +62,7 @@ UI_Grid::~UI_Grid() {
   m_vLineCount = 0;
 }
 
-void UI_Grid::position_children(float w, float h, float pw, float ph) {
+void UI_Grid::position_children(float w, float h) {
   const uint16_t childCount = get_child_count();
   uint16_t iChild = 0;
 

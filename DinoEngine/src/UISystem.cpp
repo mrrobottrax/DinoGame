@@ -117,7 +117,7 @@ void UISystem::render_recursive(UI_Panel *pPanel,
   const float y2 = -y - h;
 
   pPanel->add_render_commands(pCommandList, x, y2, w, h);
-  pPanel->position_children(w, h, pw, ph);
+  pPanel->position_children(w, h);
 
   uint16_t children = pPanel->get_child_count();
   for (uint16_t i = 0; i < children; ++i) {

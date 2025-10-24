@@ -17,7 +17,7 @@ public:
   void h_split(float basis, UI_GridFlags_t flags);
 
   virtual ~UI_Grid() override;
-  virtual void position_children(float w, float h, float pw, float ph) override;
+  virtual void position_children(float w, float h) override;
 
 private:
   struct GridLine;
