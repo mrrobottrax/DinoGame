@@ -7,6 +7,8 @@ RESOURCE_LOADER_API void ResourceLoader_arena0_reset() { g_Arena0Size = 0; }
 RESOURCE_LOADER_API void ResourceLoader_arena1_reset() { g_Arena1Size = 0; }
 
 void *arena0_allocate(size_t amt) {
+  ASSERT(amt > 0);
+
   if (g_ArenasBufferSize - g_Arena0Size - g_Arena1Size < amt)
     return nullptr;
 
@@ -17,6 +19,8 @@ void *arena0_allocate(size_t amt) {
 }
 
 void *arena1_allocate(size_t amt) {
+  ASSERT(amt > 0);
+
   if (g_ArenasBufferSize - g_Arena0Size - g_Arena1Size < amt)
     return nullptr;
 

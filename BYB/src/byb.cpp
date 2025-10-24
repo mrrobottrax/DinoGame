@@ -6,4 +6,10 @@ GAME_API GameInfo get_game_info() {
   };
 }
 
-GAME_API void game_start() { console_log("BYB Started"); }
+GAME_API void game_start() {
+  console_log("BYB Started");
+
+  UI_ColoredPanel *bg = ui_create<UI_ColoredPanel>();
+  bg->Flags |= UI_PANEL_FLAG_SUBTRACTIVE_SIZE_WH;
+  bg->set_color(1, 1, 1, 1);
+}

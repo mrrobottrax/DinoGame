@@ -44,8 +44,8 @@ ResourceLoader_load_file(const char *path, void **ppFile, size_t *pFileSize,
   if (hFile == INVALID_HANDLE_VALUE)
     return LF_FAILED_OPEN;
 
-  LARGE_INTEGER fileSize;
-  ASSERT(GetFileSizeEx(hFile, &fileSize));
+  LARGE_INTEGER fileSize{};
+  ASSERT_WIN_EXP_ALWAYS(GetFileSizeEx(hFile, &fileSize));
 
 #ifdef DEBUG
   console_log("Reading file %s, Size: %llu", path, fileSize.QuadPart);

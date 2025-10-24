@@ -8,7 +8,7 @@ DINO_API IUISystem *g_IUISystem = &g_UISystem;
 DINO_API Asset_Shader g_UI_RectShader;
 
 void UISystem::start() {
-  ASSERT_ALWAYS(g_RenderingSystem.is_initialized());
+  ASSERT(g_RenderingSystem.is_initialized());
 
   g_UI_RectShader =
       compile_transparent_quad_shader("shaders\\DinoEngine\\UI_QuadVertex.cso",
