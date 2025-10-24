@@ -66,65 +66,79 @@ void UI_Grid::position_children(float w, float h, float pw, float ph) {
   const uint16_t childCount = get_child_count();
   uint16_t iChild = 0;
 
-  float rowHeight;   // Height in pixels
-  float columnWidth; // Width in pixels
+  float rh = 0; // Row height in pixels
+  float cw = 0; // Column width in pixels
 
-  GridLine row;
-  GridLine column;
+  float ry = 0;
+  float cx;
+
+  float maxH = (k_UIReferenceHeight * 0.5f) * h;
+  float maxW =
+      (k_UIReferenceHeight * 0.5f) * g_IUISystem->inv_screen_ratio() * w;
+
+  GridLine rLine;
+  GridLine cLine;
 
   for (uint8_t r = 0; r < m_hLineCount + 1; ++r) {
     if (r == m_hLineCount) {
-      row = {
+      rLine = {
           .Basis = 1,
           .Flags = UI_GRID_FLAG_RELATIVE_SIZE,
       };
     } else {
-      row = m_hLines[r];
+      rLine = m_hLines[r];
     }
 
-    if (row.Flags & UI_GRID_FLAG_RELATIVE_SIZE)
-      rowHeight = (h * row.Basis + 1) / 2 * k_UIPixelBasis;
-    else if (row.Flags & UI_GRID_FLAG_ABSOLUTE_SIZE)
-      rowHeight = (row.Basis + 1) / 2 * g_IUISystem->screen_dimensions()[1];
+    if (rLine.Flags & UI_GRID_FLAG_RELATIVE_SIZE)
+      rh = 0.5f * k_UIReferenceHeight * h * rLine.Basis;
+    else if (rLine.Flags & UI_GRID_FLAG_ABSOLUTE_SIZE)
+      rh = k_UIReferenceHeight * rLine.Basis *
+           g_IUISystem->inv_screen_dimensions()[1];
     else
-      rowHeight = (row.Basis + 1) / 2 * k_UIPixelBasis;
+      rh = rLine.Basis;
+
+    rh = min(rh, maxH - ry);
+
+    cx = 0;
 
     for (uint8_t c = 0; c < m_vLineCount + 1; ++c) {
       if (iChild >= childCount)
         return;
 
       if (c == m_vLineCount) {
-        column = {
+        cLine = {
             .Basis = 1,
             .Flags = UI_GRID_FLAG_RELATIVE_SIZE,
         };
       } else {
-        column = m_vLines[r];
+        cLine = m_vLines[c];
       }
 
-      // TODO: Fix
-      if (column.Flags & UI_GRID_FLAG_RELATIVE_SIZE)
-        columnWidth =
-            (w * column.Basis + 1) / 2 * g_IUISystem->screen_dimensions()[0];
-      else if (column.Flags & UI_GRID_FLAG_ABSOLUTE_SIZE)
-        columnWidth =
-            (column.Basis + 1) / 2 * g_IUISystem->screen_dimensions()[0];
+      if (cLine.Flags & UI_GRID_FLAG_RELATIVE_SIZE)
+        cw = 0.5f * k_UIReferenceHeight * g_IUISystem->inv_screen_ratio() * w *
+             cLine.Basis;
+      else if (cLine.Flags & UI_GRID_FLAG_ABSOLUTE_SIZE)
+        cw = k_UIReferenceHeight * cLine.Basis *
+             g_IUISystem->inv_screen_dimensions()[1];
       else
-        columnWidth = (column.Basis + 1) / 2 * k_UIPixelBasis;
+        cw = rLine.Basis;
+
+      cw = min(cw, maxW - cx);
 
       UI_Panel *pChild = get_child(iChild);
       ASSERT(pChild);
 
       pChild->Flags = 0;
-      pChild->set_position(0, 0);
-      pChild->set_dimensions(0, 0);
       pChild->set_anchor(0, 0);
       pChild->set_pivot(0, 0);
 
-      pChild->Dimensions[0] = columnWidth;
-      pChild->Dimensions[1] = rowHeight;
+      pChild->set_position(cx, ry);
+      pChild->set_dimensions(cw, rh);
 
+      cx += cw;
       ++iChild;
     }
+
+    ry += rh;
   }
 }

@@ -35,8 +35,8 @@ void UISystem::add_render_commands(ID3D12GraphicsCommandList10 *pCommandList,
   m_InvScreenRatio = (float)w / h;
 
   UI_Panel *pPanel = get_top_panel();
-  pPanel->Dimensions[0] = k_UIPixelBasis * m_InvScreenRatio;
-  pPanel->Dimensions[1] = k_UIPixelBasis;
+  pPanel->Dimensions[0] = k_UIReferenceHeight * m_InvScreenRatio;
+  pPanel->Dimensions[1] = k_UIReferenceHeight;
 
   D3D12_VIEWPORT viewport{
       .TopLeftX = 0,

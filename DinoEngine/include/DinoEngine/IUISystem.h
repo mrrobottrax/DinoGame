@@ -3,8 +3,8 @@
 #include "UI_Panel.h"
 #include "asset_types.h"
 
-constexpr size_t k_UIPixelBasis = 1080;
-constexpr float k_UIPixelScale = 1.0f / k_UIPixelBasis;
+constexpr size_t k_UIReferenceHeight = 1080;
+constexpr float k_UIPixelScale = 1.0f / k_UIReferenceHeight;
 
 class DINO_API IUISystem {
 public:
