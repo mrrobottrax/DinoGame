@@ -12,11 +12,13 @@ class AssetSystem : public IAssetSystem {
 private:
   template <typename T> struct AssetContainer {
     T Asset{};
-    uint32_t Version{};
   };
 
-  uint32_t m_TextureCapacity{};
   AssetContainer<Asset_Texture> *m_Textures{};
+  uint32_t m_TextureCapacity{};
+  uint32_t m_TextureIndex{};
+
+  Asset_Texture upload_texture(const char *path);
 };
 
 inline AssetSystem g_AssetSystem{};

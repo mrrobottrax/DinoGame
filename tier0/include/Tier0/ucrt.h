@@ -4,7 +4,7 @@
 #define _CRTDBG_MAP_ALLOC
 
 // UCRT
-#include <assert.h>
+//#include <assert.h>
 #include <ctype.h>
 #include <errno.h>
 #include <float.h>

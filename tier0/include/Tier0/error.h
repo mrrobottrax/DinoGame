@@ -23,7 +23,7 @@ T0_API void crash_windows_hresult(HRESULT result, const char *format, ...);
   } else {                                                                     \
   }
 
-#ifdef DEBUG
+#ifdef _DEBUG
 #define DEBUG_BREAK() DEBUG_BREAK_ALWAYS()
 #else
 #define DEBUG_BREAK()

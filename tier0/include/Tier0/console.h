@@ -16,7 +16,7 @@ inline void console_log(short n) { console_log("%h", n); }
 inline void console_log(void *p) { console_log("%p", p); }
 inline void console_log(float f) { console_log("%f", f); }
 
-#ifdef DEBUG
+#ifdef _DEBUG
 #define console_log_debug(...) console_log(__VA_ARGS__)
 #define console_error_debug(...) console_error(__VA_ARGS__)
 #else

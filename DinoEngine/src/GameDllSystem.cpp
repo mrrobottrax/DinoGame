@@ -16,4 +16,6 @@ void GameDllSystem::load_game(const wchar_t *gameName) {
 #undef GAME_CALLBACK
 
   GameInfo = get_game_info();
+
+  m_IsInitialized = true;
 }

@@ -2,7 +2,6 @@
 
 struct HAsset {
   uint32_t Index;
-  uint32_t Version;
 };
 
 typedef HAsset HTexture;

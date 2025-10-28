@@ -42,7 +42,7 @@ calc_tree(const uint16_t *pLengths, uint16_t *pTree, size_t nLengths,
     ++pLengthInfo[length].CodeCount;
   }
 
-#ifdef DEBUG
+#ifdef _DEBUG
   double sum = 0.0;
   for (size_t i = 1; i <= HuffmanState::k_MaxBits; ++i)
     sum += pLengthInfo[i].CodeCount / (double)(1u << i);

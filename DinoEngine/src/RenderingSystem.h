@@ -19,8 +19,10 @@ public:
   ID3D12GraphicsCommandList10 *reset_staging_list();
   void execute_staging_list();
 
+  void upload_texture();
+
   virtual void set_shader(Asset_Shader shader,
-                  ID3D12GraphicsCommandList10 *pCommandList) override;
+                          ID3D12GraphicsCommandList10 *pCommandList) override;
 
 private:
   Asset_Shader m_CurrentShader{};
@@ -44,6 +46,9 @@ private:
   ComPtr<ID3D12Fence1> m_pStagingFence{};
   UINT m_StagingFenceValue{};
   HANDLE m_StagingFenceEvent{};
+
+  ComPtr<ID3D12DescriptorHeap> m_StaticDescriptorHeap{};
+  uint32_t m_StaticDescriptorHeapCapacity{};
 
   struct FrameData {
     ComPtr<ID3D12CommandAllocator> commandAllocator{};

@@ -47,7 +47,7 @@ ResourceLoader_load_file(const char *path, void **ppFile, size_t *pFileSize,
   LARGE_INTEGER fileSize{};
   ASSERT_WIN_EXP_ALWAYS(GetFileSizeEx(hFile, &fileSize));
 
-#ifdef DEBUG
+#ifdef _DEBUG
   console_log("Reading file %s, Size: %llu", path, fileSize.QuadPart);
 #endif // DEBUG
   ASSERT_ALWAYS(fileSize.QuadPart < MAXDWORD32);

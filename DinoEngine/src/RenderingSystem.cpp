@@ -1,5 +1,6 @@
 #include "pch.h"
 
+#include "GameDllSystem.h"
 #include "RenderingSystem.h"
 #include "UISystem.h"
 #include "WindowSystem.h"
@@ -39,7 +40,10 @@ static void __stdcall d3d12_message_callback(D3D12_MESSAGE_CATEGORY Category,
 #endif //  defined(_DEBUG)
 
 void RenderingSystem::start() {
+  ASSERT(g_GameDllSystem.is_initialized());
   ASSERT(g_WindowSystem.get_hWnd() != NULL);
+
+  GameInfo &game = g_GameDllSystem.GameInfo;
 
 #if defined(_DEBUG)
   // enable the D3D12 debug layer
@@ -58,9 +62,9 @@ void RenderingSystem::start() {
   ComPtr<IDXGIFactory6> pDxgiFactory;
   UINT createFactoryFlags = 0;
 
-#ifndef NDEBUG
+#if defined(_DEBUG)
   createFactoryFlags |= DXGI_CREATE_FACTORY_DEBUG;
-#endif // NDEBUG
+#endif
 
   ASSERT_WIN_ALWAYS(
       CreateDXGIFactory2(createFactoryFlags, IID_PPV_ARGS(&pDxgiFactory)));
@@ -189,6 +193,15 @@ void RenderingSystem::start() {
 
   create_backbuffer_data();
 
+  // create static buffers/heaps
+  m_StaticDescriptorHeapCapacity = game.GPUMaxStaticResources;
+  D3D12_DESCRIPTOR_HEAP_DESC staticHeapDesc{
+      .Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV,
+      .NumDescriptors = m_StaticDescriptorHeapCapacity,
+  };
+  ASSERT_WIN_ALWAYS(m_pDevice->CreateDescriptorHeap(
+      &staticHeapDesc, IID_PPV_ARGS(&m_StaticDescriptorHeap)));
+
   m_IsInitialized = true;
 }
 
@@ -209,6 +222,8 @@ void RenderingSystem::stop() {
     fd.commandList.Reset();
     fd.commandAllocator.Reset();
   }
+
+  m_StaticDescriptorHeap.Reset();
 
   m_pSwapChain.Reset();
   m_pCommandQueue.Reset();

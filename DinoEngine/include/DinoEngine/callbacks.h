@@ -2,12 +2,11 @@
 
 struct GameInfo {
   const char *WindowName = "Dino Engine";
-  size_t GPUHeapSize = (1 << 20) * 256;      // Default: 256MB
-  size_t GPUStagingBufferCapacity = 1 << 26; // Default: 64MB
-  uint32_t GPUResourceCapacity = 1024;       // Max number of GPU resources
-  uint32_t ShaderCapacity = 128;             // Max number of shaders
-  uint32_t TextureCapacity = 1024;           // Max number of textures
-  bool CanResizeWindow = false;              // Can drag to resize window
+  size_t GPUStagingBufferSize = (1 << 20) * 64; // Default: 64MB
+  uint32_t GPUMaxStaticResources = 64;          // Max static CBV, SRV, UAV
+  uint32_t MaxShaders = 128;                    // Max shaders
+  uint32_t MaxTextures = 1024;                  // Max textures
+  bool CanResizeWindow = false;                 // Can drag to resize window
 };
 
 #define GAME_CALLBACKS_LIST                                                    \
