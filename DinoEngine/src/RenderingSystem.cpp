@@ -195,12 +195,23 @@ void RenderingSystem::start() {
 
   // create static buffers/heaps
   m_StaticDescriptorHeapCapacity = game.GPUMaxStaticResources;
-  D3D12_DESCRIPTOR_HEAP_DESC staticHeapDesc{
+  D3D12_DESCRIPTOR_HEAP_DESC staticDescriptorHeapDesc{
       .Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV,
       .NumDescriptors = m_StaticDescriptorHeapCapacity,
   };
   ASSERT_WIN_ALWAYS(m_pDevice->CreateDescriptorHeap(
-      &staticHeapDesc, IID_PPV_ARGS(&m_StaticDescriptorHeap)));
+      &staticDescriptorHeapDesc, IID_PPV_ARGS(&m_StaticDescriptorHeap)));
+
+  m_StaticDataSize = game.GPUStaticBufferSize;
+  D3D12_HEAP_DESC staticHeapDesc{
+      .SizeInBytes = m_StaticDataSize,
+      .Properties =
+          {
+              .Type = D3D12_HEAP_TYPE_DEFAULT,
+          },
+  };
+  ASSERT_WIN_ALWAYS(
+      m_pDevice->CreateHeap(&staticHeapDesc, IID_PPV_ARGS(&m_StaticDataHeap)));
 
   m_IsInitialized = true;
 }
@@ -208,6 +219,9 @@ void RenderingSystem::start() {
 void RenderingSystem::stop() {
   m_IsInitialized = false;
   wait_idle();
+
+  m_StaticDataHeap.Reset();
+  m_StaticDescriptorHeap.Reset();
 
   m_pStagingFence.Reset();
   m_pStagingList.Reset();

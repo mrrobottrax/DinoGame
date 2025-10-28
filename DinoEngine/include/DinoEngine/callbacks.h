@@ -3,6 +3,7 @@
 struct GameInfo {
   const char *WindowName = "Dino Engine";
   size_t GPUStagingBufferSize = (1 << 20) * 64; // Default: 64MB
+  size_t GPUStaticBufferSize = (1 << 20) * 4;   // Default: 4MB
   uint32_t GPUMaxStaticResources = 64;          // Max static CBV, SRV, UAV
   uint32_t MaxShaders = 128;                    // Max shaders
   uint32_t MaxTextures = 1024;                  // Max textures

@@ -19,8 +19,6 @@ public:
   ID3D12GraphicsCommandList10 *reset_staging_list();
   void execute_staging_list();
 
-  void upload_texture();
-
   virtual void set_shader(Asset_Shader shader,
                           ID3D12GraphicsCommandList10 *pCommandList) override;
 
@@ -49,6 +47,9 @@ private:
 
   ComPtr<ID3D12DescriptorHeap> m_StaticDescriptorHeap{};
   uint32_t m_StaticDescriptorHeapCapacity{};
+
+  ComPtr<ID3D12Heap> m_StaticDataHeap{};
+  size_t m_StaticDataSize{};
 
   struct FrameData {
     ComPtr<ID3D12CommandAllocator> commandAllocator{};

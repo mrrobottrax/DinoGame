@@ -13,6 +13,7 @@ void AssetSystem::start() {
 
   GameInfo &gameInfo = g_GameDllSystem.GameInfo;
 
+  // create resource buffers
   m_TextureCapacity = gameInfo.MaxTextures;
   m_Textures = (AssetContainer<Asset_Texture> *)malloc(
       sizeof(AssetContainer<Asset_Texture>) * m_TextureCapacity);
@@ -21,6 +22,9 @@ void AssetSystem::start() {
   }
 
   // load texture to gpu
+  {
+    
+  }
 }
 
 void AssetSystem::stop() {
