@@ -1,5 +1,13 @@
 #pragma once
 
+struct HAsset {
+  uint32_t Index;
+  uint32_t Version;
+};
+
+typedef HAsset HTexture;
+typedef HAsset HShader;
+
 struct Asset_Texture {
   D3D12_GPU_DESCRIPTOR_HANDLE Handle{};
   ID3D12DescriptorHeap *Heap{};

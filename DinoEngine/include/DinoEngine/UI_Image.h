@@ -3,7 +3,7 @@
 #include "UI_Panel.h"
 #include "asset_types.h"
 
-enum UI_Image_DisplayMode {
+enum EUI_ImageDisplayMode {
   UI_IMAGE_DISPLAY_FIT,
   UI_IMAGE_DISPLAY_STRETCH,
 };
@@ -11,9 +11,14 @@ enum UI_Image_DisplayMode {
 class DINO_API UI_Image : public UI_Panel {
 public:
   Asset_Texture Texture{};
-  UI_Image_DisplayMode DisplayMode{};
+  EUI_ImageDisplayMode DisplayMode{};
   float Color[4] = {1, 1, 1, 1};
+
+  void set_texture(const char *path);
 
   virtual void add_render_commands(ID3D12GraphicsCommandList10 *pCommandList,
                                    float x, float y, float w, float h) override;
+
+private:
+  HTexture m_hTexture{};
 };

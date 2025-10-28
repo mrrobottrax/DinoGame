@@ -5,14 +5,19 @@
 
 DINO_API IUISystem *g_IUISystem = &g_UISystem;
 
-DINO_API Asset_Shader g_UI_RectShader;
+DINO_API Asset_Shader g_UIRectShader;
+DINO_API Asset_Shader g_UIImageShader;
 
 void UISystem::start() {
   ASSERT(g_RenderingSystem.is_initialized());
 
-  g_UI_RectShader =
-      compile_transparent_quad_shader("shaders\\DinoEngine\\UI_QuadVertex.cso",
-                                      "shaders\\DinoEngine\\UI_QuadPixel.cso");
+  g_UIRectShader =
+      compile_transparent_quad_shader("shaders\\DinoEngine\\UI_Quad.vs.cso",
+                                      "shaders\\DinoEngine\\UI_Quad.ps.cso");
+
+  g_UIImageShader = compile_transparent_quad_shader(
+      "shaders\\DinoEngine\\UI_Img.vs.cso",
+      "shaders\\DinoEngine\\UI_Img.ps.cso");
 
   m_IsInitialized = true;
 }
@@ -20,7 +25,8 @@ void UISystem::start() {
 void UISystem::stop() {
   m_IsInitialized = false;
 
-  g_UI_RectShader.release();
+  g_UIRectShader.release();
+  g_UIImageShader.release();
 }
 
 void UISystem::add_render_commands(ID3D12GraphicsCommandList10 *pCommandList,

@@ -6,6 +6,7 @@ struct GameInfo {
   size_t GPUStagingBufferCapacity = 1 << 26; // Default: 64MB
   uint32_t GPUResourceCapacity = 1024;       // Max number of GPU resources
   uint32_t ShaderCapacity = 128;             // Max number of shaders
+  uint32_t TextureCapacity = 1024;           // Max number of textures
   bool CanResizeWindow = false;              // Can drag to resize window
 };
 

@@ -48,6 +48,12 @@
     <ClCompile Include="src\UI_Grid.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\UI_Image.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\AssetSystem.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\pch.h">
@@ -101,14 +107,23 @@
     <ClInclude Include="include\DinoEngine\UI_Grid.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\DinoEngine\IAssetSystem.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\AssetSystem.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="shaders\LinearToSrgb.hlsl" />
-    <FxCompile Include="shaders\UI_QuadPixel.hlsl" />
-    <FxCompile Include="shaders\UI_QuadVertex.hlsl" />
+    <FxCompile Include="shaders\UI_Quad.ps.hlsl" />
+    <FxCompile Include="shaders\UI_Quad.vs.hlsl" />
+    <FxCompile Include="shaders\UI_Img.vs.hlsl" />
+    <FxCompile Include="shaders\UI_Img.ps.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\UI_Quad.hlsli" />
     <None Include="cpp.hint" />
+    <None Include="shaders\UI_Img.hlsli" />
   </ItemGroup>
 </Project>

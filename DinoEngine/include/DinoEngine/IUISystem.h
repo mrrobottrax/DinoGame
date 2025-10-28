@@ -38,7 +38,8 @@ protected:
 
 DINO_API extern IUISystem *g_IUISystem;
 
-DINO_API extern Asset_Shader g_UI_RectShader;
+DINO_API extern Asset_Shader g_UIRectShader;
+DINO_API extern Asset_Shader g_UIImageShader;
 
 inline bool IUISystem::is_initialized() const { return m_IsInitialized; }
 

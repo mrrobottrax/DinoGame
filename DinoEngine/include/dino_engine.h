@@ -7,6 +7,7 @@
 #define DINO_API _declspec(dllimport)
 #define GAME_API extern "C" _declspec(dllexport)
 
+#include "DinoEngine/IAssetSystem.h"
 #include "DinoEngine/ILevelSystem.h"
 #include "DinoEngine/IRenderingSystem.h"
 #include "DinoEngine/IUISystem.h"
