@@ -19,6 +19,9 @@ public:
   ID3D12GraphicsCommandList10 *reset_staging_list();
   void execute_staging_list();
 
+  void upload_static_image_rgba(uint32_t w, uint32_t h, const void *data,
+                                size_t size);
+
   virtual void set_shader(Asset_Shader shader,
                           ID3D12GraphicsCommandList10 *pCommandList) override;
 
@@ -45,11 +48,17 @@ private:
   UINT m_StagingFenceValue{};
   HANDLE m_StagingFenceEvent{};
 
+  ComPtr<ID3D12Heap> m_StagingHeap{};
+  ComPtr<ID3D12Resource> m_StagingResource{};
+  void *m_StagingHeapMap{};
+  size_t m_StagingHeapSize{};
+
   ComPtr<ID3D12DescriptorHeap> m_StaticDescriptorHeap{};
   uint32_t m_StaticDescriptorHeapCapacity{};
 
   ComPtr<ID3D12Heap> m_StaticDataHeap{};
   size_t m_StaticDataSize{};
+  size_t m_StaticDataOffset{};
 
   struct FrameData {
     ComPtr<ID3D12CommandAllocator> commandAllocator{};

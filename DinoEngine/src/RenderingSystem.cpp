@@ -172,6 +172,36 @@ void RenderingSystem::start() {
 
   m_StagingFenceValue = 0;
 
+  m_StagingHeapSize = game.GPUStagingBufferSize;
+  D3D12_HEAP_DESC stagingHeapDesc{
+      .SizeInBytes = m_StagingHeapSize,
+      .Properties =
+          {
+              .Type = D3D12_HEAP_TYPE_UPLOAD,
+          },
+  };
+  ASSERT_WIN_ALWAYS(
+      m_pDevice->CreateHeap(&stagingHeapDesc, IID_PPV_ARGS(&m_StagingHeap)));
+
+  D3D12_RESOURCE_DESC stagingBufferDesc{
+      .Dimension = D3D12_RESOURCE_DIMENSION_BUFFER,
+      .Alignment = 0,
+      .Width = m_StagingHeapSize,
+      .Height = 1,
+      .DepthOrArraySize = 1,
+      .MipLevels = 1,
+      .Format = DXGI_FORMAT_UNKNOWN,
+      .SampleDesc = {1, 0},
+      .Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR,
+      .Flags = D3D12_RESOURCE_FLAG_NONE,
+  };
+  ASSERT_WIN_ALWAYS(m_pDevice->CreatePlacedResource(
+      m_StagingHeap.Get(), 0, &stagingBufferDesc,
+      D3D12_RESOURCE_STATE_COPY_SOURCE, nullptr,
+      IID_PPV_ARGS(&m_StagingResource)));
+
+  ASSERT_WIN_ALWAYS(m_StagingResource->Map(0, nullptr, &m_StagingHeapMap));
+
   // create frame data
   for (UINT i = 0; i < k_FramesInFlight; ++i) {
     FrameData &fd = m_FrameData[i];
@@ -223,6 +253,8 @@ void RenderingSystem::stop() {
   m_StaticDataHeap.Reset();
   m_StaticDescriptorHeap.Reset();
 
+  m_StagingHeap.Reset();
+  m_StagingResource.Reset();
   m_pStagingFence.Reset();
   m_pStagingList.Reset();
   m_pStagingAllocator.Reset();
@@ -487,4 +519,56 @@ void RenderingSystem::execute_staging_list() {
                                           m_StagingFenceEvent);
     WaitForSingleObject(m_StagingFenceEvent, INFINITE);
   }
+}
+
+void RenderingSystem::upload_static_image_rgba(uint32_t w, uint32_t h,
+                                               const void *data, size_t size) {
+  ASSERT(m_StaticDataOffset + size <= m_StaticDataSize);
+
+  D3D12_RESOURCE_DESC desc{
+      .Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D,
+      .Alignment = 0,
+      .Width = w,
+      .Height = h,
+      .DepthOrArraySize = 1,
+      .MipLevels = 1,
+      .Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB,
+      .SampleDesc = {1, 0},
+      .Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN,
+      .Flags = D3D12_RESOURCE_FLAG_NONE,
+  };
+  D3D12_RESOURCE_ALLOCATION_INFO info =
+      m_pDevice->GetResourceAllocationInfo(0, 1, &desc);
+
+  desc.Alignment = info.Alignment;
+
+  size_t newOffset =
+      (m_StaticDataOffset + info.Alignment - 1) & ~(info.Alignment - 1);
+
+  ASSERT_ALWAYS(newOffset + info.SizeInBytes <= m_StaticDataSize);
+
+  m_StaticDataOffset = newOffset = info.SizeInBytes;
+
+  memcpy_s(m_StagingHeapMap, m_StagingHeapSize, data, size);
+
+  ComPtr<ID3D12Resource> resource;
+  ASSERT_WIN_ALWAYS(m_pDevice->CreatePlacedResource(
+      m_StaticDataHeap.Get(), newOffset, &desc,
+      D3D12_RESOURCE_STATE_COPY_SOURCE, nullptr, IID_PPV_ARGS(&resource)));
+
+  ID3D12GraphicsCommandList10 *pCmdList = reset_staging_list();
+
+  D3D12_TEXTURE_COPY_LOCATION dst{
+      .pResource = resource.Get(),
+      .Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX,
+      .SubresourceIndex = 0,
+  };
+  D3D12_TEXTURE_COPY_LOCATION src{
+      .pResource = m_StagingResource.Get(),
+      .Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX,
+      .SubresourceIndex = 0,
+  };
+  pCmdList->CopyTextureRegion(&dst, 0, 0, 0, &src, nullptr);
+
+  execute_staging_list();
 }
