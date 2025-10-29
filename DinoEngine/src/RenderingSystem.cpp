@@ -107,141 +107,150 @@ void RenderingSystem::start() {
   ASSERT_WIN_ALWAYS(m_pDevice->CreateCommandQueue(
       &commandQueueDesc, IID_PPV_ARGS(&m_pCommandQueue)));
 
-  ComPtr<IDXGISwapChain1> swapChain1;
-  DXGI_SWAP_CHAIN_DESC1 swapChainDesc{
-      .Width = 0,
-      .Height = 0,
-      .Format = k_SwapChainFormat,
-      .Stereo = FALSE,
-      .SampleDesc =
-          {
-              .Count = 1,
-              .Quality = 0,
-          },
-      .BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT,
-      .BufferCount = k_FramesInFlight,
-      .Scaling = DXGI_SCALING_STRETCH,
-      .SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD,
-      .AlphaMode = DXGI_ALPHA_MODE_IGNORE,
-      .Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING,
-  };
-  DXGI_SWAP_CHAIN_FULLSCREEN_DESC swapChainFullscreenDesc{
-      .RefreshRate = 0,
-      .ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED,
-      .Scaling = DXGI_MODE_SCALING_STRETCHED,
-      .Windowed = TRUE,
-  };
-  ASSERT_WIN_ALWAYS(pDxgiFactory->CreateSwapChainForHwnd(
-      m_pCommandQueue.Get(), g_WindowSystem.get_hWnd(), &swapChainDesc,
-      &swapChainFullscreenDesc, NULL, &swapChain1));
-  ASSERT_WIN_ALWAYS(swapChain1.As(&m_pSwapChain));
+  // Create swapchain
+  {
+    ComPtr<IDXGISwapChain1> swapChain1;
+    DXGI_SWAP_CHAIN_DESC1 swapChainDesc{
+        .Width = 0,
+        .Height = 0,
+        .Format = k_SwapChainFormat,
+        .Stereo = FALSE,
+        .SampleDesc =
+            {
+                .Count = 1,
+                .Quality = 0,
+            },
+        .BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT,
+        .BufferCount = k_FramesInFlight,
+        .Scaling = DXGI_SCALING_STRETCH,
+        .SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD,
+        .AlphaMode = DXGI_ALPHA_MODE_IGNORE,
+        .Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING,
+    };
+    DXGI_SWAP_CHAIN_FULLSCREEN_DESC swapChainFullscreenDesc{
+        .RefreshRate = 0,
+        .ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED,
+        .Scaling = DXGI_MODE_SCALING_STRETCHED,
+        .Windowed = TRUE,
+    };
+    ASSERT_WIN_ALWAYS(pDxgiFactory->CreateSwapChainForHwnd(
+        m_pCommandQueue.Get(), g_WindowSystem.get_hWnd(), &swapChainDesc,
+        &swapChainFullscreenDesc, NULL, &swapChain1));
+    ASSERT_WIN_ALWAYS(swapChain1.As(&m_pSwapChain));
 
-  DXGI_SWAP_CHAIN_DESC1 swapChainDescRetrieved;
-  m_pSwapChain->GetDesc1(&swapChainDescRetrieved);
-  m_SwapChainW = swapChainDescRetrieved.Width;
-  m_SwapChainH = swapChainDescRetrieved.Height;
+    DXGI_SWAP_CHAIN_DESC1 swapChainDescRetrieved;
+    m_pSwapChain->GetDesc1(&swapChainDescRetrieved);
+    m_SwapChainW = swapChainDescRetrieved.Width;
+    m_SwapChainH = swapChainDescRetrieved.Height;
 
-  ASSERT_WIN_ALWAYS(pDxgiFactory->MakeWindowAssociation(
-      g_WindowSystem.get_hWnd(), DXGI_MWA_NO_ALT_ENTER));
+    ASSERT_WIN_ALWAYS(pDxgiFactory->MakeWindowAssociation(
+        g_WindowSystem.get_hWnd(), DXGI_MWA_NO_ALT_ENTER));
 
-  D3D12_DESCRIPTOR_HEAP_DESC descriptorHeapDesc{
-      .Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV,
-      .NumDescriptors = k_FramesInFlight,
-      .Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE,
-      .NodeMask = 0,
-  };
-  ASSERT_WIN_ALWAYS(m_pDevice->CreateDescriptorHeap(
-      &descriptorHeapDesc, IID_PPV_ARGS(&m_pRTVDescriptorHeap)));
+    D3D12_DESCRIPTOR_HEAP_DESC descriptorHeapDesc{
+        .Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV,
+        .NumDescriptors = k_FramesInFlight,
+        .Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE,
+        .NodeMask = 0,
+    };
+    ASSERT_WIN_ALWAYS(m_pDevice->CreateDescriptorHeap(
+        &descriptorHeapDesc, IID_PPV_ARGS(&m_pRTVDescriptorHeap)));
 
-  m_RtvDescriptorIncrementSize = m_pDevice->GetDescriptorHandleIncrementSize(
-      D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+    m_RtvDescriptorIncrementSize = m_pDevice->GetDescriptorHandleIncrementSize(
+        D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+  }
 
   // create staging data
-  ASSERT_WIN_ALWAYS(m_pDevice->CreateCommandAllocator(
-      D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_pStagingAllocator)));
-
-  ASSERT_WIN_ALWAYS(m_pDevice->CreateCommandList1(
-      0, D3D12_COMMAND_LIST_TYPE_DIRECT, D3D12_COMMAND_LIST_FLAG_NONE,
-      IID_PPV_ARGS(&m_pStagingList)));
-
-  ASSERT_WIN_ALWAYS(m_pDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE,
-                                           IID_PPV_ARGS(&m_pStagingFence)));
-
-  m_StagingFenceEvent = CreateEventEx(NULL, NULL, 0, EVENT_ALL_ACCESS);
-  ASSERT_ALWAYS(m_StagingFenceEvent != NULL);
-
-  m_StagingFenceValue = 0;
-
-  m_StagingHeapSize = game.GPUStagingBufferSize;
-  D3D12_HEAP_DESC stagingHeapDesc{
-      .SizeInBytes = m_StagingHeapSize,
-      .Properties =
-          {
-              .Type = D3D12_HEAP_TYPE_UPLOAD,
-          },
-  };
-  ASSERT_WIN_ALWAYS(
-      m_pDevice->CreateHeap(&stagingHeapDesc, IID_PPV_ARGS(&m_StagingHeap)));
-
-  D3D12_RESOURCE_DESC stagingBufferDesc{
-      .Dimension = D3D12_RESOURCE_DIMENSION_BUFFER,
-      .Alignment = 0,
-      .Width = m_StagingHeapSize,
-      .Height = 1,
-      .DepthOrArraySize = 1,
-      .MipLevels = 1,
-      .Format = DXGI_FORMAT_UNKNOWN,
-      .SampleDesc = {1, 0},
-      .Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR,
-      .Flags = D3D12_RESOURCE_FLAG_NONE,
-  };
-  ASSERT_WIN_ALWAYS(m_pDevice->CreatePlacedResource(
-      m_StagingHeap.Get(), 0, &stagingBufferDesc,
-      D3D12_RESOURCE_STATE_COPY_SOURCE, nullptr,
-      IID_PPV_ARGS(&m_StagingResource)));
-
-  ASSERT_WIN_ALWAYS(m_StagingResource->Map(0, nullptr, &m_StagingHeapMap));
-
-  // create frame data
-  for (UINT i = 0; i < k_FramesInFlight; ++i) {
-    FrameData &fd = m_FrameData[i];
+  {
     ASSERT_WIN_ALWAYS(m_pDevice->CreateCommandAllocator(
-        D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&fd.commandAllocator)));
+        D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_pStagingAllocator)));
 
     ASSERT_WIN_ALWAYS(m_pDevice->CreateCommandList1(
         0, D3D12_COMMAND_LIST_TYPE_DIRECT, D3D12_COMMAND_LIST_FLAG_NONE,
-        IID_PPV_ARGS(&fd.commandList)));
+        IID_PPV_ARGS(&m_pStagingList)));
 
     ASSERT_WIN_ALWAYS(m_pDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE,
-                                             IID_PPV_ARGS(&fd.fence)));
+                                             IID_PPV_ARGS(&m_pStagingFence)));
 
-    fd.fenceEvent = CreateEventEx(NULL, NULL, 0, EVENT_ALL_ACCESS);
-    ASSERT_ALWAYS(fd.fenceEvent != NULL);
+    m_StagingFenceEvent = CreateEventEx(NULL, NULL, 0, EVENT_ALL_ACCESS);
+    ASSERT_ALWAYS(m_StagingFenceEvent != NULL);
 
-    fd.fenceValue = 0;
+    m_StagingFenceValue = 0;
+
+    m_StagingHeapSize = game.GPUStagingBufferSize;
+    D3D12_HEAP_DESC stagingHeapDesc{
+        .SizeInBytes = m_StagingHeapSize,
+        .Properties =
+            {
+                .Type = D3D12_HEAP_TYPE_UPLOAD,
+            },
+    };
+    ASSERT_WIN_ALWAYS(
+        m_pDevice->CreateHeap(&stagingHeapDesc, IID_PPV_ARGS(&m_StagingHeap)));
+
+    D3D12_RESOURCE_DESC stagingBufferDesc{
+        .Dimension = D3D12_RESOURCE_DIMENSION_BUFFER,
+        .Alignment = 0,
+        .Width = m_StagingHeapSize,
+        .Height = 1,
+        .DepthOrArraySize = 1,
+        .MipLevels = 1,
+        .Format = DXGI_FORMAT_UNKNOWN,
+        .SampleDesc = {1, 0},
+        .Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR,
+        .Flags = D3D12_RESOURCE_FLAG_NONE,
+    };
+    ASSERT_WIN_ALWAYS(m_pDevice->CreatePlacedResource(
+        m_StagingHeap.Get(), 0, &stagingBufferDesc,
+        D3D12_RESOURCE_STATE_COPY_SOURCE, nullptr,
+        IID_PPV_ARGS(&m_StagingResource)));
+
+    ASSERT_WIN_ALWAYS(m_StagingResource->Map(0, nullptr, &m_StagingHeapMap));
   }
 
-  create_backbuffer_data();
+  // create frame data
+  {
+    for (UINT i = 0; i < k_FramesInFlight; ++i) {
+      FrameData &fd = m_FrameData[i];
+      ASSERT_WIN_ALWAYS(m_pDevice->CreateCommandAllocator(
+          D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&fd.commandAllocator)));
+
+      ASSERT_WIN_ALWAYS(m_pDevice->CreateCommandList1(
+          0, D3D12_COMMAND_LIST_TYPE_DIRECT, D3D12_COMMAND_LIST_FLAG_NONE,
+          IID_PPV_ARGS(&fd.commandList)));
+
+      ASSERT_WIN_ALWAYS(m_pDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE,
+                                               IID_PPV_ARGS(&fd.fence)));
+
+      fd.fenceEvent = CreateEventEx(NULL, NULL, 0, EVENT_ALL_ACCESS);
+      ASSERT_ALWAYS(fd.fenceEvent != NULL);
+
+      fd.fenceValue = 0;
+    }
+
+    create_backbuffer_data();
+  }
 
   // create static buffers/heaps
-  m_StaticDescriptorHeapCapacity = game.GPUMaxStaticResources;
-  D3D12_DESCRIPTOR_HEAP_DESC staticDescriptorHeapDesc{
-      .Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV,
-      .NumDescriptors = m_StaticDescriptorHeapCapacity,
-  };
-  ASSERT_WIN_ALWAYS(m_pDevice->CreateDescriptorHeap(
-      &staticDescriptorHeapDesc, IID_PPV_ARGS(&m_StaticDescriptorHeap)));
+  {
+    m_StaticDescriptorHeapCapacity = game.GPUMaxStaticResources;
+    D3D12_DESCRIPTOR_HEAP_DESC staticDescriptorHeapDesc{
+        .Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV,
+        .NumDescriptors = m_StaticDescriptorHeapCapacity,
+    };
+    ASSERT_WIN_ALWAYS(m_pDevice->CreateDescriptorHeap(
+        &staticDescriptorHeapDesc, IID_PPV_ARGS(&m_StaticDescriptorHeap)));
 
-  m_StaticDataSize = game.GPUStaticBufferSize;
-  D3D12_HEAP_DESC staticHeapDesc{
-      .SizeInBytes = m_StaticDataSize,
-      .Properties =
-          {
-              .Type = D3D12_HEAP_TYPE_DEFAULT,
-          },
-  };
-  ASSERT_WIN_ALWAYS(
-      m_pDevice->CreateHeap(&staticHeapDesc, IID_PPV_ARGS(&m_StaticDataHeap)));
+    m_StaticDataSize = game.GPUStaticBufferSize;
+    D3D12_HEAP_DESC staticHeapDesc{
+        .SizeInBytes = m_StaticDataSize,
+        .Properties =
+            {
+                .Type = D3D12_HEAP_TYPE_DEFAULT,
+            },
+    };
+    ASSERT_WIN_ALWAYS(m_pDevice->CreateHeap(&staticHeapDesc,
+                                            IID_PPV_ARGS(&m_StaticDataHeap)));
+  }
 
   m_IsInitialized = true;
 }
