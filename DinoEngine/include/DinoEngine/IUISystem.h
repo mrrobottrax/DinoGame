@@ -17,13 +17,6 @@ public:
   const uint32_t *screen_dimensions() const;
   const float *inv_screen_dimensions() const;
 
-  // Resets ResourceLoader_arena_0
-  // If pRootSignature == nullptr, the root signature is created from the
-  // shader.
-  virtual Asset_Shader compile_transparent_quad_shader(
-      const char *vertPath, const char *fragPath,
-      ID3D12RootSignature *pRootSignature = nullptr) const = 0;
-
   template <typename T> T *create();
   template <typename T> T *create(UI_Panel *parent);
 

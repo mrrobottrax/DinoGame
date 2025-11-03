@@ -8,6 +8,7 @@ public:
 
   virtual void set_shader(Asset_Shader shader,
                           ID3D12GraphicsCommandList10 *pCommandList) = 0;
+  virtual ID3D12DescriptorHeap *get_static_descriptor_heap() = 0;
 
 protected:
   bool m_IsInitialized{};

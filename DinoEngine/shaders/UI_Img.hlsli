@@ -1,7 +1,7 @@
 #define TextureRootSignature \
     "RootFlags(0), " \
     "RootConstants(num32BitConstants=20, b0), " \
-    "DescriptorTable(SRV(t0, flags=DATA_STATIC)), " \
+    "DescriptorTable(SRV(t0, flags=DATA_STATIC), visibility=SHADER_VISIBILITY_PIXEL), " \
     "StaticSampler(s0, " \
         "addressU = TEXTURE_ADDRESS_BORDER, " \
         "addressV = TEXTURE_ADDRESS_BORDER, " \

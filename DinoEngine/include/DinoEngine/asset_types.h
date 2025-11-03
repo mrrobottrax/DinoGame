@@ -1,16 +1,9 @@
 #pragma once
 
-struct HAsset {
-  uint32_t Index;
-};
-
-typedef HAsset HTexture;
-typedef HAsset HShader;
-
 struct Asset_Texture {
   D3D12_GPU_DESCRIPTOR_HANDLE Handle{};
-  ID3D12DescriptorHeap *Heap{};
-
+  D3D12_CPU_DESCRIPTOR_HANDLE CpuHandle{};
+  Microsoft::WRL::ComPtr<ID3D12Resource> Resource{};
   uint32_t Width{}, Height{};
 };
 

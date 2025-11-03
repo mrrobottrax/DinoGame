@@ -19,11 +19,13 @@ public:
   ID3D12GraphicsCommandList10 *reset_staging_list();
   void execute_staging_list();
 
-  void upload_static_image_rgba(uint32_t w, uint32_t h, const void *data,
-                                size_t size);
+  ComPtr<ID3D12Resource>
+  upload_static_image_rgba(uint32_t w, uint32_t h, const void *data,
+                           D3D12_CPU_DESCRIPTOR_HANDLE *cpuHandle, D3D12_GPU_DESCRIPTOR_HANDLE *gpuHandle);
 
   virtual void set_shader(Asset_Shader shader,
                           ID3D12GraphicsCommandList10 *pCommandList) override;
+  virtual ID3D12DescriptorHeap *get_static_descriptor_heap() override;
 
 private:
   Asset_Shader m_CurrentShader{};
@@ -40,7 +42,9 @@ private:
   unsigned int m_SwapChainW{}, m_SwapChainH{};
 
   ComPtr<ID3D12DescriptorHeap> m_pRTVDescriptorHeap{};
+
   size_t m_RtvDescriptorIncrementSize{};
+  size_t m_SrvCbvUabDescriptorIncrementSize{};
 
   ComPtr<ID3D12CommandAllocator> m_pStagingAllocator{};
   ComPtr<ID3D12GraphicsCommandList10> m_pStagingList{};
@@ -55,10 +59,11 @@ private:
 
   ComPtr<ID3D12DescriptorHeap> m_StaticDescriptorHeap{};
   uint32_t m_StaticDescriptorHeapCapacity{};
+  uint32_t m_StaticDescriptorHeapOffset{};
 
   ComPtr<ID3D12Heap> m_StaticDataHeap{};
-  size_t m_StaticDataSize{};
-  size_t m_StaticDataOffset{};
+  size_t m_StaticDataHeapCapacity{};
+  size_t m_StaticDataHeapOffset{};
 
   struct FrameData {
     ComPtr<ID3D12CommandAllocator> commandAllocator{};
@@ -80,4 +85,8 @@ inline ID3D12Device9 *RenderingSystem::get_device() { return m_pDevice.Get(); }
 
 inline ID3D12CommandQueue *RenderingSystem::get_queue() {
   return m_pCommandQueue.Get();
+}
+
+inline ID3D12DescriptorHeap *RenderingSystem::get_static_descriptor_heap() {
+  return m_StaticDescriptorHeap.Get();
 }

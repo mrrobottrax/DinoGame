@@ -9,9 +9,6 @@ public:
   void stop();
 
   virtual UI_Panel *get_top_panel() override;
-  virtual Asset_Shader
-  compile_transparent_quad_shader(const char *vertPath, const char *fragPath,
-                 ID3D12RootSignature *pRootSignature = nullptr) const override;
 
   void add_render_commands(ID3D12GraphicsCommandList10 *pCommandList,
                            uint32_t w, uint32_t h);

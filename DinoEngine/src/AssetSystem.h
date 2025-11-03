@@ -3,20 +3,14 @@
 #include "IAssetSystem.h"
 
 class AssetSystem : public IAssetSystem {
+public:
   void start();
   void stop();
 
-  virtual HTexture preload_texture(const char *path) override;
-  virtual Asset_Texture get_texture(HTexture hTexture) override;
-
-private:
-  template <typename T> struct AssetContainer {
-    T Asset{};
-  };
-
-  AssetContainer<Asset_Texture> *m_Textures{};
-  uint32_t m_TextureCapacity{};
-  uint32_t m_TextureIndex{};
+  virtual Asset_Texture load_texture(const char *path) override;
+  virtual Asset_Shader compile_transparent_quad_shader(
+      const char *vertPath, const char *fragPath,
+      ID3D12RootSignature *pRootSignature = nullptr) const override;
 };
 
 inline AssetSystem g_AssetSystem{};

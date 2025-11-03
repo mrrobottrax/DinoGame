@@ -2,6 +2,7 @@
 
 #include "Engine.h"
 
+#include "AssetSystem.h"
 #include "GameDllSystem.h"
 #include "LevelSystem.h"
 #include "RenderingSystem.h"
@@ -45,6 +46,7 @@ void Engine::start() {
 
   g_GameDllSystem.load_game(m_GameName);
 
+  g_AssetSystem.start();
   g_WindowSystem.start(g_GameDllSystem.GameInfo.WindowName, 1280, 720,
                        g_GameDllSystem.GameInfo.CanResizeWindow);
   g_RenderingSystem.start();
@@ -62,6 +64,7 @@ void Engine::stop() {
   g_UISystem.stop();
   g_RenderingSystem.stop();
   g_WindowSystem.stop();
+  g_AssetSystem.stop();
 
   free(m_GameName);
 }
