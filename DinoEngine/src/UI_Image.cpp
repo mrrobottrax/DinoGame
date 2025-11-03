@@ -18,5 +18,5 @@ void UI_Image::add_render_commands(ID3D12GraphicsCommandList10 *pCommandList,
   pCommandList->SetDescriptorHeaps(1, &heap);
   pCommandList->SetGraphicsRootDescriptorTable(1, Texture->Handle);
 
-  // pCommandList->DrawInstanced(4, 1, 0, 0);
+  pCommandList->DrawInstanced(4, 1, 0, 0);
 }

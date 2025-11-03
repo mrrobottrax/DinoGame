@@ -8,6 +8,7 @@
 #include "Tier0/platform.h"
 
 #include "Tier0/error.h"
+#include "Tier0/malloca_janitor.h"
 #include "Tier0/todo.h"
 
 #include "Tier0/console.h"

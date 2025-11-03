@@ -23,6 +23,8 @@ calc_tree(const uint16_t *pLengths, uint16_t *pTree, size_t nLengths,
           HuffmanState::LengthData pLengthInfo[HuffmanState::k_MaxBits + 1]) {
   // copy length info onto stack
   uint16_t *pLengthsNew = (uint16_t *)_malloca(sizeof(uint16_t) * nLengths);
+  malloca_janitor jan(pLengthsNew);
+
   ASSERT_RETURN(pLengthsNew, DEFLATE_FAILED_ALLOCATION);
   memcpy(pLengthsNew, pLengths, sizeof(uint16_t) * nLengths);
   pLengths = pLengthsNew;

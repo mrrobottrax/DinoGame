@@ -36,6 +36,7 @@
 #define PNG_DEINTERLACE_BAD_INPUT MAKE_ERROR(07, 00, 00)
 
 #define PNG_CONVERT_UNSUPPORTED_FORMAT MAKE_ERROR(08, 00, 00)
+#define PNG_CONVERT_UNSUPPORTED_INTERLACE MAKE_ERROR(08, 00, 01)
 
 static uint32_t s_CrcTable[256];
 static bool s_CrcTableComputed;
@@ -628,6 +629,8 @@ ResourceLoader_deinterlace_png(PngInfo *pPng, ResourceLoader_arena_t arena) {
 
 RESOURCE_LOADER_API code_t
 ResourceLoader_png_to_rgba8(PngInfo *pPng, ResourceLoader_arena_t arena) {
+  ASSERT_RETURN(pPng->InterlaceMethod == 0, PNG_CONVERT_UNSUPPORTED_INTERLACE);
+
   size_t requiredSpace = (size_t)pPng->Width * pPng->Height * 4;
 
   uint8_t *pData = (uint8_t *)arena_allocate(arena, requiredSpace);
