@@ -6,6 +6,11 @@
 RESOURCE_LOADER_API void ResourceLoader_arena0_reset() { g_Arena0Size = 0; }
 RESOURCE_LOADER_API void ResourceLoader_arena1_reset() { g_Arena1Size = 0; }
 
+RESOURCE_LOADER_API void
+ResourceLoader_arena_reset(ResourceLoader_arena_t arena) {
+  return arena_reset(arena);
+}
+
 void *arena0_allocate(size_t amt) {
   ASSERT(amt > 0);
 
