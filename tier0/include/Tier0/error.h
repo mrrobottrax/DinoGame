@@ -170,7 +170,6 @@ T0_API void crash_windows_hresult(HRESULT result, const char *format, ...);
 #define ASSERT_WIN_CODE(...) ID(ASSERT_WIN_CODE_ALWAYS(__VA_ARGS__))
 
 #define ASSERT(...) ID(ASSERT_ALWAYS(__VA_ARGS__))
-#define ASSERT_CODE(...) ID(ASSERT_CODE_ALWAYS(__VA_ARGS__))
 
 #ifndef NO_SLOW_ASSERTS
 
@@ -183,60 +182,29 @@ T0_API void crash_windows_hresult(HRESULT result, const char *format, ...);
 
 #else
 
-#define ASSERT_WIN_SLOW(expr, ...)                                             \
-  (void)(expr);                                                                \
-  ASSUME(expr);
-#define ASSERT_WIN_EXP_SLOW(expr, ...)                                         \
-  (void)(expr);                                                                \
-  ASSUME(expr);
-#define ASSERT_WIN_CODE_SLOW(expr, ...)                                        \
-  (void)(expr);                                                                \
-  ASSUME(expr);
+#define ASSERT_WIN_SLOW(expr, ...) ASSUME(expr);
+#define ASSERT_WIN_EXP_SLOW(expr, ...) ASSUME(expr);
+#define ASSERT_WIN_CODE_SLOW(expr, ...) ASSUME(expr);
 
-#define ASSERT_SLOW(expr, ...)                                                 \
-  (void)(expr);                                                                \
-  ASSUME(expr);
-#define ASSERT_CODE_SLOW(expr, ...)                                            \
-  (void)(expr);                                                                \
-  ASSUME(expr);
+#define ASSERT_SLOW(expr, ...) ASSUME(expr);
+#define ASSERT_CODE_SLOW(expr, ...) ASSUME(expr);
 
 #endif
 
 #else
 
-#define ASSERT_WIN(expr, ...)                                                  \
-  (void)(expr);                                                                \
-  ASSUME(expr);
-#define ASSERT_WIN_EXP(expr, ...)                                              \
-  (void)(expr);                                                                \
-  ASSUME(expr);
-#define ASSERT_WIN_CODE(expr, ...)                                             \
-  (void)(expr);                                                                \
-  ASSUME(expr);
+#define ASSERT_WIN(expr, ...) ASSUME(expr);
+#define ASSERT_WIN_EXP(expr, ...) ASSUME(expr);
+#define ASSERT_WIN_CODE(expr, ...) ASSUME(expr);
 
-#define ASSERT(expr, ...)                                                      \
-  (void)(expr);                                                                \
-  ASSUME(expr);
-#define ASSERT_CODE(expr, ...)                                                 \
-  (void)(expr);                                                                \
-  ASSUME(expr);
+#define ASSERT(expr, ...) ASSUME(expr);
 
-#define ASSERT_WIN_SLOW(expr, ...)                                             \
-  (void)(expr);                                                                \
-  ASSUME(expr);
-#define ASSERT_WIN_EXP_SLOW(expr, ...)                                         \
-  (void)(expr);                                                                \
-  ASSUME(expr);
-#define ASSERT_WIN_CODE_SLOW(expr, ...)                                        \
-  (void)(expr);                                                                \
-  ASSUME(expr);
+#define ASSERT_WIN_SLOW(expr, ...) ASSUME(expr);
+#define ASSERT_WIN_EXP_SLOW(expr, ...) ASSUME(expr);
+#define ASSERT_WIN_CODE_SLOW(expr, ...) ASSUME(expr);
 
-#define ASSERT_SLOW(expr, ...)                                                 \
-  (void)(expr);                                                                \
-  ASSUME(expr);
-#define ASSERT_CODE_SLOW(expr, ...)                                            \
-  (void)(expr);                                                                \
-  ASSUME(expr);
+#define ASSERT_SLOW(expr, ...) ASSUME(expr);
+#define ASSERT_CODE_SLOW(expr, ...) ASSUME(expr);
 
 #endif
 

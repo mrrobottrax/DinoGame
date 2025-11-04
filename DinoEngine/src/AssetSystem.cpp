@@ -23,7 +23,8 @@ Asset_Texture AssetSystem::load_texture(const char *path) {
 
   void *pFile;
   size_t fileSize;
-  ASSERT_CODE(ResourceLoader_load_file(path, &pFile, &fileSize, nextArena));
+  ASSERT_CODE_ALWAYS(
+      ResourceLoader_load_file(path, &pFile, &fileSize, nextArena));
 
   // swap
   tempArena = nextArena;
@@ -31,7 +32,8 @@ Asset_Texture AssetSystem::load_texture(const char *path) {
   prevArena = tempArena;
 
   PngInfo png{};
-  ASSERT_CODE(ResourceLoader_decompress_png(pFile, fileSize, &png, nextArena));
+  ASSERT_CODE_ALWAYS(
+      ResourceLoader_decompress_png(pFile, fileSize, &png, nextArena));
   ResourceLoader_arena_reset(prevArena);
 
   // swap
@@ -40,7 +42,7 @@ Asset_Texture AssetSystem::load_texture(const char *path) {
   prevArena = tempArena;
 
   if (png.InterlaceMethod != 0) {
-    ASSERT_CODE(ResourceLoader_deinterlace_png(&png, nextArena));
+    ASSERT_CODE_ALWAYS(ResourceLoader_deinterlace_png(&png, nextArena));
     ResourceLoader_arena_reset(prevArena);
 
     // swap
@@ -49,7 +51,7 @@ Asset_Texture AssetSystem::load_texture(const char *path) {
     prevArena = tempArena;
   }
 
-  ASSERT_CODE(ResourceLoader_png_to_rgba8(&png, nextArena));
+  ASSERT_CODE_ALWAYS(ResourceLoader_png_to_rgba8(&png, nextArena));
 
   D3D12_CPU_DESCRIPTOR_HANDLE cpu;
   D3D12_GPU_DESCRIPTOR_HANDLE gpu;
