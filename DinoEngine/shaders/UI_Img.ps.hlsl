@@ -7,6 +7,7 @@ SamplerState samp : register(s0);
 float4 main(PSInput input) : SV_TARGET
 {
 	float2 uv = input.uv;
+	float4 color = tex.Sample(samp, uv).rgba;
 	
-	return bgColor * float4(uv.x, uv.y, 0, 1);
+	return bgColor * color;
 }

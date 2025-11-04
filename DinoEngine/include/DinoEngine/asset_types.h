@@ -3,7 +3,7 @@
 struct Asset_Texture {
   D3D12_GPU_DESCRIPTOR_HANDLE Handle{};
   D3D12_CPU_DESCRIPTOR_HANDLE CpuHandle{};
-  Microsoft::WRL::ComPtr<ID3D12Resource> Resource{};
+  ID3D12Resource *Resource{};
   uint32_t Width{}, Height{};
 };
 

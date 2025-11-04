@@ -234,27 +234,39 @@ void RenderingSystem::start() {
     create_backbuffer_data();
   }
 
-  // Create static buffers/heaps
+  // Create descriptor heap
   {
-    m_StaticDescriptorHeapCapacity = game.GPUMaxStaticResources;
+    m_DescriptorCapacity = game.GPUMaxResources;
+
     D3D12_DESCRIPTOR_HEAP_DESC staticDescriptorHeapDesc{
         .Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV,
-        .NumDescriptors = m_StaticDescriptorHeapCapacity,
+        .NumDescriptors = m_DescriptorCapacity,
         .Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE,
     };
     ASSERT_WIN_ALWAYS(m_pDevice->CreateDescriptorHeap(
-        &staticDescriptorHeapDesc, IID_PPV_ARGS(&m_StaticDescriptorHeap)));
+        &staticDescriptorHeapDesc, IID_PPV_ARGS(&m_DescriptorHeap)));
+  }
 
-    m_StaticDataHeapCapacity = game.GPUStaticBufferSize;
+  // Create data heap
+  {
+    m_DataHeapCapacity = game.GPUDataBufferSize;
     D3D12_HEAP_DESC staticHeapDesc{
-        .SizeInBytes = m_StaticDataHeapCapacity,
+        .SizeInBytes = m_DataHeapCapacity,
         .Properties =
             {
                 .Type = D3D12_HEAP_TYPE_DEFAULT,
             },
     };
-    ASSERT_WIN_ALWAYS(m_pDevice->CreateHeap(&staticHeapDesc,
-                                            IID_PPV_ARGS(&m_StaticDataHeap)));
+    ASSERT_WIN_ALWAYS(
+        m_pDevice->CreateHeap(&staticHeapDesc, IID_PPV_ARGS(&m_DataHeap)));
+  }
+
+  // Create resources array
+  {
+    m_ResourceCapacity = game.GPUMaxResources;
+    m_Resources = (ID3D12Resource **)malloc(m_ResourceCapacity *
+                                            sizeof(ID3D12Resource *));
+    ASSERT_ALWAYS(m_Resources);
   }
 
   m_IsInitialized = true;
@@ -264,14 +276,24 @@ void RenderingSystem::stop() {
   m_IsInitialized = false;
   wait_idle();
 
-  m_StaticDataHeap.Reset();
-  m_StaticDescriptorHeap.Reset();
+  // destroy resources
+  for (uint32_t i = 0; i < m_ResourceCount; ++i) {
+    m_Resources[i]->Release();
+  }
+  free(m_Resources);
+  m_Resources = 0;
+  m_ResourceCount = 0;
+  m_ResourceCapacity = 0;
 
-  m_StagingHeap.Reset();
-  m_StagingResource.Reset();
-  m_pStagingFence.Reset();
-  m_pStagingList.Reset();
-  m_pStagingAllocator.Reset();
+  // destroy data heap
+  m_DataHeap.Reset();
+  m_DataHeapCapacity = 0;
+  m_DataHeapOffset = 0;
+
+  // destroy descriptor heap
+  m_DescriptorHeap.Reset();
+  m_DescriptorCapacity = 0;
+  m_DescriptorCount = 0;
 
   // destroy frame data
   for (UINT i = 0; i < k_FramesInFlight; ++i) {
@@ -283,8 +305,18 @@ void RenderingSystem::stop() {
     fd.commandAllocator.Reset();
   }
 
-  m_StaticDescriptorHeap.Reset();
+  // destroy staging heap
+  m_StagingHeap.Reset();
+  m_StagingResource.Reset();
+  m_StagingHeapSize = 0;
+  m_StagingHeapMap = 0;
+  m_pStagingFence.Reset();
+  m_pStagingList.Reset();
+  m_pStagingAllocator.Reset();
+  CloseHandle(m_StagingFenceEvent);
+  m_StagingFenceValue = 0;
 
+  // Destroy higher level stuff
   m_pSwapChain.Reset();
   m_pCommandQueue.Reset();
   m_pRTVDescriptorHeap.Reset();
@@ -295,6 +327,9 @@ void RenderingSystem::stop() {
 #if defined(_DEBUG)
   ComPtr<ID3D12DebugDevice> debugDevice;
   ASSERT_WIN(m_pDevice->QueryInterface(IID_PPV_ARGS(&debugDevice)));
+#endif
+  m_pDevice.Reset();
+#if defined(_DEBUG)
   ASSERT_WIN(debugDevice->ReportLiveDeviceObjects(
       D3D12_RLDO_SUMMARY | D3D12_RLDO_DETAIL | D3D12_RLDO_IGNORE_INTERNAL));
 #endif
@@ -535,15 +570,15 @@ void RenderingSystem::execute_staging_list() {
   }
 }
 
-ComPtr<ID3D12Resource> RenderingSystem::upload_static_image_rgba(
+ID3D12Resource *RenderingSystem::upload_static_image_rgba(
     uint32_t w, uint32_t h, const void *data,
     D3D12_CPU_DESCRIPTOR_HANDLE *cpuHandle,
     D3D12_GPU_DESCRIPTOR_HANDLE *gpuHandle) {
-  // TODO: Expand buffers
   size_t size = (size_t)w * h * 4;
 
-  ASSERT(m_StaticDataHeapOffset + size <= m_StaticDataHeapCapacity);
-  ASSERT(m_StaticDescriptorHeapOffset + 1 <= m_StaticDescriptorHeapCapacity);
+  ASSERT(m_DataHeapOffset + size <= m_DataHeapCapacity);
+  ASSERT(m_DescriptorCount + 1 <= m_DescriptorCapacity);
+  ASSERT(m_ResourceCount + 1 <= m_ResourceCapacity);
 
   D3D12_RESOURCE_DESC desc{
       .Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D,
@@ -563,21 +598,34 @@ ComPtr<ID3D12Resource> RenderingSystem::upload_static_image_rgba(
   desc.Alignment = info.Alignment;
 
   size_t newOffset =
-      (m_StaticDataHeapOffset + info.Alignment - 1) & ~(info.Alignment - 1);
+      (m_DataHeapOffset + info.Alignment - 1) & ~(info.Alignment - 1);
 
-  ASSERT_ALWAYS(newOffset + info.SizeInBytes <= m_StaticDataHeapCapacity);
+  ASSERT_ALWAYS(newOffset + info.SizeInBytes <= m_DataHeapCapacity);
 
-  memcpy_s(m_StagingHeapMap, m_StagingHeapSize, data, size);
+  ASSERT_ALWAYS(m_StagingHeapSize >= size);
 
-  ComPtr<ID3D12Resource> resource;
+  // Flip Y
+  {
+    size_t pitch = (size_t)w * 4;
+    for (uint32_t r = 0; r < h; ++r) {
+      uint32_t src_row = h - r - 1;
+      uint32_t dst_row = r;
+      size_t src_offset = (size_t)src_row * pitch;
+      size_t dst_offset = (size_t)dst_row * pitch;
+      memcpy_s((char *)m_StagingHeapMap + dst_offset,
+               m_StagingHeapSize - dst_offset, (char *)data + src_offset,
+               pitch);
+    }
+  }
+
+  ID3D12Resource *resource;
   ASSERT_WIN_ALWAYS(m_pDevice->CreatePlacedResource(
-      m_StaticDataHeap.Get(), newOffset, &desc, D3D12_RESOURCE_STATE_COPY_DEST,
+      m_DataHeap.Get(), newOffset, &desc, D3D12_RESOURCE_STATE_COPY_DEST,
       nullptr, IID_PPV_ARGS(&resource)));
 
   D3D12_CPU_DESCRIPTOR_HANDLE hDescriptor =
-      m_StaticDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
-  hDescriptor.ptr +=
-      m_StaticDescriptorHeapOffset * m_SrvCbvUabDescriptorIncrementSize;
+      m_DescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+  hDescriptor.ptr += m_DescriptorCount * m_SrvCbvUabDescriptorIncrementSize;
 
   D3D12_SHADER_RESOURCE_VIEW_DESC resourceViewDesc{
       .Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB,
@@ -591,13 +639,12 @@ ComPtr<ID3D12Resource> RenderingSystem::upload_static_image_rgba(
               .ResourceMinLODClamp = 0,
           },
   };
-  m_pDevice->CreateShaderResourceView(resource.Get(), &resourceViewDesc,
-                                      hDescriptor);
+  m_pDevice->CreateShaderResourceView(resource, &resourceViewDesc, hDescriptor);
 
   ID3D12GraphicsCommandList10 *pCmdList = reset_staging_list();
 
   D3D12_TEXTURE_COPY_LOCATION dst{
-      .pResource = resource.Get(),
+      .pResource = resource,
       .Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX,
       .SubresourceIndex = 0,
   };
@@ -624,7 +671,7 @@ ComPtr<ID3D12Resource> RenderingSystem::upload_static_image_rgba(
       .Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE,
       .Transition =
           {
-              .pResource = resource.Get(),
+              .pResource = resource,
               .Subresource = 0,
               .StateBefore = D3D12_RESOURCE_STATE_COPY_DEST,
               .StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
@@ -634,16 +681,17 @@ ComPtr<ID3D12Resource> RenderingSystem::upload_static_image_rgba(
 
   execute_staging_list();
 
-  *gpuHandle = m_StaticDescriptorHeap->GetGPUDescriptorHandleForHeapStart();
-  *cpuHandle = m_StaticDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+  *gpuHandle = m_DescriptorHeap->GetGPUDescriptorHandleForHeapStart();
+  *cpuHandle = m_DescriptorHeap->GetCPUDescriptorHandleForHeapStart();
 
-  gpuHandle->ptr +=
-      m_StaticDescriptorHeapOffset * m_SrvCbvUabDescriptorIncrementSize;
-  cpuHandle->ptr +=
-      m_StaticDescriptorHeapOffset * m_SrvCbvUabDescriptorIncrementSize;
+  gpuHandle->ptr += m_DescriptorCount * m_SrvCbvUabDescriptorIncrementSize;
+  cpuHandle->ptr += m_DescriptorCount * m_SrvCbvUabDescriptorIncrementSize;
 
-  m_StaticDataHeapOffset = newOffset + info.SizeInBytes;
-  ++m_StaticDescriptorHeapOffset;
+  m_Resources[m_ResourceCount] = resource;
+
+  m_DataHeapOffset = newOffset + info.SizeInBytes;
+  ++m_DescriptorCount;
+  ++m_ResourceCount;
 
   return resource;
 }

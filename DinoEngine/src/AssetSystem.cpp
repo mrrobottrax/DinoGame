@@ -1,18 +1,23 @@
 #include "pch.h"
 
 #include "AssetSystem.h"
+#include "GameDllSystem.h"
 #include "RenderingSystem.h"
 
 DINO_API IAssetSystem *g_IAssetSystem = &g_AssetSystem;
 
 static Asset_Texture s_DefaultTexture;
 
-void AssetSystem::start() { m_IsInitialized = true; }
+void AssetSystem::start() {
+  s_DefaultTexture = load_texture("missing.png");
+  m_IsInitialized = true;
+}
 
 void AssetSystem::stop() { m_IsInitialized = false; }
 
 Asset_Texture AssetSystem::load_texture(const char *path) {
   ASSERT(g_RenderingSystem.is_initialized());
+  ASSERT(g_GameDllSystem.is_initialized());
 
   ResourceLoader_arena0_reset();
   ResourceLoader_arena1_reset();
@@ -23,8 +28,10 @@ Asset_Texture AssetSystem::load_texture(const char *path) {
 
   void *pFile;
   size_t fileSize;
-  ASSERT_CODE_ALWAYS(
-      ResourceLoader_load_file(path, &pFile, &fileSize, nextArena));
+  if (ResourceLoader_load_file(path, &pFile, &fileSize, nextArena) != 0) {
+    console_error("Failed to load texture %s", path);
+    return s_DefaultTexture;
+  }
 
   // swap
   tempArena = nextArena;
@@ -55,7 +62,7 @@ Asset_Texture AssetSystem::load_texture(const char *path) {
 
   D3D12_CPU_DESCRIPTOR_HANDLE cpu;
   D3D12_GPU_DESCRIPTOR_HANDLE gpu;
-  ComPtr<ID3D12Resource> resource = g_RenderingSystem.upload_static_image_rgba(
+  ID3D12Resource *resource = g_RenderingSystem.upload_static_image_rgba(
       png.Width, png.Height, png.Data, &cpu, &gpu);
 
   ResourceLoader_arena0_reset();

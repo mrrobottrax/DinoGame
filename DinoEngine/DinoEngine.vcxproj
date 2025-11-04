@@ -48,6 +48,9 @@
     <ClCompile />
     <FxCompile />
     <FxCompile />
+    <PostBuildEvent>
+      <Command>xcopy /E /I /Y "$(ProjectDir)content" "$(OutDir)content"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile />
@@ -56,6 +59,11 @@
     <FxCompile>
       <ShaderType>Vertex</ShaderType>
     </FxCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <PostBuildEvent>
+      <Message>Copy content</Message>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="src\AssetSystem.cpp" />

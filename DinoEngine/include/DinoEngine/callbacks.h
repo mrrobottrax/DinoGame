@@ -2,10 +2,10 @@
 
 struct GameInfo {
   const char *WindowName = "Dino Engine";
-  size_t GPUStagingBufferSize = (1 << 20) * 8; // Default: 8MB
-  size_t GPUStaticBufferSize = (1 << 20) * 64; // Default: 64MB
-  uint32_t GPUMaxStaticResources = 64;         // Max static CBV, SRV, UAV
-  bool CanResizeWindow = false;                // Can drag to resize window
+  size_t GPUStagingBufferSize = (1 << 20) * 64; // Default: 64MB
+  size_t GPUDataBufferSize = (1 << 20) * 64;    // Default: 64MB
+  uint32_t GPUMaxResources = 64;                // Max static CBV, SRV, UAV
+  bool CanResizeWindow = false;                 // Can drag to resize window
 };
 
 #define GAME_CALLBACKS_LIST                                                    \

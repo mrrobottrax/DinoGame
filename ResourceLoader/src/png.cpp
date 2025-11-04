@@ -302,6 +302,7 @@ static int chunk_IHDR(const uint8_t *data, size_t len, PngInfo *pOut,
     return PNG_IHDR_UNSUPPORTED_COLOR_TYPE;
   }
 
+  // done later for palette colours
   if (state.ColorType != 3) {
     PROPAGATE_CODE(allocate_decompression_buffer(pOut, state));
   }
@@ -389,7 +390,7 @@ static int chunk_IEND(State &state) {
         for (size_t i = 0; i < strideNoFilter; ++i) {
           uint8_t x = pLine[i];
           uint8_t ra = 0;
-          if (i >= 1) {
+          if (i >= pixelOffset) {
             ra = pLine[i - pixelOffset];
           }
 
@@ -409,7 +410,7 @@ static int chunk_IEND(State &state) {
         for (size_t i = 0; i < strideNoFilter; ++i) {
           uint8_t x = pLine[i];
           uint8_t ra = 0;
-          if (i >= 1) {
+          if (i >= pixelOffset) {
             ra = pLine[i - pixelOffset];
           }
           uint8_t rb = 0;
@@ -423,7 +424,7 @@ static int chunk_IEND(State &state) {
         for (size_t i = 0; i < strideNoFilter; ++i) {
           uint8_t x = pLine[i];
           uint8_t ra = 0;
-          if (i >= 1) {
+          if (i >= pixelOffset) {
             ra = pLine[i - pixelOffset];
           }
           uint8_t rb = 0;
@@ -431,7 +432,7 @@ static int chunk_IEND(State &state) {
             rb = pLine[i - strideNoFilter];
           }
           uint8_t rc = 0;
-          if (i >= 1 && scanLine >= 1) {
+          if (i >= pixelOffset && scanLine >= 1) {
             rc = pLine[i - strideNoFilter - pixelOffset];
           }
 

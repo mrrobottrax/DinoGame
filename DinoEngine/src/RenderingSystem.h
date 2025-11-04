@@ -19,9 +19,10 @@ public:
   ID3D12GraphicsCommandList10 *reset_staging_list();
   void execute_staging_list();
 
-  ComPtr<ID3D12Resource>
+  ID3D12Resource *
   upload_static_image_rgba(uint32_t w, uint32_t h, const void *data,
-                           D3D12_CPU_DESCRIPTOR_HANDLE *cpuHandle, D3D12_GPU_DESCRIPTOR_HANDLE *gpuHandle);
+                           D3D12_CPU_DESCRIPTOR_HANDLE *cpuHandle,
+                           D3D12_GPU_DESCRIPTOR_HANDLE *gpuHandle);
 
   virtual void set_shader(Asset_Shader shader,
                           ID3D12GraphicsCommandList10 *pCommandList) override;
@@ -57,13 +58,17 @@ private:
   void *m_StagingHeapMap{};
   size_t m_StagingHeapSize{};
 
-  ComPtr<ID3D12DescriptorHeap> m_StaticDescriptorHeap{};
-  uint32_t m_StaticDescriptorHeapCapacity{};
-  uint32_t m_StaticDescriptorHeapOffset{};
+  ComPtr<ID3D12DescriptorHeap> m_DescriptorHeap{};
+  uint32_t m_DescriptorCapacity{};
+  uint32_t m_DescriptorCount{};
 
-  ComPtr<ID3D12Heap> m_StaticDataHeap{};
-  size_t m_StaticDataHeapCapacity{};
-  size_t m_StaticDataHeapOffset{};
+  ComPtr<ID3D12Heap> m_DataHeap{};
+  size_t m_DataHeapCapacity{};
+  size_t m_DataHeapOffset{};
+
+  ID3D12Resource **m_Resources{};
+  uint32_t m_ResourceCapacity{};
+  uint32_t m_ResourceCount{};
 
   struct FrameData {
     ComPtr<ID3D12CommandAllocator> commandAllocator{};
@@ -88,5 +93,5 @@ inline ID3D12CommandQueue *RenderingSystem::get_queue() {
 }
 
 inline ID3D12DescriptorHeap *RenderingSystem::get_static_descriptor_heap() {
-  return m_StaticDescriptorHeap.Get();
+  return m_DescriptorHeap.Get();
 }
