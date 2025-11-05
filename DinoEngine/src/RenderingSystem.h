@@ -46,15 +46,32 @@ private:
 
   ComPtr<ID3D12CommandQueue> m_CommandQueue{};
 
-  ComPtr<IDXGISwapChain4> m_SwapChain{};
-  unsigned int m_SwapChainW{}, m_SwapChainH{};
-
-  ComPtr<ID3D12DescriptorHeap> m_RTVDescriptorHeap{};
-  ComPtr<ID3D12DescriptorHeap> m_RTVasSRVDescriptorHeap{};
-
   size_t m_RtvDescriptorIncrementSize{};
   size_t m_SrvCbvUabDescriptorIncrementSize{};
 
+  // Swapchain
+  struct {
+    ComPtr<IDXGISwapChain4> SwapChain{};
+    unsigned int Width{}, Height{};
+
+    ComPtr<ID3D12DescriptorHeap> BackBuffer_RTVDescriptorHeap{};
+    ComPtr<ID3D12DescriptorHeap> BackBuffer_SRVDescriptorHeap{};
+    ComPtr<ID3D12DescriptorHeap> RenderTexture_RTVDescriptorHeap{};
+    ComPtr<ID3D12DescriptorHeap> RenderTexture_UAVDescriptorHeap{};
+
+    struct FrameData {
+      ComPtr<ID3D12CommandAllocator> CommandAllocator{};
+      ComPtr<ID3D12GraphicsCommandList10> CommandList{};
+      ComPtr<ID3D12Resource> Backbuffer{};
+      ComPtr<ID3D12Resource> RenderTarget{};
+      ComPtr<ID3D12Fence1> Fence{};
+      UINT FenceValue{};
+      HANDLE FenceEvent{};
+    };
+    FrameData FrameData[k_FramesInFlight]{};
+  } m_SwapChain;
+
+  // Staging
   ComPtr<ID3D12CommandAllocator> m_pStagingAllocator{};
   ComPtr<ID3D12GraphicsCommandList10> m_pStagingList{};
   ComPtr<ID3D12Fence1> m_pStagingFence{};
@@ -66,6 +83,7 @@ private:
   void *m_StagingHeapMap{};
   size_t m_StagingHeapSize{};
 
+  // Assets
   ComPtr<ID3D12DescriptorHeap> m_DescriptorHeap{};
   uint32_t m_DescriptorCapacity{};
   uint32_t m_DescriptorCount{};
@@ -77,16 +95,6 @@ private:
   ID3D12Resource **m_Resources{};
   uint32_t m_ResourceCapacity{};
   uint32_t m_ResourceCount{};
-
-  struct FrameData {
-    ComPtr<ID3D12CommandAllocator> CommandAllocator{};
-    ComPtr<ID3D12GraphicsCommandList10> CommandList{};
-    ComPtr<ID3D12Resource> Backbuffer{};
-    ComPtr<ID3D12Fence1> Fence{};
-    UINT FenceValue{};
-    HANDLE FenceEvent{};
-  };
-  FrameData m_FrameData[k_FramesInFlight]{};
 
   void create_device(IDXGIFactory6 *pDxgiFactory);
   void create_backbuffer_data();

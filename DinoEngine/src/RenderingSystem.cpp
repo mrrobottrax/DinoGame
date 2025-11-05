@@ -146,17 +146,17 @@ void RenderingSystem::start() {
     ASSERT_WIN_ALWAYS(pDxgiFactory->CreateSwapChainForHwnd(
         m_CommandQueue.Get(), g_WindowSystem.get_hWnd(), &swapChainDesc,
         &swapChainFullscreenDesc, NULL, &swapChain1));
-    ASSERT_WIN_ALWAYS(swapChain1.As(&m_SwapChain));
+    ASSERT_WIN_ALWAYS(swapChain1.As(&m_SwapChain.SwapChain));
 
     DXGI_SWAP_CHAIN_DESC1 swapChainDescRetrieved;
-    m_SwapChain->GetDesc1(&swapChainDescRetrieved);
-    m_SwapChainW = swapChainDescRetrieved.Width;
-    m_SwapChainH = swapChainDescRetrieved.Height;
+    m_SwapChain.SwapChain->GetDesc1(&swapChainDescRetrieved);
+    m_SwapChain.Width = swapChainDescRetrieved.Width;
+    m_SwapChain.Height = swapChainDescRetrieved.Height;
 
     ASSERT_WIN_ALWAYS(pDxgiFactory->MakeWindowAssociation(
         g_WindowSystem.get_hWnd(), DXGI_MWA_NO_ALT_ENTER));
 
-    // create rtv descriptor heap
+    // create backbuffer rtv descriptor heap
     {
       D3D12_DESCRIPTOR_HEAP_DESC descriptorHeapDesc{
           .Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV,
@@ -165,10 +165,11 @@ void RenderingSystem::start() {
           .NodeMask = 0,
       };
       ASSERT_WIN_ALWAYS(m_pDevice->CreateDescriptorHeap(
-          &descriptorHeapDesc, IID_PPV_ARGS(&m_RTVDescriptorHeap)));
+          &descriptorHeapDesc,
+          IID_PPV_ARGS(&m_SwapChain.BackBuffer_RTVDescriptorHeap)));
     }
 
-    // create srv descriptor heap
+    // create backbuffer srv descriptor heap
     {
       D3D12_DESCRIPTOR_HEAP_DESC descriptorHeapDesc{
           .Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV,
@@ -177,7 +178,19 @@ void RenderingSystem::start() {
           .NodeMask = 0,
       };
       ASSERT_WIN_ALWAYS(m_pDevice->CreateDescriptorHeap(
-          &descriptorHeapDesc, IID_PPV_ARGS(&m_RTVasSRVDescriptorHeap)));
+          &descriptorHeapDesc, IID_PPV_ARGS(&m_RT_RTVDescriptorHeap)));
+    }
+
+    // create backbuffer uav descriptor heap
+    {
+      D3D12_DESCRIPTOR_HEAP_DESC descriptorHeapDesc{
+          .Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV,
+          .NumDescriptors = k_FramesInFlight,
+          .Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE,
+          .NodeMask = 0,
+      };
+      ASSERT_WIN_ALWAYS(m_pDevice->CreateDescriptorHeap(
+          &descriptorHeapDesc, IID_PPV_ARGS(&m_RT_RTVDescriptorHeap)));
     }
   }
 
@@ -324,9 +337,13 @@ void RenderingSystem::stop() {
     CloseHandle(fd.FenceEvent);
     fd.Fence.Reset();
     fd.Backbuffer.Reset();
+    fd.RenderTarget.Reset();
     fd.CommandList.Reset();
     fd.CommandAllocator.Reset();
   }
+
+  m_RTHeap.Reset();
+  m_RTHeapCapacity = 0;
 
   // destroy staging heap
   m_StagingHeap.Reset();
@@ -343,7 +360,8 @@ void RenderingSystem::stop() {
   m_SwapChain.Reset();
   m_CommandQueue.Reset();
   m_RTVDescriptorHeap.Reset();
-  m_RTVasSRVDescriptorHeap.Reset();
+  m_RT_RTVDescriptorHeap.Reset();
+  m_RT_UAVDescriptorHeap.Reset();
   m_GPUStallFence.Reset();
 
   CloseHandle(m_hGPUStallEvent);
@@ -403,47 +421,51 @@ void RenderingSystem::create_device(IDXGIFactory6 *pDxgiFactory) {
 }
 
 void RenderingSystem::create_backbuffer_data() {
+  // swapchain backbuffer
   for (UINT i = 0; i < k_FramesInFlight; ++i) {
     FrameData &fd = m_FrameData[i];
 
     ASSERT_WIN_ALWAYS(m_SwapChain->GetBuffer(i, IID_PPV_ARGS(&fd.Backbuffer)));
 
-    D3D12_RENDER_TARGET_VIEW_DESC rtViewDesc{
-        .Format = k_SwapChainFormat,
-        .ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D,
-        .Texture2D =
-            {
-                .MipSlice = 0,
-                .PlaneSlice = 0,
-            },
-    };
+    D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle =
+        m_RTVDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+    rtvHandle.ptr += m_RtvDescriptorIncrementSize * i;
 
-    D3D12_SHADER_RESOURCE_VIEW_DESC srViewDesc{
-        .Format = k_SwapChainFormat,
-        .ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D,
-        .Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING,
-        .Texture2D =
-            {
-                .MostDetailedMip = 0,
-                .MipLevels = 1,
-                .PlaneSlice = 0,
-                .ResourceMinLODClamp = 0,
-            },
-    };
+    m_pDevice->CreateRenderTargetView(fd.Backbuffer.Get(), nullptr, rtvHandle);
+  }
+
+  // create buffer
+  {
+    D3D12_RESOURCE_DESC desc = m_FrameData[0].Backbuffer->GetDesc();
+    size_t required = desc.Width * desc.Height * 4 * 4;
+    if (m_RTHeapCapacity < required) {
+      m_RTHeap.Reset();
+      m_RTHeapCapacity = required;
+
+      D3D12_HEAP_DESC heapDesc = {};
+      ASSERT_WIN_ALWAYS(
+          m_pDevice->CreateHeap(&heapDesc, IID_PPV_ARGS(&m_RTHeap)));
+    }
+  }
+
+  // render textures
+  for (UINT i = 0; i < k_FramesInFlight; ++i) {
+    FrameData &fd = m_FrameData[i];
+
+    fd.RenderTarget.Reset();
 
     D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle =
         m_RTVDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
     rtvHandle.ptr += m_RtvDescriptorIncrementSize * i;
 
-    D3D12_CPU_DESCRIPTOR_HANDLE srvHandle =
-        m_RTVasSRVDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
-    srvHandle.ptr += m_RtvDescriptorIncrementSize * i;
+    D3D12_CPU_DESCRIPTOR_HANDLE uavHandle =
+        m_RT_RTVDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+    uavHandle.ptr += m_SrvCbvUabDescriptorIncrementSize * i;
 
-    m_pDevice->CreateRenderTargetView(fd.Backbuffer.Get(), &rtViewDesc,
-                                      rtvHandle);
+    m_pDevice->CreateRenderTargetView(fd.Backbuffer.Get(), nullptr, rtvHandle);
 
-    m_pDevice->CreateShaderResourceView(fd.Backbuffer.Get(), &srViewDesc,
-                                        srvHandle);
+    m_pDevice->CreateUnorderedAccessView(fd.Backbuffer.Get(), nullptr, nullptr,
+                                         uavHandle);
   }
 }
 
