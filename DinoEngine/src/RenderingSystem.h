@@ -55,15 +55,14 @@ private:
     unsigned int Width{}, Height{};
 
     ComPtr<ID3D12DescriptorHeap> BackBuffer_RTVDescriptorHeap{};
-    ComPtr<ID3D12DescriptorHeap> BackBuffer_SRVDescriptorHeap{};
     ComPtr<ID3D12DescriptorHeap> RenderTexture_RTVDescriptorHeap{};
-    ComPtr<ID3D12DescriptorHeap> RenderTexture_UAVDescriptorHeap{};
+    ComPtr<ID3D12DescriptorHeap> RenderTexture_SRVDescriptorHeap{};
 
     struct FrameData {
       ComPtr<ID3D12CommandAllocator> CommandAllocator{};
       ComPtr<ID3D12GraphicsCommandList10> CommandList{};
       ComPtr<ID3D12Resource> Backbuffer{};
-      ComPtr<ID3D12Resource> RenderTarget{};
+      ComPtr<ID3D12Resource> RenderTexture{};
       ComPtr<ID3D12Fence1> Fence{};
       UINT FenceValue{};
       HANDLE FenceEvent{};

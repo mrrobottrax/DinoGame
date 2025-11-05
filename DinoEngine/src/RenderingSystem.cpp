@@ -169,18 +169,6 @@ void RenderingSystem::start() {
           IID_PPV_ARGS(&m_SwapChain.BackBuffer_RTVDescriptorHeap)));
     }
 
-    // create backbuffer srv descriptor heap
-    {
-      D3D12_DESCRIPTOR_HEAP_DESC descriptorHeapDesc{
-          .Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV,
-          .NumDescriptors = k_FramesInFlight,
-          .Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE,
-          .NodeMask = 0,
-      };
-      ASSERT_WIN_ALWAYS(m_pDevice->CreateDescriptorHeap(
-          &descriptorHeapDesc, IID_PPV_ARGS(&m_RT_RTVDescriptorHeap)));
-    }
-
     // create backbuffer uav descriptor heap
     {
       D3D12_DESCRIPTOR_HEAP_DESC descriptorHeapDesc{
