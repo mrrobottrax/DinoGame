@@ -59,6 +59,12 @@
     <FxCompile>
       <ShaderType>Vertex</ShaderType>
     </FxCompile>
+    <PostBuildEvent>
+      <Command>xcopy /E /I /Y "$(ProjectDir)content" "$(OutDir)content"</Command>
+    </PostBuildEvent>
+    <PostBuildEvent>
+      <Message>Copy content</Message>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <PostBuildEvent>

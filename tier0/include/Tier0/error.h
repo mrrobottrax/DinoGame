@@ -11,7 +11,9 @@ T0_API void crash_windows_code(int code, const char *format, ...);
 T0_API void crash_windows_hresult(HRESULT result);
 T0_API void crash_windows_hresult(HRESULT result, const char *format, ...);
 
-#define ASSUME(expression, ...) __assume(expression);
+#define ASSUME(expression, ...)                                                \
+  (void)(expression);                                                          \
+  __assume(expression);
 
 #define MAKE_ERROR(Group, Major, Minor) (1##Group##Major##Minor)
 

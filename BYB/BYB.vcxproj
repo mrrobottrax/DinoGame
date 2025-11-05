@@ -62,6 +62,12 @@
     <Link>
       <AdditionalDependencies>DinoEngine.lib;ucrt.lib</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>xcopy /E /I /Y "$(ProjectDir)content" "$(OutDir)content"</Command>
+    </PostBuildEvent>
+    <PostBuildEvent>
+      <Message>Copy content</Message>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="src\pch.h" />
