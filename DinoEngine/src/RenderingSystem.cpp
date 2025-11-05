@@ -44,7 +44,6 @@ static void __stdcall d3d12_message_callback(D3D12_MESSAGE_CATEGORY Category,
 
 void RenderingSystem::start() {
   ASSERT(g_GameDllSystem.is_initialized());
-  ASSERT(g_AssetSystem.is_initialized());
   ASSERT(g_WindowSystem.get_hWnd() != NULL);
 
   GameInfo &game = g_GameDllSystem.GameInfo;
@@ -288,12 +287,17 @@ void RenderingSystem::start() {
     ASSERT_ALWAYS(m_Resources);
   }
 
+  s_SRGBShader = compile_compute_post_process_shader(
+      "shaders\\DinoEngine\\LinearToSrgb.cso");
+
   m_IsInitialized = true;
 }
 
 void RenderingSystem::stop() {
   m_IsInitialized = false;
   wait_idle();
+
+  s_SRGBShader.release();
 
   // destroy resources
   for (uint32_t i = 0; i < m_ResourceCount; ++i) {
@@ -899,8 +903,7 @@ Asset_Shader RenderingSystem::compile_transparent_quad_shader(
 
 Asset_Shader RenderingSystem::compile_compute_post_process_shader(
     const char *path, ID3D12RootSignature *pRootSignature) const {
-  /*ID3D12Device9 *device = g_RenderingSystem.get_device();
-  ASSERT(device);
+  ASSERT(m_pDevice);
 
   ResourceLoader_arena0_reset();
   ResourceLoader_arena1_reset();
@@ -915,19 +918,26 @@ Asset_Shader RenderingSystem::compile_compute_post_process_shader(
     ASSERT_WIN_ALWAYS(D3DGetBlobPart(file, size, D3D_BLOB_ROOT_SIGNATURE, 0,
                                      &pRootSignatureBlob));
 
-    ASSERT_WIN_ALWAYS(device->CreateRootSignature(
+    ASSERT_WIN_ALWAYS(m_pDevice->CreateRootSignature(
         0, pRootSignatureBlob->GetBufferPointer(),
         pRootSignatureBlob->GetBufferSize(), IID_PPV_ARGS(&pRootSignature)));
   }
 
   D3D12_COMPUTE_PIPELINE_STATE_DESC computePipelineStateDesc{
-      .pRootSignature =
-          , .CS =, .NodeMask =, .CachedPSO =, .Flags =,
+      .pRootSignature = pRootSignature,
+      .CS =
+          {
+              .pShaderBytecode = file,
+              .BytecodeLength = size,
+          },
+      .NodeMask = 0,
+      .CachedPSO = nullptr,
+      .Flags = D3D12_PIPELINE_STATE_FLAG_NONE,
   };
 
   ID3D12PipelineState *pipelineState;
-  ASSERT_WIN_ALWAYS(device->CreateGraphicsPipelineState(
-      &graphicsPipelineStateDesc, IID_PPV_ARGS(&pipelineState)));
+  ASSERT_WIN_ALWAYS(m_pDevice->CreateComputePipelineState(
+      &computePipelineStateDesc, IID_PPV_ARGS(&pipelineState)));
 
   ResourceLoader_arena0_reset();
   ResourceLoader_arena1_reset();
@@ -935,7 +945,5 @@ Asset_Shader RenderingSystem::compile_compute_post_process_shader(
   return {
       .PipelineState = pipelineState,
       .RootSignature = pRootSignature,
-  };*/
-
-  return {};
+  };
 }
