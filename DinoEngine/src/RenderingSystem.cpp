@@ -287,8 +287,8 @@ void RenderingSystem::start() {
     ASSERT_ALWAYS(m_Resources);
   }
 
-  s_SRGBShader = compile_compute_post_process_shader(
-      "shaders\\DinoEngine\\LinearToSrgb.cso");
+  s_SRGBShader =
+      compile_compute_shader("shaders\\DinoEngine\\LinearToSrgb.cso");
 
   m_IsInitialized = true;
 }
@@ -901,7 +901,7 @@ Asset_Shader RenderingSystem::compile_transparent_quad_shader(
   };
 }
 
-Asset_Shader RenderingSystem::compile_compute_post_process_shader(
+Asset_Shader RenderingSystem::compile_compute_shader(
     const char *path, ID3D12RootSignature *pRootSignature) const {
   ASSERT(m_pDevice);
 
