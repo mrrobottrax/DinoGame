@@ -10,6 +10,13 @@ public:
                           ID3D12GraphicsCommandList10 *pCommandList) = 0;
   virtual ID3D12DescriptorHeap *get_static_descriptor_heap() = 0;
 
+  virtual Asset_Shader compile_transparent_quad_shader(
+      const char *vertPath, const char *fragPath,
+      ID3D12RootSignature *pRootSignature = nullptr) const = 0;
+  virtual Asset_Shader compile_compute_post_process_shader(
+      const char *path,
+      ID3D12RootSignature *pRootSignature = nullptr) const = 0;
+
 protected:
   bool m_IsInitialized{};
 };

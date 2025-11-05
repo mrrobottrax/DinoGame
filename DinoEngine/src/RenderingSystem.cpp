@@ -1,5 +1,6 @@
 #include "pch.h"
 
+#include "AssetSystem.h"
 #include "GameDllSystem.h"
 #include "RenderingSystem.h"
 #include "UISystem.h"
@@ -10,6 +11,8 @@ DINO_API IRenderingSystem *g_IRenderingSystem = &g_RenderingSystem;
 
 constexpr UINT k_SwapChainFlags = DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
 constexpr DXGI_FORMAT k_SwapChainFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
+
+static Asset_Shader s_SRGBShader;
 
 #if defined(_DEBUG)
 static void __stdcall d3d12_message_callback(D3D12_MESSAGE_CATEGORY Category,
@@ -41,6 +44,7 @@ static void __stdcall d3d12_message_callback(D3D12_MESSAGE_CATEGORY Category,
 
 void RenderingSystem::start() {
   ASSERT(g_GameDllSystem.is_initialized());
+  ASSERT(g_AssetSystem.is_initialized());
   ASSERT(g_WindowSystem.get_hWnd() != NULL);
 
   GameInfo &game = g_GameDllSystem.GameInfo;
@@ -178,7 +182,7 @@ void RenderingSystem::start() {
     }
   }
 
-  // create staging data
+  // create staging constants
   {
     ASSERT_WIN_ALWAYS(m_pDevice->CreateCommandAllocator(
         D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_pStagingAllocator)));
@@ -226,7 +230,7 @@ void RenderingSystem::start() {
     ASSERT_WIN_ALWAYS(m_StagingResource->Map(0, nullptr, &m_StagingHeapMap));
   }
 
-  // create frame data
+  // create frame constants
   {
     for (UINT i = 0; i < k_FramesInFlight; ++i) {
       FrameData &fd = m_FrameData[i];
@@ -262,7 +266,7 @@ void RenderingSystem::start() {
         &staticDescriptorHeapDesc, IID_PPV_ARGS(&m_DescriptorHeap)));
   }
 
-  // create data heap
+  // create constants heap
   {
     m_DataHeapCapacity = game.GPUDataBufferSize;
     D3D12_HEAP_DESC staticHeapDesc{
@@ -300,7 +304,7 @@ void RenderingSystem::stop() {
   m_ResourceCount = 0;
   m_ResourceCapacity = 0;
 
-  // destroy data heap
+  // destroy constants heap
   m_DataHeap.Reset();
   m_DataHeapCapacity = 0;
   m_DataHeapOffset = 0;
@@ -310,7 +314,7 @@ void RenderingSystem::stop() {
   m_DescriptorCapacity = 0;
   m_DescriptorCount = 0;
 
-  // destroy frame data
+  // destroy frame constants
   for (UINT i = 0; i < k_FramesInFlight; ++i) {
     FrameData &fd = m_FrameData[i];
     CloseHandle(fd.FenceEvent);
@@ -488,6 +492,24 @@ void RenderingSystem::frame() {
                                  (uint32_t)backBufferDesc.Width,
                                  backBufferDesc.Height);
 
+  // CONVERT TO SRGB
+  /*{
+    fd.CommandList->SetPipelineState(s_SRGBShader.PipelineState);
+    fd.CommandList->SetComputeRootSignature(s_SRGBShader.RootSignature);
+
+    uint32_t constants[] = {
+        (uint32_t)backBufferDesc.Width,
+        (uint32_t)backBufferDesc.Height,
+    };
+    fd.CommandList->SetComputeRoot32BitConstants(0, 2, constants, 0);
+
+    constexpr UINT k_ThreadCount = 16;
+    UINT x = (UINT)((backBufferDesc.Width + k_ThreadCount - 1) / k_ThreadCount);
+    UINT y =
+        (UINT)((backBufferDesc.Height + k_ThreadCount - 1) / k_ThreadCount);
+    fd.CommandList->Dispatch(x, y, 1);
+  }*/
+
   // PRESENT
   D3D12_RESOURCE_BARRIER renderTargetToPresentBarrier{
       .Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION,
@@ -512,8 +534,8 @@ void RenderingSystem::frame() {
       .pScrollRect = nullptr,
       .pScrollOffset = nullptr,
   };
-  ASSERT_WIN_ALWAYS(m_SwapChain->Present1(0, DXGI_PRESENT_ALLOW_TEARING,
-                                           &presentParameters));
+  ASSERT_WIN_ALWAYS(
+      m_SwapChain->Present1(0, DXGI_PRESENT_ALLOW_TEARING, &presentParameters));
 }
 
 void RenderingSystem::try_resize(unsigned int w, unsigned int h) {
@@ -560,15 +582,15 @@ void RenderingSystem::try_resize(unsigned int w, unsigned int h) {
 
 void RenderingSystem::set_shader(Asset_Shader shader,
                                  ID3D12GraphicsCommandList10 *pCommandList) {
-  if (m_CurrentShader.pPipelineState != shader.pPipelineState &&
-      shader.pPipelineState) {
-    pCommandList->SetPipelineState(shader.pPipelineState);
-    pCommandList->SetGraphicsRootSignature(shader.pRootSignature);
+  if (m_CurrentShader.PipelineState != shader.PipelineState &&
+      shader.PipelineState) {
+    pCommandList->SetPipelineState(shader.PipelineState);
+    pCommandList->SetGraphicsRootSignature(shader.RootSignature);
   }
 
-  if (m_CurrentShader.pRootSignature != shader.pRootSignature &&
-      shader.pRootSignature) {
-    pCommandList->SetGraphicsRootSignature(shader.pRootSignature);
+  if (m_CurrentShader.RootSignature != shader.RootSignature &&
+      shader.RootSignature) {
+    pCommandList->SetGraphicsRootSignature(shader.RootSignature);
   }
 
   m_CurrentShader = shader;
@@ -731,4 +753,189 @@ ID3D12Resource *RenderingSystem::upload_static_image_rgba(
   ++m_ResourceCount;
 
   return resource;
+}
+
+Asset_Shader RenderingSystem::compile_transparent_quad_shader(
+    const char *vertPath, const char *fragPath,
+    ID3D12RootSignature *pRootSignature) const {
+  ID3D12Device9 *device = g_RenderingSystem.get_device();
+  ASSERT(device);
+
+  ResourceLoader_arena0_reset();
+  ResourceLoader_arena1_reset();
+
+  void *vsFile;
+  size_t vsSize;
+  ASSERT_CODE_ALWAYS(ResourceLoader_load_file(vertPath, &vsFile, &vsSize,
+                                              ResourceLoader_arena0));
+
+  void *fsFile;
+  size_t fsSize;
+  ASSERT_CODE_ALWAYS(ResourceLoader_load_file(fragPath, &fsFile, &fsSize,
+                                              ResourceLoader_arena1));
+
+  if (!pRootSignature) {
+    ComPtr<ID3DBlob> pVSRootSignatureBlob;
+    ASSERT_WIN_ALWAYS(D3DGetBlobPart(vsFile, vsSize, D3D_BLOB_ROOT_SIGNATURE, 0,
+                                     &pVSRootSignatureBlob));
+
+    ComPtr<ID3DBlob> pPSRootSignatureBlob;
+    ASSERT_WIN_ALWAYS(D3DGetBlobPart(fsFile, fsSize, D3D_BLOB_ROOT_SIGNATURE, 0,
+                                     &pPSRootSignatureBlob));
+
+    bool rootSignaturesEqual = false;
+    if (pVSRootSignatureBlob.Get() && pPSRootSignatureBlob.Get() &&
+        pVSRootSignatureBlob->GetBufferSize() ==
+            pPSRootSignatureBlob->GetBufferSize()) {
+      rootSignaturesEqual =
+          (memcmp(pVSRootSignatureBlob->GetBufferPointer(),
+                  pPSRootSignatureBlob->GetBufferPointer(),
+                  pVSRootSignatureBlob->GetBufferSize()) == 0);
+    }
+
+    ASSERT_WIN_ALWAYS(device->CreateRootSignature(
+        0, pVSRootSignatureBlob->GetBufferPointer(),
+        pVSRootSignatureBlob->GetBufferSize(), IID_PPV_ARGS(&pRootSignature)));
+  }
+
+  D3D12_GRAPHICS_PIPELINE_STATE_DESC graphicsPipelineStateDesc{
+      .pRootSignature = pRootSignature,
+      .VS =
+          {
+              .pShaderBytecode = vsFile,
+              .BytecodeLength = vsSize,
+          },
+      .PS =
+          {
+              .pShaderBytecode = fsFile,
+              .BytecodeLength = fsSize,
+          },
+      .DS = {},
+      .HS = {},
+      .GS = {},
+      .StreamOutput =
+          {
+              .pSODeclaration = nullptr,
+              .NumEntries = 0,
+              .pBufferStrides = nullptr,
+              .NumStrides = 0,
+              .RasterizedStream = 0,
+          },
+      .BlendState =
+          {
+              .AlphaToCoverageEnable = FALSE,
+              .IndependentBlendEnable = FALSE,
+              .RenderTarget = {{
+                  .BlendEnable = TRUE,
+                  .LogicOpEnable = FALSE,
+                  .SrcBlend = D3D12_BLEND_SRC_ALPHA,
+                  .DestBlend = D3D12_BLEND_INV_SRC_ALPHA,
+                  .BlendOp = D3D12_BLEND_OP_ADD,
+                  .SrcBlendAlpha = D3D12_BLEND_ONE,
+                  .DestBlendAlpha = D3D12_BLEND_ZERO,
+                  .BlendOpAlpha = D3D12_BLEND_OP_ADD,
+                  .LogicOp = D3D12_LOGIC_OP_NOOP,
+                  .RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL,
+              }},
+          },
+      .SampleMask = 0xFFFFFFFF,
+      .RasterizerState =
+          {
+              .FillMode = D3D12_FILL_MODE_SOLID,
+              .CullMode = D3D12_CULL_MODE_BACK,
+              .FrontCounterClockwise = TRUE,
+              .DepthBias = 0,
+              .DepthBiasClamp = 0,
+              .SlopeScaledDepthBias = 0,
+              .DepthClipEnable = TRUE,
+              .MultisampleEnable = FALSE,
+              .AntialiasedLineEnable = FALSE,
+              .ForcedSampleCount = 0,
+              .ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF,
+          },
+      .DepthStencilState =
+          {
+              .DepthEnable = FALSE,
+              .DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO,
+              .DepthFunc = D3D12_COMPARISON_FUNC_ALWAYS,
+              .StencilEnable = FALSE,
+              .StencilReadMask = 0,
+              .StencilWriteMask = 0,
+              .FrontFace = D3D12_STENCIL_OP_KEEP,
+              .BackFace = D3D12_STENCIL_OP_KEEP,
+          },
+      .InputLayout =
+          {
+              .pInputElementDescs = nullptr,
+              .NumElements = 0,
+          },
+      .IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED,
+      .PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE,
+      .NumRenderTargets = 1,
+      .RTVFormats = {DXGI_FORMAT_R8G8B8A8_UNORM},
+      .DSVFormat = DXGI_FORMAT_UNKNOWN,
+      .SampleDesc =
+          {
+              .Count = 1,
+              .Quality = 0,
+          },
+      .NodeMask = 0,
+      .CachedPSO = {.pCachedBlob = nullptr, .CachedBlobSizeInBytes = 0},
+      .Flags = D3D12_PIPELINE_STATE_FLAG_NONE,
+  };
+
+  ID3D12PipelineState *pipelineState;
+  ASSERT_WIN_ALWAYS(device->CreateGraphicsPipelineState(
+      &graphicsPipelineStateDesc, IID_PPV_ARGS(&pipelineState)));
+
+  ResourceLoader_arena0_reset();
+  ResourceLoader_arena1_reset();
+
+  return {
+      .PipelineState = pipelineState,
+      .RootSignature = pRootSignature,
+  };
+}
+
+Asset_Shader RenderingSystem::compile_compute_post_process_shader(
+    const char *path, ID3D12RootSignature *pRootSignature) const {
+  /*ID3D12Device9 *device = g_RenderingSystem.get_device();
+  ASSERT(device);
+
+  ResourceLoader_arena0_reset();
+  ResourceLoader_arena1_reset();
+
+  void *file;
+  size_t size;
+  ASSERT_CODE_ALWAYS(
+      ResourceLoader_load_file(path, &file, &size, ResourceLoader_arena0));
+
+  if (!pRootSignature) {
+    ComPtr<ID3DBlob> pRootSignatureBlob;
+    ASSERT_WIN_ALWAYS(D3DGetBlobPart(file, size, D3D_BLOB_ROOT_SIGNATURE, 0,
+                                     &pRootSignatureBlob));
+
+    ASSERT_WIN_ALWAYS(device->CreateRootSignature(
+        0, pRootSignatureBlob->GetBufferPointer(),
+        pRootSignatureBlob->GetBufferSize(), IID_PPV_ARGS(&pRootSignature)));
+  }
+
+  D3D12_COMPUTE_PIPELINE_STATE_DESC computePipelineStateDesc{
+      .pRootSignature =
+          , .CS =, .NodeMask =, .CachedPSO =, .Flags =,
+  };
+
+  ID3D12PipelineState *pipelineState;
+  ASSERT_WIN_ALWAYS(device->CreateGraphicsPipelineState(
+      &graphicsPipelineStateDesc, IID_PPV_ARGS(&pipelineState)));
+
+  ResourceLoader_arena0_reset();
+  ResourceLoader_arena1_reset();
+
+  return {
+      .PipelineState = pipelineState,
+      .RootSignature = pRootSignature,
+  };*/
+
+  return {};
 }

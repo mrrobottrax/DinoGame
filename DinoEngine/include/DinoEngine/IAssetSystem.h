@@ -7,9 +7,6 @@ public:
   bool is_initialized() const;
 
   virtual Asset_Texture load_texture(const char *path) = 0;
-  virtual Asset_Shader compile_transparent_quad_shader(
-      const char *vertPath, const char *fragPath,
-      ID3D12RootSignature *pRootSignature = nullptr) const = 0;
 
 protected:
   bool m_IsInitialized{};

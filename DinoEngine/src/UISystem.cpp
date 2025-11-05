@@ -11,13 +11,12 @@ DINO_API Asset_Shader g_UIImageShader;
 
 void UISystem::start() {
   ASSERT(g_RenderingSystem.is_initialized());
-  ASSERT(g_AssetSystem.is_initialized());
 
-  g_UIRectShader = g_AssetSystem.compile_transparent_quad_shader(
+  g_UIRectShader = g_RenderingSystem.compile_transparent_quad_shader(
       "shaders\\DinoEngine\\UI_Quad.vs.cso",
       "shaders\\DinoEngine\\UI_Quad.ps.cso");
 
-  g_UIImageShader = g_AssetSystem.compile_transparent_quad_shader(
+  g_UIImageShader = g_RenderingSystem.compile_transparent_quad_shader(
       "shaders\\DinoEngine\\UI_Img.vs.cso",
       "shaders\\DinoEngine\\UI_Img.ps.cso");
 

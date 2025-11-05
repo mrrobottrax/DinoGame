@@ -28,6 +28,13 @@ public:
                           ID3D12GraphicsCommandList10 *pCommandList) override;
   virtual ID3D12DescriptorHeap *get_static_descriptor_heap() override;
 
+  virtual Asset_Shader compile_transparent_quad_shader(
+      const char *vertPath, const char *fragPath,
+      ID3D12RootSignature *pRootSignature = nullptr) const override;
+  virtual Asset_Shader compile_compute_post_process_shader(
+      const char *path,
+      ID3D12RootSignature *pRootSignature = nullptr) const override;
+
 private:
   Asset_Shader m_CurrentShader{};
 
