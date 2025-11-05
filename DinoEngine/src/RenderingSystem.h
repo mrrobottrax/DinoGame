@@ -39,10 +39,11 @@ private:
 
   ComPtr<ID3D12CommandQueue> m_CommandQueue{};
 
-  ComPtr<IDXGISwapChain4> m_pSwapChain{};
+  ComPtr<IDXGISwapChain4> m_SwapChain{};
   unsigned int m_SwapChainW{}, m_SwapChainH{};
 
   ComPtr<ID3D12DescriptorHeap> m_RTVDescriptorHeap{};
+  ComPtr<ID3D12DescriptorHeap> m_RTVasSRVDescriptorHeap{};
 
   size_t m_RtvDescriptorIncrementSize{};
   size_t m_SrvCbvUabDescriptorIncrementSize{};
@@ -71,12 +72,12 @@ private:
   uint32_t m_ResourceCount{};
 
   struct FrameData {
-    ComPtr<ID3D12CommandAllocator> commandAllocator{};
-    ComPtr<ID3D12GraphicsCommandList10> commandList{};
-    ComPtr<ID3D12Resource2> backbuffer{};
-    ComPtr<ID3D12Fence1> fence{};
-    UINT fenceValue{};
-    HANDLE fenceEvent{};
+    ComPtr<ID3D12CommandAllocator> CommandAllocator{};
+    ComPtr<ID3D12GraphicsCommandList10> CommandList{};
+    ComPtr<ID3D12Resource> Backbuffer{};
+    ComPtr<ID3D12Fence1> Fence{};
+    UINT FenceValue{};
+    HANDLE FenceEvent{};
   };
   FrameData m_FrameData[k_FramesInFlight]{};
 

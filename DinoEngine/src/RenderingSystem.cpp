@@ -143,24 +143,39 @@ void RenderingSystem::start() {
     ASSERT_WIN_ALWAYS(pDxgiFactory->CreateSwapChainForHwnd(
         m_CommandQueue.Get(), g_WindowSystem.get_hWnd(), &swapChainDesc,
         &swapChainFullscreenDesc, NULL, &swapChain1));
-    ASSERT_WIN_ALWAYS(swapChain1.As(&m_pSwapChain));
+    ASSERT_WIN_ALWAYS(swapChain1.As(&m_SwapChain));
 
     DXGI_SWAP_CHAIN_DESC1 swapChainDescRetrieved;
-    m_pSwapChain->GetDesc1(&swapChainDescRetrieved);
+    m_SwapChain->GetDesc1(&swapChainDescRetrieved);
     m_SwapChainW = swapChainDescRetrieved.Width;
     m_SwapChainH = swapChainDescRetrieved.Height;
 
     ASSERT_WIN_ALWAYS(pDxgiFactory->MakeWindowAssociation(
         g_WindowSystem.get_hWnd(), DXGI_MWA_NO_ALT_ENTER));
 
-    D3D12_DESCRIPTOR_HEAP_DESC descriptorHeapDesc{
-        .Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV,
-        .NumDescriptors = k_FramesInFlight,
-        .Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE,
-        .NodeMask = 0,
-    };
-    ASSERT_WIN_ALWAYS(m_pDevice->CreateDescriptorHeap(
-        &descriptorHeapDesc, IID_PPV_ARGS(&m_RTVDescriptorHeap)));
+    // Create rtv descriptor heap
+    {
+      D3D12_DESCRIPTOR_HEAP_DESC descriptorHeapDesc{
+          .Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV,
+          .NumDescriptors = k_FramesInFlight,
+          .Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE,
+          .NodeMask = 0,
+      };
+      ASSERT_WIN_ALWAYS(m_pDevice->CreateDescriptorHeap(
+          &descriptorHeapDesc, IID_PPV_ARGS(&m_RTVDescriptorHeap)));
+    }
+
+    // Create srv descriptor heap
+    {
+      D3D12_DESCRIPTOR_HEAP_DESC descriptorHeapDesc{
+          .Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV,
+          .NumDescriptors = k_FramesInFlight,
+          .Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE,
+          .NodeMask = 0,
+      };
+      ASSERT_WIN_ALWAYS(m_pDevice->CreateDescriptorHeap(
+          &descriptorHeapDesc, IID_PPV_ARGS(&m_RTVasSRVDescriptorHeap)));
+    }
   }
 
   // Create staging data
@@ -216,19 +231,19 @@ void RenderingSystem::start() {
     for (UINT i = 0; i < k_FramesInFlight; ++i) {
       FrameData &fd = m_FrameData[i];
       ASSERT_WIN_ALWAYS(m_pDevice->CreateCommandAllocator(
-          D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&fd.commandAllocator)));
+          D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&fd.CommandAllocator)));
 
       ASSERT_WIN_ALWAYS(m_pDevice->CreateCommandList1(
           0, D3D12_COMMAND_LIST_TYPE_DIRECT, D3D12_COMMAND_LIST_FLAG_NONE,
-          IID_PPV_ARGS(&fd.commandList)));
+          IID_PPV_ARGS(&fd.CommandList)));
 
       ASSERT_WIN_ALWAYS(m_pDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE,
-                                               IID_PPV_ARGS(&fd.fence)));
+                                               IID_PPV_ARGS(&fd.Fence)));
 
-      fd.fenceEvent = CreateEventEx(NULL, NULL, 0, EVENT_ALL_ACCESS);
-      ASSERT_ALWAYS(fd.fenceEvent != NULL);
+      fd.FenceEvent = CreateEventEx(NULL, NULL, 0, EVENT_ALL_ACCESS);
+      ASSERT_ALWAYS(fd.FenceEvent != NULL);
 
-      fd.fenceValue = 0;
+      fd.FenceValue = 0;
     }
 
     create_backbuffer_data();
@@ -298,11 +313,11 @@ void RenderingSystem::stop() {
   // destroy frame data
   for (UINT i = 0; i < k_FramesInFlight; ++i) {
     FrameData &fd = m_FrameData[i];
-    CloseHandle(fd.fenceEvent);
-    fd.fence.Reset();
-    fd.backbuffer.Reset();
-    fd.commandList.Reset();
-    fd.commandAllocator.Reset();
+    CloseHandle(fd.FenceEvent);
+    fd.Fence.Reset();
+    fd.Backbuffer.Reset();
+    fd.CommandList.Reset();
+    fd.CommandAllocator.Reset();
   }
 
   // destroy staging heap
@@ -316,10 +331,11 @@ void RenderingSystem::stop() {
   CloseHandle(m_StagingFenceEvent);
   m_StagingFenceValue = 0;
 
-  // Destroy higher level stuff
-  m_pSwapChain.Reset();
+  // destroy higher level stuff
+  m_SwapChain.Reset();
   m_CommandQueue.Reset();
   m_RTVDescriptorHeap.Reset();
+  m_RTVasSRVDescriptorHeap.Reset();
   m_GPUStallFence.Reset();
 
   CloseHandle(m_hGPUStallEvent);
@@ -382,7 +398,7 @@ void RenderingSystem::create_backbuffer_data() {
   for (UINT i = 0; i < k_FramesInFlight; ++i) {
     FrameData &fd = m_FrameData[i];
 
-    ASSERT_WIN_ALWAYS(m_pSwapChain->GetBuffer(i, IID_PPV_ARGS(&fd.backbuffer)));
+    ASSERT_WIN_ALWAYS(m_SwapChain->GetBuffer(i, IID_PPV_ARGS(&fd.Backbuffer)));
 
     D3D12_RENDER_TARGET_VIEW_DESC rtViewDesc{
         .Format = k_SwapChainFormat,
@@ -393,10 +409,33 @@ void RenderingSystem::create_backbuffer_data() {
                 .PlaneSlice = 0,
             },
     };
-    D3D12_CPU_DESCRIPTOR_HANDLE handle =
+
+    D3D12_SHADER_RESOURCE_VIEW_DESC srViewDesc{
+        .Format = k_SwapChainFormat,
+        .ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D,
+        .Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING,
+        .Texture2D =
+            {
+                .MostDetailedMip = 0,
+                .MipLevels = 1,
+                .PlaneSlice = 0,
+                .ResourceMinLODClamp = 0,
+            },
+    };
+
+    D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle =
         m_RTVDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
-    handle.ptr += m_RtvDescriptorIncrementSize * i;
-    m_pDevice->CreateRenderTargetView(fd.backbuffer.Get(), &rtViewDesc, handle);
+    rtvHandle.ptr += m_RtvDescriptorIncrementSize * i;
+
+    D3D12_CPU_DESCRIPTOR_HANDLE srvHandle =
+        m_RTVasSRVDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+    srvHandle.ptr += m_RtvDescriptorIncrementSize * i;
+
+    m_pDevice->CreateRenderTargetView(fd.Backbuffer.Get(), &rtViewDesc,
+                                      rtvHandle);
+
+    m_pDevice->CreateShaderResourceView(fd.Backbuffer.Get(), &srViewDesc,
+                                        srvHandle);
   }
 }
 
@@ -406,46 +445,46 @@ void RenderingSystem::frame() {
   }
 
   // SETUP
-  UINT iFrame = m_pSwapChain->GetCurrentBackBufferIndex();
+  UINT iFrame = m_SwapChain->GetCurrentBackBufferIndex();
 
   FrameData &fd = m_FrameData[iFrame];
-  if (fd.fence->GetCompletedValue() < fd.fenceValue) {
-    fd.fence->SetEventOnCompletion(fd.fenceValue, fd.fenceEvent);
-    WaitForSingleObject(fd.fenceEvent, INFINITE);
+  if (fd.Fence->GetCompletedValue() < fd.FenceValue) {
+    fd.Fence->SetEventOnCompletion(fd.FenceValue, fd.FenceEvent);
+    WaitForSingleObject(fd.FenceEvent, INFINITE);
   }
 
-  ASSERT(fd.commandAllocator);
-  ASSERT(fd.commandList);
+  ASSERT(fd.CommandAllocator);
+  ASSERT(fd.CommandList);
 
-  ASSERT_WIN_ALWAYS(fd.commandAllocator->Reset());
-  ASSERT_WIN_ALWAYS(fd.commandList->Reset(fd.commandAllocator.Get(), NULL));
+  ASSERT_WIN_ALWAYS(fd.CommandAllocator->Reset());
+  ASSERT_WIN_ALWAYS(fd.CommandList->Reset(fd.CommandAllocator.Get(), NULL));
 
   D3D12_RESOURCE_BARRIER unknownToRenderTargetBarrier{
       .Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION,
       .Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE,
       .Transition{
-          .pResource = fd.backbuffer.Get(),
+          .pResource = fd.Backbuffer.Get(),
           .Subresource = 0,
           .StateBefore = D3D12_RESOURCE_STATE_COMMON,
           .StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET,
       }};
-  fd.commandList->ResourceBarrier(1, &unknownToRenderTargetBarrier);
+  fd.CommandList->ResourceBarrier(1, &unknownToRenderTargetBarrier);
 
   D3D12_CPU_DESCRIPTOR_HANDLE rtvCpuHandle =
       m_RTVDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
   rtvCpuHandle.ptr += m_RtvDescriptorIncrementSize * iFrame;
 
   float color[4] = {0, 0, 0, 1};
-  fd.commandList->ClearRenderTargetView(rtvCpuHandle, color, 0, NULL);
+  fd.CommandList->ClearRenderTargetView(rtvCpuHandle, color, 0, NULL);
 
-  fd.commandList->OMSetRenderTargets(1, &rtvCpuHandle, TRUE, nullptr);
+  fd.CommandList->OMSetRenderTargets(1, &rtvCpuHandle, TRUE, nullptr);
 
-  D3D12_RESOURCE_DESC1 backBufferDesc =
-      m_FrameData[iFrame].backbuffer->GetDesc1();
+  D3D12_RESOURCE_DESC backBufferDesc =
+      m_FrameData[iFrame].Backbuffer->GetDesc();
   ASSERT(backBufferDesc.Width <= UINT_MAX);
 
   // RENDER UI
-  g_UISystem.add_render_commands(fd.commandList.Get(),
+  g_UISystem.add_render_commands(fd.CommandList.Get(),
                                  (uint32_t)backBufferDesc.Width,
                                  backBufferDesc.Height);
 
@@ -454,18 +493,18 @@ void RenderingSystem::frame() {
       .Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION,
       .Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE,
       .Transition{
-          .pResource = fd.backbuffer.Get(),
+          .pResource = fd.Backbuffer.Get(),
           .Subresource = 0,
           .StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET,
           .StateAfter = D3D12_RESOURCE_STATE_PRESENT,
       }};
-  fd.commandList->ResourceBarrier(1, &renderTargetToPresentBarrier);
+  fd.CommandList->ResourceBarrier(1, &renderTargetToPresentBarrier);
 
-  ASSERT_WIN_ALWAYS(fd.commandList->Close());
-  ID3D12CommandList *ppCommandLists[] = {fd.commandList.Get()};
+  ASSERT_WIN_ALWAYS(fd.CommandList->Close());
+  ID3D12CommandList *ppCommandLists[] = {fd.CommandList.Get()};
   m_CommandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
-  fd.fenceValue++;
-  ASSERT_WIN_ALWAYS(m_CommandQueue->Signal(fd.fence.Get(), fd.fenceValue));
+  fd.FenceValue++;
+  ASSERT_WIN_ALWAYS(m_CommandQueue->Signal(fd.Fence.Get(), fd.FenceValue));
 
   DXGI_PRESENT_PARAMETERS presentParameters{
       .DirtyRectsCount = 0,
@@ -473,12 +512,12 @@ void RenderingSystem::frame() {
       .pScrollRect = nullptr,
       .pScrollOffset = nullptr,
   };
-  ASSERT_WIN_ALWAYS(m_pSwapChain->Present1(0, DXGI_PRESENT_ALLOW_TEARING,
+  ASSERT_WIN_ALWAYS(m_SwapChain->Present1(0, DXGI_PRESENT_ALLOW_TEARING,
                                            &presentParameters));
 }
 
 void RenderingSystem::try_resize(unsigned int w, unsigned int h) {
-  if (!m_pSwapChain)
+  if (!m_SwapChain)
     return;
 
   if (m_SwapChainW == w && m_SwapChainH == h)
@@ -494,15 +533,15 @@ void RenderingSystem::try_resize(unsigned int w, unsigned int h) {
 
   for (UINT i = 0; i < k_FramesInFlight; ++i) {
     FrameData &fd = m_FrameData[i];
-    fd.backbuffer.Reset();
+    fd.Backbuffer.Reset();
   }
 
-  ASSERT_WIN_ALWAYS(m_pSwapChain->ResizeBuffers(
+  ASSERT_WIN_ALWAYS(m_SwapChain->ResizeBuffers(
       k_FramesInFlight, w, h, k_SwapChainFormat, k_SwapChainFlags));
 
   create_backbuffer_data();
 
-  D3D12_RESOURCE_DESC1 backbufferDesc = m_FrameData[0].backbuffer->GetDesc1();
+  D3D12_RESOURCE_DESC backbufferDesc = m_FrameData[0].Backbuffer->GetDesc();
   ASSERT(backbufferDesc.Width == w);
   ASSERT(backbufferDesc.Height == h);
   ASSERT(backbufferDesc.Width <= UINT_MAX);
@@ -512,7 +551,7 @@ void RenderingSystem::try_resize(unsigned int w, unsigned int h) {
 #ifndef NO_ASSERTS
   for (UINT i = 0; i < k_FramesInFlight; ++i) {
     FrameData &fd = m_FrameData[i];
-    D3D12_RESOURCE_DESC1 backbufferDescI = fd.backbuffer->GetDesc1();
+    D3D12_RESOURCE_DESC backbufferDescI = fd.Backbuffer->GetDesc();
     ASSERT(backbufferDescI.Width == m_SwapChainW);
     ASSERT(backbufferDescI.Height == m_SwapChainH);
   }
