@@ -105,7 +105,7 @@ void RenderingSystem::start() {
       .NodeMask = 0,
   };
   ASSERT_WIN_ALWAYS(m_pDevice->CreateCommandQueue(
-      &commandQueueDesc, IID_PPV_ARGS(&m_pCommandQueue)));
+      &commandQueueDesc, IID_PPV_ARGS(&m_CommandQueue)));
 
   // Get increment sizes
   m_RtvDescriptorIncrementSize = m_pDevice->GetDescriptorHandleIncrementSize(
@@ -141,7 +141,7 @@ void RenderingSystem::start() {
         .Windowed = TRUE,
     };
     ASSERT_WIN_ALWAYS(pDxgiFactory->CreateSwapChainForHwnd(
-        m_pCommandQueue.Get(), g_WindowSystem.get_hWnd(), &swapChainDesc,
+        m_CommandQueue.Get(), g_WindowSystem.get_hWnd(), &swapChainDesc,
         &swapChainFullscreenDesc, NULL, &swapChain1));
     ASSERT_WIN_ALWAYS(swapChain1.As(&m_pSwapChain));
 
@@ -160,7 +160,7 @@ void RenderingSystem::start() {
         .NodeMask = 0,
     };
     ASSERT_WIN_ALWAYS(m_pDevice->CreateDescriptorHeap(
-        &descriptorHeapDesc, IID_PPV_ARGS(&m_pRTVDescriptorHeap)));
+        &descriptorHeapDesc, IID_PPV_ARGS(&m_RTVDescriptorHeap)));
   }
 
   // Create staging data
@@ -318,8 +318,8 @@ void RenderingSystem::stop() {
 
   // Destroy higher level stuff
   m_pSwapChain.Reset();
-  m_pCommandQueue.Reset();
-  m_pRTVDescriptorHeap.Reset();
+  m_CommandQueue.Reset();
+  m_RTVDescriptorHeap.Reset();
   m_GPUStallFence.Reset();
 
   CloseHandle(m_hGPUStallEvent);
@@ -394,7 +394,7 @@ void RenderingSystem::create_backbuffer_data() {
             },
     };
     D3D12_CPU_DESCRIPTOR_HANDLE handle =
-        m_pRTVDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+        m_RTVDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
     handle.ptr += m_RtvDescriptorIncrementSize * i;
     m_pDevice->CreateRenderTargetView(fd.backbuffer.Get(), &rtViewDesc, handle);
   }
@@ -432,7 +432,7 @@ void RenderingSystem::frame() {
   fd.commandList->ResourceBarrier(1, &unknownToRenderTargetBarrier);
 
   D3D12_CPU_DESCRIPTOR_HANDLE rtvCpuHandle =
-      m_pRTVDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+      m_RTVDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
   rtvCpuHandle.ptr += m_RtvDescriptorIncrementSize * iFrame;
 
   float color[4] = {0, 0, 0, 1};
@@ -463,10 +463,9 @@ void RenderingSystem::frame() {
 
   ASSERT_WIN_ALWAYS(fd.commandList->Close());
   ID3D12CommandList *ppCommandLists[] = {fd.commandList.Get()};
-  m_pCommandQueue->ExecuteCommandLists(_countof(ppCommandLists),
-                                       ppCommandLists);
+  m_CommandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
   fd.fenceValue++;
-  ASSERT_WIN_ALWAYS(m_pCommandQueue->Signal(fd.fence.Get(), fd.fenceValue));
+  ASSERT_WIN_ALWAYS(m_CommandQueue->Signal(fd.fence.Get(), fd.fenceValue));
 
   DXGI_PRESENT_PARAMETERS presentParameters{
       .DirtyRectsCount = 0,
@@ -540,7 +539,7 @@ void RenderingSystem::wait_idle() {
   m_GPUStallValue++;
   m_GPUStallFence->SetEventOnCompletion(m_GPUStallValue, m_hGPUStallEvent);
   ASSERT_WIN_ALWAYS(
-      m_pCommandQueue->Signal(m_GPUStallFence.Get(), m_GPUStallValue));
+      m_CommandQueue->Signal(m_GPUStallFence.Get(), m_GPUStallValue));
 
   if (m_GPUStallFence->GetCompletedValue() < m_GPUStallValue) {
     WaitForSingleObject(m_hGPUStallEvent, INFINITE);
@@ -557,11 +556,10 @@ ID3D12GraphicsCommandList10 *RenderingSystem::reset_staging_list() {
 void RenderingSystem::execute_staging_list() {
   ASSERT_WIN_ALWAYS(m_pStagingList->Close());
   ID3D12CommandList *ppCommandLists[] = {m_pStagingList.Get()};
-  m_pCommandQueue->ExecuteCommandLists(_countof(ppCommandLists),
-                                       ppCommandLists);
+  m_CommandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
   m_StagingFenceValue++;
   ASSERT_WIN_ALWAYS(
-      m_pCommandQueue->Signal(m_pStagingFence.Get(), m_StagingFenceValue));
+      m_CommandQueue->Signal(m_pStagingFence.Get(), m_StagingFenceValue));
 
   if (m_pStagingFence->GetCompletedValue() < m_StagingFenceValue) {
     m_pStagingFence->SetEventOnCompletion(m_StagingFenceValue,

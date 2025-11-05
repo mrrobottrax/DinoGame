@@ -37,12 +37,12 @@ private:
   UINT m_GPUStallValue{};
   HANDLE m_hGPUStallEvent{};
 
-  ComPtr<ID3D12CommandQueue> m_pCommandQueue{};
+  ComPtr<ID3D12CommandQueue> m_CommandQueue{};
 
   ComPtr<IDXGISwapChain4> m_pSwapChain{};
   unsigned int m_SwapChainW{}, m_SwapChainH{};
 
-  ComPtr<ID3D12DescriptorHeap> m_pRTVDescriptorHeap{};
+  ComPtr<ID3D12DescriptorHeap> m_RTVDescriptorHeap{};
 
   size_t m_RtvDescriptorIncrementSize{};
   size_t m_SrvCbvUabDescriptorIncrementSize{};
@@ -89,7 +89,7 @@ inline RenderingSystem g_RenderingSystem{};
 inline ID3D12Device9 *RenderingSystem::get_device() { return m_pDevice.Get(); }
 
 inline ID3D12CommandQueue *RenderingSystem::get_queue() {
-  return m_pCommandQueue.Get();
+  return m_CommandQueue.Get();
 }
 
 inline ID3D12DescriptorHeap *RenderingSystem::get_static_descriptor_heap() {
