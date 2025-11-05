@@ -107,14 +107,14 @@ void RenderingSystem::start() {
   ASSERT_WIN_ALWAYS(m_pDevice->CreateCommandQueue(
       &commandQueueDesc, IID_PPV_ARGS(&m_CommandQueue)));
 
-  // Get increment sizes
+  // get increment sizes
   m_RtvDescriptorIncrementSize = m_pDevice->GetDescriptorHandleIncrementSize(
       D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
   m_SrvCbvUabDescriptorIncrementSize =
       m_pDevice->GetDescriptorHandleIncrementSize(
           D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
-  // Create swapchain
+  // create swapchain
   {
     ComPtr<IDXGISwapChain1> swapChain1;
     DXGI_SWAP_CHAIN_DESC1 swapChainDesc{
@@ -153,7 +153,7 @@ void RenderingSystem::start() {
     ASSERT_WIN_ALWAYS(pDxgiFactory->MakeWindowAssociation(
         g_WindowSystem.get_hWnd(), DXGI_MWA_NO_ALT_ENTER));
 
-    // Create rtv descriptor heap
+    // create rtv descriptor heap
     {
       D3D12_DESCRIPTOR_HEAP_DESC descriptorHeapDesc{
           .Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV,
@@ -165,7 +165,7 @@ void RenderingSystem::start() {
           &descriptorHeapDesc, IID_PPV_ARGS(&m_RTVDescriptorHeap)));
     }
 
-    // Create srv descriptor heap
+    // create srv descriptor heap
     {
       D3D12_DESCRIPTOR_HEAP_DESC descriptorHeapDesc{
           .Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV,
@@ -178,7 +178,7 @@ void RenderingSystem::start() {
     }
   }
 
-  // Create staging data
+  // create staging data
   {
     ASSERT_WIN_ALWAYS(m_pDevice->CreateCommandAllocator(
         D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_pStagingAllocator)));
@@ -226,7 +226,7 @@ void RenderingSystem::start() {
     ASSERT_WIN_ALWAYS(m_StagingResource->Map(0, nullptr, &m_StagingHeapMap));
   }
 
-  // Create frame data
+  // create frame data
   {
     for (UINT i = 0; i < k_FramesInFlight; ++i) {
       FrameData &fd = m_FrameData[i];
@@ -249,7 +249,7 @@ void RenderingSystem::start() {
     create_backbuffer_data();
   }
 
-  // Create descriptor heap
+  // create descriptor heap
   {
     m_DescriptorCapacity = game.GPUMaxResources;
 
@@ -262,7 +262,7 @@ void RenderingSystem::start() {
         &staticDescriptorHeapDesc, IID_PPV_ARGS(&m_DescriptorHeap)));
   }
 
-  // Create data heap
+  // create data heap
   {
     m_DataHeapCapacity = game.GPUDataBufferSize;
     D3D12_HEAP_DESC staticHeapDesc{
@@ -276,7 +276,7 @@ void RenderingSystem::start() {
         m_pDevice->CreateHeap(&staticHeapDesc, IID_PPV_ARGS(&m_DataHeap)));
   }
 
-  // Create resources array
+  // create resources array
   {
     m_ResourceCapacity = game.GPUMaxResources;
     m_Resources = (ID3D12Resource **)malloc(m_ResourceCapacity *
