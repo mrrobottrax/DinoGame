@@ -50,6 +50,16 @@ private:
   size_t m_SrvCbvUabDescriptorIncrementSize{};
 
   // Swapchain
+  struct FrameData {
+    ComPtr<ID3D12CommandAllocator> CommandAllocator{};
+    ComPtr<ID3D12GraphicsCommandList10> CommandList{};
+    ComPtr<ID3D12Resource> Backbuffer{};
+    ComPtr<ID3D12Resource> RenderTextures[2]{};
+    ComPtr<ID3D12Fence1> Fence{};
+    UINT FenceValue{};
+    HANDLE FenceEvent{};
+  };
+
   struct {
     ComPtr<IDXGISwapChain4> SwapChain{};
     unsigned int Width{}, Height{};
@@ -57,16 +67,6 @@ private:
     ComPtr<ID3D12DescriptorHeap> BackBuffer_RTVDescriptorHeap{};
     ComPtr<ID3D12DescriptorHeap> RenderTexture_RTVDescriptorHeap{};
     ComPtr<ID3D12DescriptorHeap> RenderTexture_SRVDescriptorHeap{};
-
-    struct FrameData {
-      ComPtr<ID3D12CommandAllocator> CommandAllocator{};
-      ComPtr<ID3D12GraphicsCommandList10> CommandList{};
-      ComPtr<ID3D12Resource> Backbuffer{};
-      ComPtr<ID3D12Resource> RenderTexture{};
-      ComPtr<ID3D12Fence1> Fence{};
-      UINT FenceValue{};
-      HANDLE FenceEvent{};
-    };
     FrameData FrameData[k_FramesInFlight]{};
   } m_SwapChain;
 
