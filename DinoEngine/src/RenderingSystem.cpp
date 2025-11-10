@@ -440,6 +440,8 @@ void RenderingSystem::create_backbuffer_data() {
     m_pDevice->CreateRenderTargetView(fd.Backbuffer.Get(), nullptr, rtvHandle);
   }
 
+  D3D12_RESOURCE_DESC swDesc = m_SwapChain.FrameData[0].Backbuffer->GetDesc();
+
   // create render textures, rtvs, and srvs
   for (UINT i = 0; i < k_FramesInFlight; ++i) {
     FrameData &fd = m_SwapChain.FrameData[i];
@@ -456,20 +458,25 @@ void RenderingSystem::create_backbuffer_data() {
         .Type = D3D12_HEAP_TYPE_DEFAULT,
     };
     D3D12_RESOURCE_DESC desc{
-      .Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D,
-      .Alignment = 0,
-      .Width = ,
-      .Height = ,
-      .DepthOrArraySize = ,
-      .MipLevels = ,
-      .Format = ,
-      .SampleDesc = ,
-      .Layout = ,
-      .Flags = ,
+        .Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D,
+        .Alignment = 0,
+        .Width = swDesc.Width,
+        .Height = swDesc.Height,
+        .DepthOrArraySize = 1,
+        .MipLevels = 1,
+        .Format = DXGI_FORMAT_R32G32B32A32_FLOAT,
+        .SampleDesc = {1, 0},
+        .Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN,
+        .Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET,
     };
+
     ASSERT_WIN_ALWAYS(m_pDevice->CreateCommittedResource(
         &props, D3D12_HEAP_FLAG_NONE, &desc, D3D12_RESOURCE_STATE_RENDER_TARGET,
         &clear, IID_PPV_ARGS(&fd.RenderTextures[0])));
+
+    ASSERT_WIN_ALWAYS(m_pDevice->CreateCommittedResource(
+        &props, D3D12_HEAP_FLAG_NONE, &desc, D3D12_RESOURCE_STATE_RENDER_TARGET,
+        &clear, IID_PPV_ARGS(&fd.RenderTextures[1])));
 
     D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle =
         m_SwapChain.RenderTexture_RTVDescriptorHeap
@@ -484,28 +491,28 @@ void RenderingSystem::create_backbuffer_data() {
     // create rtv
     m_pDevice->CreateRenderTargetView(fd.RenderTextures[0].Get(), nullptr,
                                       rtvHandle);
-    ++rtvHandle.ptr;
+    rtvHandle.ptr += m_RtvDescriptorIncrementSize;
     m_pDevice->CreateRenderTargetView(fd.RenderTextures[1].Get(), nullptr,
                                       rtvHandle);
 
     // create srv
     m_pDevice->CreateShaderResourceView(fd.RenderTextures[0].Get(), nullptr,
                                         srvHandle);
-    ++srvHandle.ptr;
+    srvHandle.ptr += m_SrvCbvUabDescriptorIncrementSize;
     m_pDevice->CreateShaderResourceView(fd.RenderTextures[1].Get(), nullptr,
                                         srvHandle);
   }
 }
 
 void RenderingSystem::frame() {
-  if (m_SwapChainW == 0 || m_SwapChainH == 0) {
+  if (m_SwapChain.Width == 0 || m_SwapChain.Height == 0) {
     return;
   }
 
   // SETUP
-  UINT iFrame = m_SwapChain->GetCurrentBackBufferIndex();
+  UINT iFrame = m_SwapChain.SwapChain->GetCurrentBackBufferIndex();
 
-  FrameData &fd = m_FrameData[iFrame];
+  FrameData &fd = m_SwapChain.FrameData[iFrame];
   if (fd.Fence->GetCompletedValue() < fd.FenceValue) {
     fd.Fence->SetEventOnCompletion(fd.FenceValue, fd.FenceEvent);
     WaitForSingleObject(fd.FenceEvent, INFINITE);
@@ -529,7 +536,8 @@ void RenderingSystem::frame() {
   fd.CommandList->ResourceBarrier(1, &unknownToRenderTargetBarrier);
 
   D3D12_CPU_DESCRIPTOR_HANDLE rtvCpuHandle =
-      m_RTVDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+      m_SwapChain.BackBuffer_RTVDescriptorHeap
+          ->GetCPUDescriptorHandleForHeapStart();
   rtvCpuHandle.ptr += m_RtvDescriptorIncrementSize * iFrame;
 
   float color[4] = {0, 0, 0, 1};
@@ -538,7 +546,7 @@ void RenderingSystem::frame() {
   fd.CommandList->OMSetRenderTargets(1, &rtvCpuHandle, TRUE, nullptr);
 
   D3D12_RESOURCE_DESC backBufferDesc =
-      m_FrameData[iFrame].Backbuffer->GetDesc();
+      m_SwapChain.FrameData[iFrame].Backbuffer->GetDesc();
   ASSERT(backBufferDesc.Width <= UINT_MAX);
 
   // RENDER UI
@@ -588,48 +596,49 @@ void RenderingSystem::frame() {
       .pScrollRect = nullptr,
       .pScrollOffset = nullptr,
   };
-  ASSERT_WIN_ALWAYS(
-      m_SwapChain->Present1(0, DXGI_PRESENT_ALLOW_TEARING, &presentParameters));
+  ASSERT_WIN_ALWAYS(m_SwapChain.SwapChain->Present1(
+      0, DXGI_PRESENT_ALLOW_TEARING, &presentParameters));
 }
 
 void RenderingSystem::try_resize(unsigned int w, unsigned int h) {
-  if (!m_SwapChain)
+  if (!m_SwapChain.SwapChain)
     return;
 
-  if (m_SwapChainW == w && m_SwapChainH == h)
+  if (m_SwapChain.Width == w && m_SwapChain.Height == h)
     return;
 
   console_log("SIZE: %u, %u", w, h);
   if (w == 0 || h == 0) {
-    m_SwapChainW = m_SwapChainH = 0;
+    m_SwapChain.Width = m_SwapChain.Height = 0;
     return;
   }
 
   wait_idle();
 
   for (UINT i = 0; i < k_FramesInFlight; ++i) {
-    FrameData &fd = m_FrameData[i];
+    FrameData &fd = m_SwapChain.FrameData[i];
     fd.Backbuffer.Reset();
   }
 
-  ASSERT_WIN_ALWAYS(m_SwapChain->ResizeBuffers(
+  ASSERT_WIN_ALWAYS(m_SwapChain.SwapChain->ResizeBuffers(
       k_FramesInFlight, w, h, k_SwapChainFormat, k_SwapChainFlags));
 
   create_backbuffer_data();
 
-  D3D12_RESOURCE_DESC backbufferDesc = m_FrameData[0].Backbuffer->GetDesc();
+  D3D12_RESOURCE_DESC backbufferDesc =
+      m_SwapChain.FrameData[0].Backbuffer->GetDesc();
   ASSERT(backbufferDesc.Width == w);
   ASSERT(backbufferDesc.Height == h);
   ASSERT(backbufferDesc.Width <= UINT_MAX);
-  m_SwapChainW = (unsigned int)backbufferDesc.Width;
-  m_SwapChainH = backbufferDesc.Height;
+  m_SwapChain.Width = (unsigned int)backbufferDesc.Width;
+  m_SwapChain.Height = backbufferDesc.Height;
 
 #ifndef NO_ASSERTS
   for (UINT i = 0; i < k_FramesInFlight; ++i) {
-    FrameData &fd = m_FrameData[i];
+    FrameData &fd = m_SwapChain.FrameData[i];
     D3D12_RESOURCE_DESC backbufferDescI = fd.Backbuffer->GetDesc();
-    ASSERT(backbufferDescI.Width == m_SwapChainW);
-    ASSERT(backbufferDescI.Height == m_SwapChainH);
+    ASSERT(backbufferDescI.Width == m_SwapChain.Width);
+    ASSERT(backbufferDescI.Height == m_SwapChain.Height);
   }
 #endif // !NO_ASSERTS
 }
