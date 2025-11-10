@@ -143,28 +143,35 @@ void RenderingSystem::start() {
   }
 
   // get increment sizes
-  m_RtvDescriptorIncrementSize = m_Device->GetDescriptorHandleIncrementSize(
-      D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-  m_SrvCbvUabDescriptorIncrementSize =
-      m_Device->GetDescriptorHandleIncrementSize(
-          D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+  {
+    m_RtvDescriptorIncrementSize = m_Device->GetDescriptorHandleIncrementSize(
+        D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+    m_SrvCbvUabDescriptorIncrementSize =
+        m_Device->GetDescriptorHandleIncrementSize(
+            D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+  }
 
   // create stall fence / event
-  m_hGPUStallEvent = CreateEventEx(NULL, L"Big GPU stall", 0, EVENT_ALL_ACCESS);
-  ASSERT_WIN_EXP_ALWAYS(m_hGPUStallEvent != NULL);
+  {
+    m_hGPUStallEvent =
+        CreateEventEx(NULL, L"Big GPU stall", 0, EVENT_ALL_ACCESS);
+    ASSERT_WIN_EXP_ALWAYS(m_hGPUStallEvent != NULL);
 
-  ASSERT_WIN_ALWAYS(m_Device->CreateFence(0, D3D12_FENCE_FLAG_NONE,
-                                          IID_PPV_ARGS(&m_GPUStallFence)));
+    ASSERT_WIN_ALWAYS(m_Device->CreateFence(0, D3D12_FENCE_FLAG_NONE,
+                                            IID_PPV_ARGS(&m_GPUStallFence)));
+  }
 
   // create command queue
-  D3D12_COMMAND_QUEUE_DESC commandQueueDesc{
-      .Type = D3D12_COMMAND_LIST_TYPE_DIRECT,
-      .Priority = D3D12_COMMAND_QUEUE_PRIORITY_HIGH,
-      .Flags = D3D12_COMMAND_QUEUE_FLAG_NONE,
-      .NodeMask = 0,
-  };
-  ASSERT_WIN_ALWAYS(m_Device->CreateCommandQueue(
-      &commandQueueDesc, IID_PPV_ARGS(&m_CommandQueue)));
+  {
+    D3D12_COMMAND_QUEUE_DESC commandQueueDesc{
+        .Type = D3D12_COMMAND_LIST_TYPE_DIRECT,
+        .Priority = D3D12_COMMAND_QUEUE_PRIORITY_HIGH,
+        .Flags = D3D12_COMMAND_QUEUE_FLAG_NONE,
+        .NodeMask = 0,
+    };
+    ASSERT_WIN_ALWAYS(m_Device->CreateCommandQueue(
+        &commandQueueDesc, IID_PPV_ARGS(&m_CommandQueue)));
+  }
 
   // create swapchain
   {
@@ -245,6 +252,29 @@ void RenderingSystem::start() {
     }
   }
 
+  // create frame data
+  {
+    for (UINT i = 0; i < k_FramesInFlight; ++i) {
+      FrameData &fd = m_SwapChain.FrameData[i];
+      ASSERT_WIN_ALWAYS(m_Device->CreateCommandAllocator(
+          D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&fd.CommandAllocator)));
+
+      ASSERT_WIN_ALWAYS(m_Device->CreateCommandList1(
+          0, D3D12_COMMAND_LIST_TYPE_DIRECT, D3D12_COMMAND_LIST_FLAG_NONE,
+          IID_PPV_ARGS(&fd.CommandList)));
+
+      ASSERT_WIN_ALWAYS(m_Device->CreateFence(0, D3D12_FENCE_FLAG_NONE,
+                                              IID_PPV_ARGS(&fd.Fence)));
+
+      fd.FenceEvent = CreateEventEx(NULL, NULL, 0, EVENT_ALL_ACCESS);
+      ASSERT_ALWAYS(fd.FenceEvent != NULL);
+
+      fd.FenceValue = 0;
+    }
+
+    create_backbuffer_data();
+  }
+
   // create staging data
   {
     ASSERT_WIN_ALWAYS(m_Device->CreateCommandAllocator(
@@ -291,29 +321,6 @@ void RenderingSystem::start() {
         IID_PPV_ARGS(&m_StagingResource)));
 
     ASSERT_WIN_ALWAYS(m_StagingResource->Map(0, nullptr, &m_StagingHeapMap));
-  }
-
-  // create frame data
-  {
-    for (UINT i = 0; i < k_FramesInFlight; ++i) {
-      FrameData &fd = m_SwapChain.FrameData[i];
-      ASSERT_WIN_ALWAYS(m_Device->CreateCommandAllocator(
-          D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&fd.CommandAllocator)));
-
-      ASSERT_WIN_ALWAYS(m_Device->CreateCommandList1(
-          0, D3D12_COMMAND_LIST_TYPE_DIRECT, D3D12_COMMAND_LIST_FLAG_NONE,
-          IID_PPV_ARGS(&fd.CommandList)));
-
-      ASSERT_WIN_ALWAYS(m_Device->CreateFence(0, D3D12_FENCE_FLAG_NONE,
-                                              IID_PPV_ARGS(&fd.Fence)));
-
-      fd.FenceEvent = CreateEventEx(NULL, NULL, 0, EVENT_ALL_ACCESS);
-      ASSERT_ALWAYS(fd.FenceEvent != NULL);
-
-      fd.FenceValue = 0;
-    }
-
-    create_backbuffer_data();
   }
 
   // create descriptor heap
@@ -514,7 +521,7 @@ void RenderingSystem::frame() {
     return;
   }
 
-  // SETUP
+  // Setup
   UINT iFrame = m_SwapChain.SwapChain->GetCurrentBackBufferIndex();
 
   FrameData &fd = m_SwapChain.FrameData[iFrame];
@@ -550,14 +557,9 @@ void RenderingSystem::frame() {
 
   fd.CommandList->OMSetRenderTargets(1, &rtvCpuHandle, TRUE, nullptr);
 
-  D3D12_RESOURCE_DESC backBufferDesc =
-      m_SwapChain.FrameData[iFrame].Backbuffer->GetDesc();
-  ASSERT(backBufferDesc.Width <= UINT_MAX);
-
-  // RENDER UI
-  g_UISystem.add_render_commands(fd.CommandList.Get(),
-                                 (uint32_t)backBufferDesc.Width,
-                                 backBufferDesc.Height);
+  // Render UI
+  g_UISystem.add_render_commands(fd.CommandList.Get(), m_SwapChain.Width,
+                                 m_SwapChain.Height);
 
   // CONVERT TO SRGB
   /*{
@@ -577,7 +579,7 @@ void RenderingSystem::frame() {
     fd.CommandList->Dispatch(x, y, 1);
   }*/
 
-  // PRESENT
+  // Present
   D3D12_RESOURCE_BARRIER renderTargetToPresentBarrier{
       .Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION,
       .Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE,
