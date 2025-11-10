@@ -48,8 +48,8 @@ void RenderingSystem::start() {
 
   GameInfo &game = g_GameDllSystem.GameInfo;
 
-#if defined(_DEBUG)
   // enable the D3D12 debug layer
+#if defined(_DEBUG)
   {
     ComPtr<ID3D12Debug5> pDebugController;
     ASSERT_WIN_ALWAYS(D3D12GetDebugInterface(IID_PPV_ARGS(&pDebugController)));
@@ -60,62 +60,110 @@ void RenderingSystem::start() {
     pDebugController->SetGPUBasedValidationFlags(
         D3D12_GPU_BASED_VALIDATION_FLAGS_NONE);
   }
-#endif
+#endif //  defined(_DEBUG)
 
+  // create DXGI factory
   ComPtr<IDXGIFactory6> pDxgiFactory;
-  UINT createFactoryFlags = 0;
+  {
+    UINT createFactoryFlags = 0;
 
 #if defined(_DEBUG)
-  createFactoryFlags |= DXGI_CREATE_FACTORY_DEBUG;
+    createFactoryFlags |= DXGI_CREATE_FACTORY_DEBUG;
 #endif
 
-  ASSERT_WIN_ALWAYS(
-      CreateDXGIFactory2(createFactoryFlags, IID_PPV_ARGS(&pDxgiFactory)));
+    ASSERT_WIN_ALWAYS(
+        CreateDXGIFactory2(createFactoryFlags, IID_PPV_ARGS(&pDxgiFactory)));
 
-  BOOL allowsTearing = FALSE;
-  ASSERT_WIN_ALWAYS(
-      pDxgiFactory->CheckFeatureSupport(DXGI_FEATURE_PRESENT_ALLOW_TEARING,
-                                        &allowsTearing, sizeof(allowsTearing)));
-  ASSERT_ALWAYS(allowsTearing);
+    BOOL allowsTearing = FALSE;
+    ASSERT_WIN_ALWAYS(pDxgiFactory->CheckFeatureSupport(
+        DXGI_FEATURE_PRESENT_ALLOW_TEARING, &allowsTearing,
+        sizeof(allowsTearing)));
+    ASSERT_ALWAYS(allowsTearing);
+  }
 
-  create_device(pDxgiFactory.Get());
+  // create device
+  {
+    console_log("GPU Adapters:");
+    while (true) {
+      UINT i = 0;
+      ComPtr<IDXGIAdapter4> pBestAdapter;
+      ComPtr<IDXGIAdapter4> pAdapter;
+      while (pDxgiFactory->EnumAdapterByGpuPreference(
+                 i, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE,
+                 IID_PPV_ARGS(&pAdapter)) != DXGI_ERROR_NOT_FOUND) {
+        DXGI_ADAPTER_DESC3 desc;
+        ASSERT_WIN_ALWAYS(pAdapter->GetDesc3(&desc));
+
+        if (!pBestAdapter) {
+          console_log("\t%ls (picked)", desc.Description);
+          pBestAdapter = pAdapter;
+          pAdapter.Reset();
+          ++i; // increment so that if we try again, it's on the next one
+          break;
+        } else {
+          console_log("\t%ls", desc.Description);
+        }
+
+        pAdapter.Reset();
+        ++i;
+      }
+
+      if (pBestAdapter == nullptr) {
+        CRASH("Failed to find a suitable adapter.");
+      }
+
+      if (!SUCCEEDED(D3D12CreateDevice(pBestAdapter.Get(),
+                                       D3D_FEATURE_LEVEL_12_1,
+                                       IID_PPV_ARGS(&m_Device)))) {
+        console_warn(
+            "Adapter does not support D3D_FEATURE_LEVEL_12_1. Trying again:");
+        pBestAdapter.Reset();
+
+        // deliberately don't reset i.
+      } else {
+        break;
+      }
+    }
 
 #if defined(_DEBUG)
-  // custom message callback
-  ComPtr<ID3D12InfoQueue1> infoQueue;
-  ASSERT_WIN_ALWAYS(m_pDevice->QueryInterface(IID_PPV_ARGS(&infoQueue)));
+
+    // custom message callback
+    ComPtr<ID3D12InfoQueue1> infoQueue;
+    ASSERT_WIN_ALWAYS(m_Device->QueryInterface(IID_PPV_ARGS(&infoQueue)));
 
 #pragma warning(push)
 #pragma warning(disable : 6387)
-  DWORD callbackCookie = 0;
-  ASSERT_WIN_ALWAYS(infoQueue->RegisterMessageCallback(
-      d3d12_message_callback, D3D12_MESSAGE_CALLBACK_FLAG_NONE, nullptr,
-      &callbackCookie));
+    DWORD callbackCookie = 0;
+    ASSERT_WIN_ALWAYS(infoQueue->RegisterMessageCallback(
+        d3d12_message_callback, D3D12_MESSAGE_CALLBACK_FLAG_NONE, nullptr,
+        &callbackCookie));
 #pragma warning(pop)
 
 #endif
+  }
 
   // get increment sizes
-  m_RtvDescriptorIncrementSize = m_pDevice->GetDescriptorHandleIncrementSize(
+  m_RtvDescriptorIncrementSize = m_Device->GetDescriptorHandleIncrementSize(
       D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
   m_SrvCbvUabDescriptorIncrementSize =
-      m_pDevice->GetDescriptorHandleIncrementSize(
+      m_Device->GetDescriptorHandleIncrementSize(
           D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
   // create stall fence / event
   m_hGPUStallEvent = CreateEventEx(NULL, L"Big GPU stall", 0, EVENT_ALL_ACCESS);
   ASSERT_WIN_EXP_ALWAYS(m_hGPUStallEvent != NULL);
 
-  ASSERT_WIN_ALWAYS(m_pDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE,
-                                           IID_PPV_ARGS(&m_GPUStallFence)));
+  ASSERT_WIN_ALWAYS(m_Device->CreateFence(0, D3D12_FENCE_FLAG_NONE,
+                                          IID_PPV_ARGS(&m_GPUStallFence)));
 
+  // create command queue
   D3D12_COMMAND_QUEUE_DESC commandQueueDesc{
       .Type = D3D12_COMMAND_LIST_TYPE_DIRECT,
       .Priority = D3D12_COMMAND_QUEUE_PRIORITY_HIGH,
       .Flags = D3D12_COMMAND_QUEUE_FLAG_NONE,
       .NodeMask = 0,
   };
-  ASSERT_WIN_ALWAYS(m_pDevice->CreateCommandQueue(
+  ASSERT_WIN_ALWAYS(m_Device->CreateCommandQueue(
       &commandQueueDesc, IID_PPV_ARGS(&m_CommandQueue)));
 
   // create swapchain
@@ -165,7 +213,7 @@ void RenderingSystem::start() {
           .Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE,
           .NodeMask = 0,
       };
-      ASSERT_WIN_ALWAYS(m_pDevice->CreateDescriptorHeap(
+      ASSERT_WIN_ALWAYS(m_Device->CreateDescriptorHeap(
           &descriptorHeapDesc,
           IID_PPV_ARGS(&m_SwapChain.BackBuffer_RTVDescriptorHeap)));
     }
@@ -178,7 +226,7 @@ void RenderingSystem::start() {
           .Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE,
           .NodeMask = 0,
       };
-      ASSERT_WIN_ALWAYS(m_pDevice->CreateDescriptorHeap(
+      ASSERT_WIN_ALWAYS(m_Device->CreateDescriptorHeap(
           &descriptorHeapDesc,
           IID_PPV_ARGS(&m_SwapChain.RenderTexture_SRVDescriptorHeap)));
     }
@@ -191,7 +239,7 @@ void RenderingSystem::start() {
           .Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE,
           .NodeMask = 0,
       };
-      ASSERT_WIN_ALWAYS(m_pDevice->CreateDescriptorHeap(
+      ASSERT_WIN_ALWAYS(m_Device->CreateDescriptorHeap(
           &descriptorHeapDesc,
           IID_PPV_ARGS(&m_SwapChain.RenderTexture_RTVDescriptorHeap)));
     }
@@ -199,15 +247,15 @@ void RenderingSystem::start() {
 
   // create staging data
   {
-    ASSERT_WIN_ALWAYS(m_pDevice->CreateCommandAllocator(
+    ASSERT_WIN_ALWAYS(m_Device->CreateCommandAllocator(
         D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_pStagingAllocator)));
 
-    ASSERT_WIN_ALWAYS(m_pDevice->CreateCommandList1(
+    ASSERT_WIN_ALWAYS(m_Device->CreateCommandList1(
         0, D3D12_COMMAND_LIST_TYPE_DIRECT, D3D12_COMMAND_LIST_FLAG_NONE,
         IID_PPV_ARGS(&m_pStagingList)));
 
-    ASSERT_WIN_ALWAYS(m_pDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE,
-                                             IID_PPV_ARGS(&m_pStagingFence)));
+    ASSERT_WIN_ALWAYS(m_Device->CreateFence(0, D3D12_FENCE_FLAG_NONE,
+                                            IID_PPV_ARGS(&m_pStagingFence)));
 
     m_StagingFenceEvent = CreateEventEx(NULL, NULL, 0, EVENT_ALL_ACCESS);
     ASSERT_ALWAYS(m_StagingFenceEvent != NULL);
@@ -223,7 +271,7 @@ void RenderingSystem::start() {
             },
     };
     ASSERT_WIN_ALWAYS(
-        m_pDevice->CreateHeap(&stagingHeapDesc, IID_PPV_ARGS(&m_StagingHeap)));
+        m_Device->CreateHeap(&stagingHeapDesc, IID_PPV_ARGS(&m_StagingHeap)));
 
     D3D12_RESOURCE_DESC stagingBufferDesc{
         .Dimension = D3D12_RESOURCE_DIMENSION_BUFFER,
@@ -237,7 +285,7 @@ void RenderingSystem::start() {
         .Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR,
         .Flags = D3D12_RESOURCE_FLAG_NONE,
     };
-    ASSERT_WIN_ALWAYS(m_pDevice->CreatePlacedResource(
+    ASSERT_WIN_ALWAYS(m_Device->CreatePlacedResource(
         m_StagingHeap.Get(), 0, &stagingBufferDesc,
         D3D12_RESOURCE_STATE_COPY_SOURCE, nullptr,
         IID_PPV_ARGS(&m_StagingResource)));
@@ -249,15 +297,15 @@ void RenderingSystem::start() {
   {
     for (UINT i = 0; i < k_FramesInFlight; ++i) {
       FrameData &fd = m_SwapChain.FrameData[i];
-      ASSERT_WIN_ALWAYS(m_pDevice->CreateCommandAllocator(
+      ASSERT_WIN_ALWAYS(m_Device->CreateCommandAllocator(
           D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&fd.CommandAllocator)));
 
-      ASSERT_WIN_ALWAYS(m_pDevice->CreateCommandList1(
+      ASSERT_WIN_ALWAYS(m_Device->CreateCommandList1(
           0, D3D12_COMMAND_LIST_TYPE_DIRECT, D3D12_COMMAND_LIST_FLAG_NONE,
           IID_PPV_ARGS(&fd.CommandList)));
 
-      ASSERT_WIN_ALWAYS(m_pDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE,
-                                               IID_PPV_ARGS(&fd.Fence)));
+      ASSERT_WIN_ALWAYS(m_Device->CreateFence(0, D3D12_FENCE_FLAG_NONE,
+                                              IID_PPV_ARGS(&fd.Fence)));
 
       fd.FenceEvent = CreateEventEx(NULL, NULL, 0, EVENT_ALL_ACCESS);
       ASSERT_ALWAYS(fd.FenceEvent != NULL);
@@ -277,7 +325,7 @@ void RenderingSystem::start() {
         .NumDescriptors = m_DescriptorCapacity,
         .Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE,
     };
-    ASSERT_WIN_ALWAYS(m_pDevice->CreateDescriptorHeap(
+    ASSERT_WIN_ALWAYS(m_Device->CreateDescriptorHeap(
         &staticDescriptorHeapDesc, IID_PPV_ARGS(&m_DescriptorHeap)));
   }
 
@@ -292,7 +340,7 @@ void RenderingSystem::start() {
             },
     };
     ASSERT_WIN_ALWAYS(
-        m_pDevice->CreateHeap(&staticHeapDesc, IID_PPV_ARGS(&m_DataHeap)));
+        m_Device->CreateHeap(&staticHeapDesc, IID_PPV_ARGS(&m_DataHeap)));
   }
 
   // create resources array
@@ -372,56 +420,13 @@ void RenderingSystem::stop() {
 
 #if defined(_DEBUG)
   ComPtr<ID3D12DebugDevice> debugDevice;
-  ASSERT_WIN(m_pDevice->QueryInterface(IID_PPV_ARGS(&debugDevice)));
+  ASSERT_WIN(m_Device->QueryInterface(IID_PPV_ARGS(&debugDevice)));
 #endif
-  m_pDevice.Reset();
+  m_Device.Reset();
 #if defined(_DEBUG)
   ASSERT_WIN(debugDevice->ReportLiveDeviceObjects(
       D3D12_RLDO_SUMMARY | D3D12_RLDO_DETAIL | D3D12_RLDO_IGNORE_INTERNAL));
 #endif
-}
-
-void RenderingSystem::create_device(IDXGIFactory6 *pDxgiFactory) {
-  console_log("GPU Adapters:");
-  while (true) {
-    UINT i = 0;
-    ComPtr<IDXGIAdapter4> pBestAdapter;
-    ComPtr<IDXGIAdapter4> pAdapter;
-    while (pDxgiFactory->EnumAdapterByGpuPreference(
-               i, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE,
-               IID_PPV_ARGS(&pAdapter)) != DXGI_ERROR_NOT_FOUND) {
-      DXGI_ADAPTER_DESC3 desc;
-      ASSERT_WIN_ALWAYS(pAdapter->GetDesc3(&desc));
-
-      if (!pBestAdapter) {
-        console_log("\t%ls (picked)", desc.Description);
-        pBestAdapter = pAdapter;
-        pAdapter.Reset();
-        ++i; // increment so that if we try again, it's on the next one
-        break;
-      } else {
-        console_log("\t%ls", desc.Description);
-      }
-
-      pAdapter.Reset();
-      ++i;
-    }
-
-    if (pBestAdapter == nullptr) {
-      CRASH("Failed to find a suitable adapter.");
-    }
-
-    if (!SUCCEEDED(D3D12CreateDevice(pBestAdapter.Get(), D3D_FEATURE_LEVEL_12_1,
-                                     IID_PPV_ARGS(&m_pDevice)))) {
-      console_warn(
-          "Adapter does not support D3D_FEATURE_LEVEL_12_1. Trying again:");
-      pBestAdapter.Reset();
-
-      // deliberately don't reset i.
-    } else {
-      break;
-    }
-  }
 }
 
 void RenderingSystem::create_backbuffer_data() {
@@ -437,7 +442,7 @@ void RenderingSystem::create_backbuffer_data() {
             ->GetCPUDescriptorHandleForHeapStart();
     rtvHandle.ptr += m_RtvDescriptorIncrementSize * i;
 
-    m_pDevice->CreateRenderTargetView(fd.Backbuffer.Get(), nullptr, rtvHandle);
+    m_Device->CreateRenderTargetView(fd.Backbuffer.Get(), nullptr, rtvHandle);
   }
 
   D3D12_RESOURCE_DESC swDesc = m_SwapChain.FrameData[0].Backbuffer->GetDesc();
@@ -470,11 +475,11 @@ void RenderingSystem::create_backbuffer_data() {
         .Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET,
     };
 
-    ASSERT_WIN_ALWAYS(m_pDevice->CreateCommittedResource(
+    ASSERT_WIN_ALWAYS(m_Device->CreateCommittedResource(
         &props, D3D12_HEAP_FLAG_NONE, &desc, D3D12_RESOURCE_STATE_RENDER_TARGET,
         &clear, IID_PPV_ARGS(&fd.RenderTextures[0])));
 
-    ASSERT_WIN_ALWAYS(m_pDevice->CreateCommittedResource(
+    ASSERT_WIN_ALWAYS(m_Device->CreateCommittedResource(
         &props, D3D12_HEAP_FLAG_NONE, &desc, D3D12_RESOURCE_STATE_RENDER_TARGET,
         &clear, IID_PPV_ARGS(&fd.RenderTextures[1])));
 
@@ -489,18 +494,18 @@ void RenderingSystem::create_backbuffer_data() {
     srvHandle.ptr += m_SrvCbvUabDescriptorIncrementSize * i * 2;
 
     // create rtv
-    m_pDevice->CreateRenderTargetView(fd.RenderTextures[0].Get(), nullptr,
-                                      rtvHandle);
+    m_Device->CreateRenderTargetView(fd.RenderTextures[0].Get(), nullptr,
+                                     rtvHandle);
     rtvHandle.ptr += m_RtvDescriptorIncrementSize;
-    m_pDevice->CreateRenderTargetView(fd.RenderTextures[1].Get(), nullptr,
-                                      rtvHandle);
+    m_Device->CreateRenderTargetView(fd.RenderTextures[1].Get(), nullptr,
+                                     rtvHandle);
 
     // create srv
-    m_pDevice->CreateShaderResourceView(fd.RenderTextures[0].Get(), nullptr,
-                                        srvHandle);
+    m_Device->CreateShaderResourceView(fd.RenderTextures[0].Get(), nullptr,
+                                       srvHandle);
     srvHandle.ptr += m_SrvCbvUabDescriptorIncrementSize;
-    m_pDevice->CreateShaderResourceView(fd.RenderTextures[1].Get(), nullptr,
-                                        srvHandle);
+    m_Device->CreateShaderResourceView(fd.RenderTextures[1].Get(), nullptr,
+                                       srvHandle);
   }
 }
 
@@ -715,7 +720,7 @@ ID3D12Resource *RenderingSystem::upload_static_image_rgba(
       .Flags = D3D12_RESOURCE_FLAG_NONE,
   };
   D3D12_RESOURCE_ALLOCATION_INFO info =
-      m_pDevice->GetResourceAllocationInfo(0, 1, &desc);
+      m_Device->GetResourceAllocationInfo(0, 1, &desc);
 
   desc.Alignment = info.Alignment;
 
@@ -741,7 +746,7 @@ ID3D12Resource *RenderingSystem::upload_static_image_rgba(
   }
 
   ID3D12Resource *resource;
-  ASSERT_WIN_ALWAYS(m_pDevice->CreatePlacedResource(
+  ASSERT_WIN_ALWAYS(m_Device->CreatePlacedResource(
       m_DataHeap.Get(), newOffset, &desc, D3D12_RESOURCE_STATE_COPY_DEST,
       nullptr, IID_PPV_ARGS(&resource)));
 
@@ -761,7 +766,7 @@ ID3D12Resource *RenderingSystem::upload_static_image_rgba(
               .ResourceMinLODClamp = 0,
           },
   };
-  m_pDevice->CreateShaderResourceView(resource, &resourceViewDesc, hDescriptor);
+  m_Device->CreateShaderResourceView(resource, &resourceViewDesc, hDescriptor);
 
   ID3D12GraphicsCommandList10 *pCmdList = reset_staging_list();
 
@@ -962,7 +967,7 @@ Asset_Shader RenderingSystem::compile_transparent_quad_shader(
 
 Asset_Shader RenderingSystem::compile_compute_shader(
     const char *path, ID3D12RootSignature *pRootSignature) const {
-  ASSERT(m_pDevice);
+  ASSERT(m_Device);
 
   ResourceLoader_arena0_reset();
   ResourceLoader_arena1_reset();
@@ -977,7 +982,7 @@ Asset_Shader RenderingSystem::compile_compute_shader(
     ASSERT_WIN_ALWAYS(D3DGetBlobPart(file, size, D3D_BLOB_ROOT_SIGNATURE, 0,
                                      &pRootSignatureBlob));
 
-    ASSERT_WIN_ALWAYS(m_pDevice->CreateRootSignature(
+    ASSERT_WIN_ALWAYS(m_Device->CreateRootSignature(
         0, pRootSignatureBlob->GetBufferPointer(),
         pRootSignatureBlob->GetBufferSize(), IID_PPV_ARGS(&pRootSignature)));
   }
@@ -995,7 +1000,7 @@ Asset_Shader RenderingSystem::compile_compute_shader(
   };
 
   ID3D12PipelineState *pipelineState;
-  ASSERT_WIN_ALWAYS(m_pDevice->CreateComputePipelineState(
+  ASSERT_WIN_ALWAYS(m_Device->CreateComputePipelineState(
       &computePipelineStateDesc, IID_PPV_ARGS(&pipelineState)));
 
   ResourceLoader_arena0_reset();

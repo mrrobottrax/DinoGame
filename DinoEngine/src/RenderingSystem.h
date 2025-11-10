@@ -38,7 +38,7 @@ public:
 private:
   Asset_Shader m_CurrentShader{};
 
-  ComPtr<ID3D12Device9> m_pDevice{};
+  ComPtr<ID3D12Device9> m_Device{};
 
   ComPtr<ID3D12Fence1> m_GPUStallFence{};
   UINT m_GPUStallValue{};
@@ -95,13 +95,12 @@ private:
   uint32_t m_ResourceCapacity{};
   uint32_t m_ResourceCount{};
 
-  void create_device(IDXGIFactory6 *pDxgiFactory);
   void create_backbuffer_data();
 };
 
 inline RenderingSystem g_RenderingSystem{};
 
-inline ID3D12Device9 *RenderingSystem::get_device() { return m_pDevice.Get(); }
+inline ID3D12Device9 *RenderingSystem::get_device() { return m_Device.Get(); }
 
 inline ID3D12CommandQueue *RenderingSystem::get_queue() {
   return m_CommandQueue.Get();
