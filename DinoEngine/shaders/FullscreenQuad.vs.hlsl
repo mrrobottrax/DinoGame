@@ -10,10 +10,10 @@ static const float3 k_Vertices[] =
 
 static const float2 k_UVs[] =
 {
-	float2(1, 0),
 	float2(1, 1),
-	float2(0, 0),
+	float2(1, 0),
 	float2(0, 1),
+	float2(0, 0),
 };
 
 [RootSignature(_RootSignature)]
