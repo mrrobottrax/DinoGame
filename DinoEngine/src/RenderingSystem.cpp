@@ -447,6 +447,37 @@ void RenderingSystem::start() {
     ASSERT_ALWAYS(m_Resources);
   }
 
+  // upload basic voxel data
+  //{
+  //  ID3D12GraphicsCommandList10 *list = reset_staging_list();
+
+  //  D3D12_TEXTURE_COPY_LOCATION dst{
+  //      .pResource = m_VoxelTexture.Get(),
+  //      .Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX,
+  //      .SubresourceIndex = 0,
+  //  };
+  //  D3D12_TEXTURE_COPY_LOCATION src{
+  //      .pResource = m_StagingResource.Get(),
+  //      .Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT,
+  //      .PlacedFootprint =
+  //          {
+  //              .Offset = 0,
+  //              .Footprint =
+  //                  {
+  //                      .Format = DXGI_FORMAT_R8_UINT,
+  //                      .Width = 16,
+  //                      .Height = 16,
+  //                      .Depth = 16,
+  //                      .RowPitch = 16,
+  //                  },
+  //          },
+  //  };
+
+  //  list->CopyTextureRegion(&dst, 0, 0, 0, &src, NULL);
+
+  //  execute_staging_list();
+  //}
+
   s_SRGBShader = compile_transparent_quad_shader(
       "shaders\\DinoEngine\\FullscreenQuad.vs.cso",
       "shaders\\DinoEngine\\LinearToSrgb.ps.cso", nullptr,
