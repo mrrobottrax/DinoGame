@@ -73,12 +73,12 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="src\AssetSystem.cpp" />
+    <ClCompile Include="src\LevelSystem.cpp" />
     <ClCompile Include="src\UI_ColoredPanel.cpp" />
     <ClCompile Include="src\UI_Image.cpp" />
     <ClCompile Include="src\UI_Panel.cpp" />
     <ClCompile Include="src\Engine.cpp" />
     <ClCompile Include="src\GameDllSystem.cpp" />
-    <ClCompile Include="src\LevelSystem.cpp" />
     <ClCompile Include="src\RenderingSystem.cpp" />
     <ClCompile Include="src\UISystem.cpp" />
     <ClCompile Include="src\UI_Grid.cpp" />

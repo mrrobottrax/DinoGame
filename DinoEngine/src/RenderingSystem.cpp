@@ -352,6 +352,93 @@ void RenderingSystem::start() {
         m_Device->CreateHeap(&staticHeapDesc, IID_PPV_ARGS(&m_DataHeap)));
   }
 
+  // create voxel texture
+  {
+    D3D12_HEAP_PROPERTIES heap{.Type = D3D12_HEAP_TYPE_DEFAULT};
+    D3D12_RESOURCE_DESC desc{
+        .Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE3D,
+        .Alignment = 0,
+        .Width = k_MapWidth,
+        .Height = k_MapWidth,
+        .DepthOrArraySize = k_MapHeight,
+        .MipLevels = 1,
+        .Format = DXGI_FORMAT_R8_UINT,
+        .SampleDesc = {.Count = 1, .Quality = 0},
+        .Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN,
+        .Flags = D3D12_RESOURCE_FLAG_NONE,
+    };
+    ASSERT_WIN_ALWAYS(m_Device->CreateCommittedResource(
+        &heap, D3D12_HEAP_FLAG_NONE, &desc, D3D12_RESOURCE_STATE_COMMON, NULL,
+        IID_PPV_ARGS(&m_VoxelTexture)));
+  }
+
+  // create voxel lighting texture
+  {
+    D3D12_HEAP_PROPERTIES heap{.Type = D3D12_HEAP_TYPE_DEFAULT};
+    D3D12_RESOURCE_DESC desc{
+        .Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE3D,
+        .Alignment = 0,
+        .Width = k_MapWidth / 2,
+        .Height = k_MapWidth / 2,
+        .DepthOrArraySize = k_MapHeight / 2,
+        .MipLevels = 1,
+        .Format = DXGI_FORMAT_R8G8B8A8_UINT,
+        .SampleDesc = {.Count = 1, .Quality = 0},
+        .Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN,
+        .Flags = D3D12_RESOURCE_FLAG_NONE,
+    };
+    ASSERT_WIN_ALWAYS(m_Device->CreateCommittedResource(
+        &heap, D3D12_HEAP_FLAG_NONE, &desc, D3D12_RESOURCE_STATE_COMMON, NULL,
+        IID_PPV_ARGS(&m_LightingTexture)));
+  }
+
+  // create voxel textures srv heap
+  {
+    D3D12_DESCRIPTOR_HEAP_DESC desc{
+        .Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV,
+        .NumDescriptors = 2,
+        .Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE,
+        .NodeMask = 0,
+    };
+    ASSERT_WIN_ALWAYS(m_Device->CreateDescriptorHeap(
+        &desc, IID_PPV_ARGS(&m_VoxelTexturesSrvHeap)));
+
+    D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle =
+        m_VoxelTexturesSrvHeap->GetCPUDescriptorHandleForHeapStart();
+
+    {
+      D3D12_SHADER_RESOURCE_VIEW_DESC viewDesc{
+          .Format = DXGI_FORMAT_R8_UINT,
+          .ViewDimension = D3D12_SRV_DIMENSION_TEXTURE3D,
+          .Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING,
+          .Texture2D = {
+              .MostDetailedMip = 0,
+              .MipLevels = 1,
+              .PlaneSlice = 0,
+              .ResourceMinLODClamp = 0,
+          }};
+      m_Device->CreateShaderResourceView(m_VoxelTexture.Get(), &viewDesc,
+                                         cpuHandle);
+    }
+
+    cpuHandle.ptr += m_SrvCbvUabDescriptorIncrementSize;
+
+    {
+      D3D12_SHADER_RESOURCE_VIEW_DESC viewDesc{
+          .Format = DXGI_FORMAT_R8G8B8A8_UINT,
+          .ViewDimension = D3D12_SRV_DIMENSION_TEXTURE3D,
+          .Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING,
+          .Texture2D = {
+              .MostDetailedMip = 0,
+              .MipLevels = 1,
+              .PlaneSlice = 0,
+              .ResourceMinLODClamp = 0,
+          }};
+      m_Device->CreateShaderResourceView(m_LightingTexture.Get(), &viewDesc,
+                                         cpuHandle);
+    }
+  }
+
   // create resources array
   {
     m_ResourceCapacity = game.GPUMaxResources;
@@ -388,6 +475,11 @@ void RenderingSystem::stop() {
   m_Resources = 0;
   m_ResourceCount = 0;
   m_ResourceCapacity = 0;
+
+  // destroy voxel texture
+  m_VoxelTexturesSrvHeap.Reset();
+  m_LightingTexture.Reset();
+  m_VoxelTexture.Reset();
 
   // destroy data heap
   m_DataHeap.Reset();
@@ -596,7 +688,7 @@ void RenderingSystem::frame() {
       D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
   fd.CommandList->SetPipelineState(s_VoxelRendererShader.PipelineState);
   fd.CommandList->SetGraphicsRootSignature(s_VoxelRendererShader.RootSignature);
-  //fd.CommandList->SetGraphicsRootShaderResourceView(0, )
+  // fd.CommandList->SetGraphicsRootShaderResourceView(0, )
 
   fd.CommandList->DrawInstanced(4, 1, 0, 0);
 

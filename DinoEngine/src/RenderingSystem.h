@@ -4,6 +4,8 @@
 #include "asset_types.h"
 
 constexpr UINT k_FramesInFlight = 2;
+constexpr UINT k_MapWidth = 2048;
+constexpr UINT k_MapHeight = 256;
 
 class RenderingSystem : public IRenderingSystem {
 public:
@@ -88,6 +90,12 @@ private:
   ComPtr<ID3D12Heap> m_DataHeap{};
   size_t m_DataHeapCapacity{};
   size_t m_DataHeapOffset{};
+
+  ComPtr<ID3D12Resource> m_VoxelTexture{};
+  ComPtr<ID3D12Resource> m_LightingTexture{};
+
+  // VoxelTextureSrv, LightingTextureSrv
+  ComPtr<ID3D12DescriptorHeap> m_VoxelTexturesSrvHeap{};
 
   ID3D12Resource **m_Resources{};
   uint32_t m_ResourceCapacity{};
