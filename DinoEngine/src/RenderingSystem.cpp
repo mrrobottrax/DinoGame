@@ -214,6 +214,7 @@ void RenderingSystem::start() {
 
     // create backbuffer rtv descriptor heap
     {
+      // ONLY stores backbuffer RTVs. Not render texture RTVs.
       D3D12_DESCRIPTOR_HEAP_DESC descriptorHeapDesc{
           .Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV,
           .NumDescriptors = k_FramesInFlight,
@@ -358,8 +359,10 @@ void RenderingSystem::start() {
     ASSERT_ALWAYS(m_Resources);
   }
 
-  s_SRGBShader =
-      compile_compute_shader("shaders\\DinoEngine\\LinearToSrgb.cso");
+  s_SRGBShader = compile_transparent_quad_shader(
+      "shaders\\DinoEngine\\FullscreenQuad.vs.cso",
+      "shaders\\DinoEngine\\LinearToSrgb.ps.cso", nullptr,
+      DXGI_FORMAT_R8G8B8A8_UNORM);
 
   m_IsInitialized = true;
 }
@@ -455,6 +458,8 @@ void RenderingSystem::create_backbuffer_data() {
   D3D12_RESOURCE_DESC swDesc = m_SwapChain.FrameData[0].Backbuffer->GetDesc();
 
   // create render textures, rtvs, and srvs
+  // NOTE: These are not used for the swapchain backbuffers. Those have their
+  // own rtv heaps.
   for (UINT i = 0; i < k_FramesInFlight; ++i) {
     FrameData &fd = m_SwapChain.FrameData[i];
 
@@ -483,11 +488,11 @@ void RenderingSystem::create_backbuffer_data() {
     };
 
     ASSERT_WIN_ALWAYS(m_Device->CreateCommittedResource(
-        &props, D3D12_HEAP_FLAG_NONE, &desc, D3D12_RESOURCE_STATE_RENDER_TARGET,
+        &props, D3D12_HEAP_FLAG_NONE, &desc, D3D12_RESOURCE_STATE_COMMON,
         &clear, IID_PPV_ARGS(&fd.RenderTextures[0])));
 
     ASSERT_WIN_ALWAYS(m_Device->CreateCommittedResource(
-        &props, D3D12_HEAP_FLAG_NONE, &desc, D3D12_RESOURCE_STATE_RENDER_TARGET,
+        &props, D3D12_HEAP_FLAG_NONE, &desc, D3D12_RESOURCE_STATE_COMMON,
         &clear, IID_PPV_ARGS(&fd.RenderTextures[1])));
 
     D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle =
@@ -536,7 +541,67 @@ void RenderingSystem::frame() {
   ASSERT_WIN_ALWAYS(fd.CommandAllocator->Reset());
   ASSERT_WIN_ALWAYS(fd.CommandList->Reset(fd.CommandAllocator.Get(), NULL));
 
-  D3D12_RESOURCE_BARRIER unknownToRenderTargetBarrier{
+  // Get data
+  D3D12_CPU_DESCRIPTOR_HANDLE hCPUBackBufferRTV =
+      m_SwapChain.BackBuffer_RTVDescriptorHeap
+          ->GetCPUDescriptorHandleForHeapStart();
+  hCPUBackBufferRTV.ptr += m_RtvDescriptorIncrementSize * iFrame;
+
+  D3D12_CPU_DESCRIPTOR_HANDLE hCPURenderTextureRTV_A =
+      m_SwapChain.RenderTexture_RTVDescriptorHeap
+          ->GetCPUDescriptorHandleForHeapStart();
+  hCPURenderTextureRTV_A.ptr += m_RtvDescriptorIncrementSize * iFrame * 2;
+
+  D3D12_CPU_DESCRIPTOR_HANDLE hCPURenderTextureRTV_B =
+      m_SwapChain.RenderTexture_RTVDescriptorHeap
+          ->GetCPUDescriptorHandleForHeapStart();
+  hCPURenderTextureRTV_B.ptr += m_RtvDescriptorIncrementSize * iFrame * 2 + 1;
+
+  D3D12_GPU_DESCRIPTOR_HANDLE hGPURenderTextureSRV_A =
+      m_SwapChain.RenderTexture_SRVDescriptorHeap
+          ->GetGPUDescriptorHandleForHeapStart();
+  hGPURenderTextureSRV_A.ptr += m_SrvCbvUabDescriptorIncrementSize * iFrame * 2;
+
+  D3D12_GPU_DESCRIPTOR_HANDLE hGPURenderTextureSRV_B =
+      m_SwapChain.RenderTexture_SRVDescriptorHeap
+          ->GetGPUDescriptorHandleForHeapStart();
+  hGPURenderTextureSRV_B.ptr +=
+      m_SrvCbvUabDescriptorIncrementSize * iFrame * 2 + 1;
+
+  // Setup render texture
+  D3D12_RESOURCE_BARRIER rtToRenderTargetBarrier{
+      .Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION,
+      .Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE,
+      .Transition{
+          .pResource = fd.RenderTextures[0].Get(),
+          .Subresource = 0,
+          .StateBefore = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+          .StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET,
+      }};
+  fd.CommandList->ResourceBarrier(1, &rtToRenderTargetBarrier);
+
+  float color[4] = {0, 0, 0, 1};
+  fd.CommandList->ClearRenderTargetView(hCPURenderTextureRTV_A, color, 0, NULL);
+
+  fd.CommandList->OMSetRenderTargets(1, &hCPURenderTextureRTV_A, TRUE, nullptr);
+
+  // Render UI
+  g_UISystem.add_render_commands(fd.CommandList.Get(), m_SwapChain.Width,
+                                 m_SwapChain.Height);
+
+  // Render to backbuffer
+  D3D12_RESOURCE_BARRIER rtToShaderResourceBarrier{
+      .Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION,
+      .Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE,
+      .Transition{
+          .pResource = fd.RenderTextures[0].Get(),
+          .Subresource = 0,
+          .StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET,
+          .StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+      }};
+  fd.CommandList->ResourceBarrier(1, &rtToShaderResourceBarrier);
+
+  D3D12_RESOURCE_BARRIER backbufferToRenderTargetBarrier{
       .Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION,
       .Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE,
       .Transition{
@@ -545,41 +610,22 @@ void RenderingSystem::frame() {
           .StateBefore = D3D12_RESOURCE_STATE_COMMON,
           .StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET,
       }};
-  fd.CommandList->ResourceBarrier(1, &unknownToRenderTargetBarrier);
+  fd.CommandList->ResourceBarrier(1, &backbufferToRenderTargetBarrier);
 
-  D3D12_CPU_DESCRIPTOR_HANDLE rtvCpuHandle =
-      m_SwapChain.BackBuffer_RTVDescriptorHeap
-          ->GetCPUDescriptorHandleForHeapStart();
-  rtvCpuHandle.ptr += m_RtvDescriptorIncrementSize * iFrame;
+  fd.CommandList->OMSetRenderTargets(1, &hCPUBackBufferRTV, TRUE, nullptr);
 
-  float color[4] = {0, 0, 0, 1};
-  fd.CommandList->ClearRenderTargetView(rtvCpuHandle, color, 0, NULL);
+  fd.CommandList->SetPipelineState(s_SRGBShader.PipelineState);
+  fd.CommandList->SetGraphicsRootSignature(s_SRGBShader.RootSignature);
 
-  fd.CommandList->OMSetRenderTargets(1, &rtvCpuHandle, TRUE, nullptr);
+  ID3D12DescriptorHeap *renderTextureSRVHeap =
+      m_SwapChain.RenderTexture_SRVDescriptorHeap.Get();
+  fd.CommandList->SetDescriptorHeaps(1, &renderTextureSRVHeap);
 
-  // Render UI
-  g_UISystem.add_render_commands(fd.CommandList.Get(), m_SwapChain.Width,
-                                 m_SwapChain.Height);
+  fd.CommandList->SetGraphicsRootDescriptorTable(0, hGPURenderTextureSRV_A);
 
-  // CONVERT TO SRGB
-  /*{
-    fd.CommandList->SetPipelineState(s_SRGBShader.PipelineState);
-    fd.CommandList->SetComputeRootSignature(s_SRGBShader.RootSignature);
+  fd.CommandList->DrawInstanced(4, 1, 0, 0);
 
-    uint32_t constants[] = {
-        (uint32_t)backBufferDesc.Width,
-        (uint32_t)backBufferDesc.Height,
-    };
-    fd.CommandList->SetComputeRoot32BitConstants(0, 2, constants, 0);
-
-    constexpr UINT k_ThreadCount = 16;
-    UINT x = (UINT)((backBufferDesc.Width + k_ThreadCount - 1) / k_ThreadCount);
-    UINT y =
-        (UINT)((backBufferDesc.Height + k_ThreadCount - 1) / k_ThreadCount);
-    fd.CommandList->Dispatch(x, y, 1);
-  }*/
-
-  // Present
+  // Present backbuffer
   D3D12_RESOURCE_BARRIER renderTargetToPresentBarrier{
       .Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION,
       .Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE,
@@ -827,7 +873,7 @@ ID3D12Resource *RenderingSystem::upload_static_image_rgba(
 
 Asset_Shader RenderingSystem::compile_transparent_quad_shader(
     const char *vertPath, const char *fragPath,
-    ID3D12RootSignature *pRootSignature) const {
+    ID3D12RootSignature *pRootSignature, DXGI_FORMAT rtvFormat) const {
   ID3D12Device9 *device = g_RenderingSystem.get_device();
   ASSERT(device);
 
@@ -839,9 +885,9 @@ Asset_Shader RenderingSystem::compile_transparent_quad_shader(
   ASSERT_CODE_ALWAYS(ResourceLoader_load_file(vertPath, &vsFile, &vsSize,
                                               ResourceLoader_arena0));
 
-  void *fsFile;
-  size_t fsSize;
-  ASSERT_CODE_ALWAYS(ResourceLoader_load_file(fragPath, &fsFile, &fsSize,
+  void *psFile;
+  size_t psSize;
+  ASSERT_CODE_ALWAYS(ResourceLoader_load_file(fragPath, &psFile, &psSize,
                                               ResourceLoader_arena1));
 
   if (!pRootSignature) {
@@ -850,7 +896,7 @@ Asset_Shader RenderingSystem::compile_transparent_quad_shader(
                                      &pVSRootSignatureBlob));
 
     ComPtr<ID3DBlob> pPSRootSignatureBlob;
-    ASSERT_WIN_ALWAYS(D3DGetBlobPart(fsFile, fsSize, D3D_BLOB_ROOT_SIGNATURE, 0,
+    ASSERT_WIN_ALWAYS(D3DGetBlobPart(psFile, psSize, D3D_BLOB_ROOT_SIGNATURE, 0,
                                      &pPSRootSignatureBlob));
 
     bool rootSignaturesEqual = false;
@@ -877,8 +923,8 @@ Asset_Shader RenderingSystem::compile_transparent_quad_shader(
           },
       .PS =
           {
-              .pShaderBytecode = fsFile,
-              .BytecodeLength = fsSize,
+              .pShaderBytecode = psFile,
+              .BytecodeLength = psSize,
           },
       .DS = {},
       .HS = {},
@@ -942,7 +988,7 @@ Asset_Shader RenderingSystem::compile_transparent_quad_shader(
       .IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED,
       .PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE,
       .NumRenderTargets = 1,
-      .RTVFormats = {DXGI_FORMAT_R8G8B8A8_UNORM},
+      .RTVFormats = {rtvFormat},
       .DSVFormat = DXGI_FORMAT_UNKNOWN,
       .SampleDesc =
           {
@@ -957,53 +1003,6 @@ Asset_Shader RenderingSystem::compile_transparent_quad_shader(
   ID3D12PipelineState *pipelineState;
   ASSERT_WIN_ALWAYS(device->CreateGraphicsPipelineState(
       &graphicsPipelineStateDesc, IID_PPV_ARGS(&pipelineState)));
-
-  ResourceLoader_arena0_reset();
-  ResourceLoader_arena1_reset();
-
-  return {
-      .PipelineState = pipelineState,
-      .RootSignature = pRootSignature,
-  };
-}
-
-Asset_Shader RenderingSystem::compile_compute_shader(
-    const char *path, ID3D12RootSignature *pRootSignature) const {
-  ASSERT(m_Device);
-
-  ResourceLoader_arena0_reset();
-  ResourceLoader_arena1_reset();
-
-  void *file;
-  size_t size;
-  ASSERT_CODE_ALWAYS(
-      ResourceLoader_load_file(path, &file, &size, ResourceLoader_arena0));
-
-  if (!pRootSignature) {
-    ComPtr<ID3DBlob> pRootSignatureBlob;
-    ASSERT_WIN_ALWAYS(D3DGetBlobPart(file, size, D3D_BLOB_ROOT_SIGNATURE, 0,
-                                     &pRootSignatureBlob));
-
-    ASSERT_WIN_ALWAYS(m_Device->CreateRootSignature(
-        0, pRootSignatureBlob->GetBufferPointer(),
-        pRootSignatureBlob->GetBufferSize(), IID_PPV_ARGS(&pRootSignature)));
-  }
-
-  D3D12_COMPUTE_PIPELINE_STATE_DESC computePipelineStateDesc{
-      .pRootSignature = pRootSignature,
-      .CS =
-          {
-              .pShaderBytecode = file,
-              .BytecodeLength = size,
-          },
-      .NodeMask = 0,
-      .CachedPSO = nullptr,
-      .Flags = D3D12_PIPELINE_STATE_FLAG_NONE,
-  };
-
-  ID3D12PipelineState *pipelineState;
-  ASSERT_WIN_ALWAYS(m_Device->CreateComputePipelineState(
-      &computePipelineStateDesc, IID_PPV_ARGS(&pipelineState)));
 
   ResourceLoader_arena0_reset();
   ResourceLoader_arena1_reset();

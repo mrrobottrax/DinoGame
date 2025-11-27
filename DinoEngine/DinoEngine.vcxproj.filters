@@ -115,15 +115,17 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="shaders\LinearToSrgb.hlsl" />
+    <FxCompile Include="shaders\LinearToSrgb.ps.hlsl" />
     <FxCompile Include="shaders\UI_Quad.ps.hlsl" />
     <FxCompile Include="shaders\UI_Quad.vs.hlsl" />
     <FxCompile Include="shaders\UI_Img.vs.hlsl" />
     <FxCompile Include="shaders\UI_Img.ps.hlsl" />
+    <FxCompile Include="shaders\FullscreenQuad.vs.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\UI_Quad.hlsli" />
     <None Include="cpp.hint" />
     <None Include="shaders\UI_Img.hlsli" />
+    <None Include="shaders\FullScreenQuad.hlsli" />
   </ItemGroup>
 </Project>

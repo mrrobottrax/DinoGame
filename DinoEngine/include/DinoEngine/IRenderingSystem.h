@@ -12,10 +12,8 @@ public:
 
   virtual Asset_Shader compile_transparent_quad_shader(
       const char *vertPath, const char *fragPath,
-      ID3D12RootSignature *pRootSignature = nullptr) const = 0;
-  virtual Asset_Shader compile_compute_shader(
-      const char *path,
-      ID3D12RootSignature *pRootSignature = nullptr) const = 0;
+      ID3D12RootSignature *pRootSignature = nullptr,
+      DXGI_FORMAT rtvFormat = DXGI_FORMAT_R32G32B32A32_FLOAT) const = 0;
 
 protected:
   bool m_IsInitialized{};

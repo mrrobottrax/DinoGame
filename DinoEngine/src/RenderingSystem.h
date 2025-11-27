@@ -30,10 +30,8 @@ public:
 
   virtual Asset_Shader compile_transparent_quad_shader(
       const char *vertPath, const char *fragPath,
-      ID3D12RootSignature *pRootSignature = nullptr) const override;
-  virtual Asset_Shader compile_compute_shader(
-      const char *path,
-      ID3D12RootSignature *pRootSignature = nullptr) const override;
+      ID3D12RootSignature *pRootSignature = nullptr,
+      DXGI_FORMAT rtvFormat = DXGI_FORMAT_R32G32B32A32_FLOAT) const override;
 
 private:
   Asset_Shader m_CurrentShader{};
