@@ -13,6 +13,7 @@ constexpr UINT k_SwapChainFlags = DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
 constexpr DXGI_FORMAT k_SwapChainFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
 
 static Asset_Shader s_SRGBShader;
+static Asset_Shader s_VoxelRendererShader;
 
 #if defined(_DEBUG)
 static void __stdcall d3d12_message_callback(D3D12_MESSAGE_CATEGORY Category,
@@ -364,6 +365,10 @@ void RenderingSystem::start() {
       "shaders\\DinoEngine\\LinearToSrgb.ps.cso", nullptr,
       DXGI_FORMAT_R8G8B8A8_UNORM);
 
+  s_VoxelRendererShader = compile_transparent_quad_shader(
+      "shaders\\DinoEngine\\VoxelRenderer.vs.cso",
+      "shaders\\DinoEngine\\VoxelRenderer.ps.cso");
+
   m_IsInitialized = true;
 }
 
@@ -373,6 +378,7 @@ void RenderingSystem::stop() {
 
   // release shaders
   s_SRGBShader.release();
+  s_VoxelRendererShader.release();
 
   // destroy resources
   for (uint32_t i = 0; i < m_ResourceCount; ++i) {
@@ -584,6 +590,15 @@ void RenderingSystem::frame() {
   fd.CommandList->ClearRenderTargetView(hCPURenderTextureRTV_A, color, 0, NULL);
 
   fd.CommandList->OMSetRenderTargets(1, &hCPURenderTextureRTV_A, TRUE, nullptr);
+
+  // Render voxel world
+  fd.CommandList->IASetPrimitiveTopology(
+      D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+  fd.CommandList->SetPipelineState(s_VoxelRendererShader.PipelineState);
+  fd.CommandList->SetGraphicsRootSignature(s_VoxelRendererShader.RootSignature);
+  //fd.CommandList->SetGraphicsRootShaderResourceView(0, )
+
+  fd.CommandList->DrawInstanced(4, 1, 0, 0);
 
   // Render UI
   g_UISystem.add_render_commands(fd.CommandList.Get(), m_SwapChain.Width,

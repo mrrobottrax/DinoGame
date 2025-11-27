@@ -121,11 +121,14 @@
     <FxCompile Include="shaders\UI_Img.vs.hlsl" />
     <FxCompile Include="shaders\UI_Img.ps.hlsl" />
     <FxCompile Include="shaders\FullscreenQuad.vs.hlsl" />
+    <FxCompile Include="shaders\VoxelRenderer.ps.hlsl" />
+    <FxCompile Include="shaders\VoxelRenderer.vs.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\UI_Quad.hlsli" />
     <None Include="cpp.hint" />
     <None Include="shaders\UI_Img.hlsli" />
     <None Include="shaders\FullScreenQuad.hlsli" />
+    <None Include="shaders\VoxelRenderer.hlsli" />
   </ItemGroup>
 </Project>
