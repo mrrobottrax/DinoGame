@@ -7,7 +7,8 @@ Step 2: Select the game project (BYB in this case).
 
 Step 3: Right click and open properties.
 
-Step 4: Change the debugging properties to run \$(OutDir)DinoEngine.exe, set the args to -game [Game Name (BYB in this case)], and set working directory to $(OutDir)
+Step 4: Change the debugging properties to run \$(OutDir)DinoEngine.exe, set the args to -game \[Game Name],  
+and set working directory to \$(OutDir)
 
 ![The correct settings](docs/settings.png)
 
