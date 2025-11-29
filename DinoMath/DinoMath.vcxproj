@@ -53,8 +53,10 @@
     <Link />
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="include\DinoMath\quat.h" />
+    <ClInclude Include="include\DinoMath\vec.h" />
     <ClInclude Include="include\dino_math.h" />
-    <ClInclude Include="include\DinoMath\mat4.h" />
+    <ClInclude Include="include\DinoMath\mat.h" />
     <ClInclude Include="src\pch.h" />
   </ItemGroup>
   <ItemGroup>

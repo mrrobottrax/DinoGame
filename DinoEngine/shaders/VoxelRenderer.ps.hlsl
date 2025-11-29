@@ -36,5 +36,5 @@ float4 main(PSInput input) : SV_TARGET
 	
 	const float3 Origin = hitPoint;
 	
-	return float4(0, 1, 0, 1);
+	return float4(Origin / 16, 1);
 }

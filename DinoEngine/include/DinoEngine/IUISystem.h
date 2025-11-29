@@ -41,13 +41,15 @@ template <typename T> T *IUISystem::create() {
   get_top_panel()->add_child(t);
   return t;
 }
-template <typename T> inline T *ui_create() { return g_IUISystem->create<T>(); }
 
 template <typename T> T *IUISystem::create(UI_Panel *parent) {
   T *t = new T();
   parent->add_child(t);
   return t;
 }
+
+// shortcut methods
+template <typename T> inline T *ui_create() { return g_IUISystem->create<T>(); }
 template <typename T> inline T *ui_create(UI_Panel *parent) {
   return g_IUISystem->create<T>(parent);
 }

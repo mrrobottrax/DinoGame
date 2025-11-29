@@ -73,6 +73,9 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="src\AssetSystem.cpp" />
+    <ClCompile Include="src\BaseCamera.cpp" />
+    <ClCompile Include="src\CameraSystem.cpp" />
+    <ClCompile Include="src\EntitySystem.cpp" />
     <ClCompile Include="src\LevelSystem.cpp" />
     <ClCompile Include="src\UI_ColoredPanel.cpp" />
     <ClCompile Include="src\UI_Image.cpp" />
@@ -92,9 +95,16 @@
   <ItemGroup>
     <ClInclude Include="include\DinoEngine\asset_types.h" />
     <ClInclude Include="include\DinoEngine\callbacks.h" />
+    <ClInclude Include="include\DinoEngine\BaseCamera.h" />
+    <ClInclude Include="include\DinoEngine\entities.h" />
     <ClInclude Include="include\DinoEngine\IAssetSystem.h" />
+    <ClInclude Include="include\DinoEngine\ICameraSystem.h" />
+    <ClInclude Include="include\DinoEngine\IEntity.h" />
+    <ClInclude Include="include\DinoEngine\IEntitySystem.h" />
     <ClInclude Include="include\DinoEngine\ILevelSystem.h" />
     <ClInclude Include="include\DinoEngine\IRenderingSystem.h" />
+    <ClInclude Include="include\DinoEngine\systems.h" />
+    <ClInclude Include="include\DinoEngine\ui.h" />
     <ClInclude Include="include\DinoEngine\UI_Grid.h" />
     <ClInclude Include="include\DinoEngine\UI_Image.h" />
     <ClInclude Include="include\DinoEngine\IUISystem.h" />
@@ -102,7 +112,9 @@
     <ClInclude Include="include\DinoEngine\UI_ColoredPanel.h" />
     <ClInclude Include="include\DinoEngine\UI_Panel.h" />
     <ClInclude Include="src\AssetSystem.h" />
+    <ClInclude Include="src\CameraSystem.h" />
     <ClInclude Include="src\Engine.h" />
+    <ClInclude Include="src\EntitySystem.h" />
     <ClInclude Include="src\GameDllSystem.h" />
     <ClInclude Include="src\LevelSystem.h" />
     <ClInclude Include="src\pch.h" />

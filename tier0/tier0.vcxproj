@@ -63,7 +63,7 @@
     <Link />
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="include\Tier0\base.h" />
+    <ClInclude Include="include\Tier0\macros.h" />
     <ClInclude Include="include\Tier0\console.h" />
     <ClInclude Include="include\Tier0\error.h" />
     <ClInclude Include="include\Tier0\platform.h" />

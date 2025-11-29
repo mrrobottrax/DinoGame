@@ -2,6 +2,6 @@
 
 #define T0_API _declspec(dllexport)
 
-#include "base.h"
-#include "ucrt.h"
+#include "macros.h"
 #include "platform.h"
+#include "ucrt.h"

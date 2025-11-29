@@ -1,6 +1,8 @@
 #include "pch.h"
 
 #include "AssetSystem.h"
+#include "BaseCamera.h"
+#include "CameraSystem.h"
 #include "GameDllSystem.h"
 #include "RenderingSystem.h"
 #include "UISystem.h"
@@ -806,6 +808,9 @@ void RenderingSystem::frame() {
 
 void RenderingSystem::render_voxels(ID3D12GraphicsCommandList10 *pCommandList,
                                     unsigned int width, unsigned int height) {
+  BaseCamera *camera = g_CameraSystem.get_main_camera();
+  ASSERT_ALWAYS(camera);
+
   pCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
   pCommandList->SetPipelineState(s_VoxelRendererShader.PipelineState);
@@ -813,7 +818,10 @@ void RenderingSystem::render_voxels(ID3D12GraphicsCommandList10 *pCommandList,
 
   float aspect = (float)width / height;
 
-  float values[] = {8, 8, -10, 0, 0, 0, 1, 0, aspect, 1};
+  float values[] = {0, 0, 0, 0, 0, 0, 1, 0, aspect, 1};
+
+  for (int i = 0; i < 3; ++i)
+    values[i] = camera->Position.xyz[i];
 
   STATIC_ASSERT(_countof(values) == 10); // set in root signature
   pCommandList->SetGraphicsRoot32BitConstants(0, _countof(values), values, 0);

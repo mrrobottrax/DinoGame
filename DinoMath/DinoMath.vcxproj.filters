@@ -21,7 +21,13 @@
     <ClInclude Include="include\dino_math.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\DinoMath\mat4.h">
+    <ClInclude Include="include\DinoMath\mat.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\DinoMath\vec.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\DinoMath\quat.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

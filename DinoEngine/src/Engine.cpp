@@ -3,6 +3,7 @@
 #include "Engine.h"
 
 #include "AssetSystem.h"
+#include "EntitySystem.h"
 #include "GameDllSystem.h"
 #include "LevelSystem.h"
 #include "RenderingSystem.h"
@@ -51,6 +52,7 @@ void Engine::start() {
   g_RenderingSystem.start();
   g_AssetSystem.start();
   g_UISystem.start();
+  g_EntitySystem.start();
 
   g_WindowSystem.show_finally();
 
@@ -60,11 +62,12 @@ void Engine::start() {
 void Engine::stop() {
   g_LevelSystem.unload_immediate();
 
-  ResourceLoader_close();
+  g_EntitySystem.stop();
   g_UISystem.stop();
+  g_AssetSystem.stop();
   g_RenderingSystem.stop();
   g_WindowSystem.stop();
-  g_AssetSystem.stop();
+  ResourceLoader_close();
 
   free(m_GameName);
 }
