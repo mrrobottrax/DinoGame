@@ -98,6 +98,8 @@ private:
   uint32_t m_ResourceCount{};
 
   void create_backbuffer_data();
+  void render_voxels(ID3D12GraphicsCommandList10 *pCommandList,
+                     unsigned int width, unsigned int height);
 };
 
 inline RenderingSystem g_RenderingSystem{};

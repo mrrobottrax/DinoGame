@@ -732,13 +732,7 @@ void RenderingSystem::frame() {
   fd.CommandList->RSSetScissorRects(1, &scissor);
 
   // Render voxel world
-  fd.CommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-
-  fd.CommandList->SetPipelineState(s_VoxelRendererShader.PipelineState);
-  fd.CommandList->SetGraphicsRootSignature(s_VoxelRendererShader.RootSignature);
-  // fd.CommandList->SetGraphicsRootShaderResourceView(0, )
-
-  fd.CommandList->DrawInstanced(4, 1, 0, 0);
+  render_voxels(fd.CommandList.Get(), m_SwapChain.Width, m_SwapChain.Height);
 
   // Render UI
   g_UISystem.add_render_commands(fd.CommandList.Get(), m_SwapChain.Width,
@@ -808,6 +802,24 @@ void RenderingSystem::frame() {
   };
   ASSERT_WIN_ALWAYS(m_SwapChain.SwapChain->Present1(
       0, DXGI_PRESENT_ALLOW_TEARING, &presentParameters));
+}
+
+void RenderingSystem::render_voxels(ID3D12GraphicsCommandList10 *pCommandList,
+                                    unsigned int width, unsigned int height) {
+  pCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+
+  pCommandList->SetPipelineState(s_VoxelRendererShader.PipelineState);
+  pCommandList->SetGraphicsRootSignature(s_VoxelRendererShader.RootSignature);
+
+  float aspect = (float)width / height;
+
+  float values[] = {8, 8, -10, 0, 0, 0, 1, 0, aspect, 1};
+
+  STATIC_ASSERT(_countof(values) == 10); // set in root signature
+  pCommandList->SetGraphicsRoot32BitConstants(0, _countof(values), values, 0);
+  // pCommandList->SetGraphicsRootShaderResourceView(0, )
+
+  pCommandList->DrawInstanced(4, 1, 0, 0);
 }
 
 void RenderingSystem::try_resize(unsigned int w, unsigned int h) {
