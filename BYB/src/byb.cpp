@@ -11,7 +11,7 @@ GAME_API GameInfo get_game_info() {
 GAME_API void game_start() {
   console_log("Voxels Started");
 
-  s_LogoPng = g_IAssetSystem->load_texture("EngineLogo.png");
+  s_LogoPng = g_IAssetSystem->load_texture("business.png");
 
   UI_ColoredPanel *bg = ui_create<UI_ColoredPanel>();
   bg->Flags |= UI_PANEL_FLAG_SUBTRACTIVE_SIZE_WH;
