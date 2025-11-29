@@ -711,12 +711,29 @@ void RenderingSystem::frame() {
 
   float color[4] = {0, 0, 0, 1};
   fd.CommandList->ClearRenderTargetView(hCPURenderTextureRTV_A, color, 0, NULL);
-
   fd.CommandList->OMSetRenderTargets(1, &hCPURenderTextureRTV_A, TRUE, nullptr);
 
+  // Setup viewport/scissor
+  D3D12_VIEWPORT viewport{
+      .TopLeftX = 0,
+      .TopLeftY = 0,
+      .Width = (FLOAT)m_SwapChain.Width,
+      .Height = (FLOAT)m_SwapChain.Height,
+      .MinDepth = 0,
+      .MaxDepth = 1,
+  };
+  D3D12_RECT scissor{
+      .left = 0,
+      .top = 0,
+      .right = (LONG)m_SwapChain.Width,
+      .bottom = (LONG)m_SwapChain.Height,
+  };
+  fd.CommandList->RSSetViewports(1, &viewport);
+  fd.CommandList->RSSetScissorRects(1, &scissor);
+
   // Render voxel world
-  fd.CommandList->IASetPrimitiveTopology(
-      D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+  fd.CommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+
   fd.CommandList->SetPipelineState(s_VoxelRendererShader.PipelineState);
   fd.CommandList->SetGraphicsRootSignature(s_VoxelRendererShader.RootSignature);
   // fd.CommandList->SetGraphicsRootShaderResourceView(0, )
@@ -727,7 +744,9 @@ void RenderingSystem::frame() {
   g_UISystem.add_render_commands(fd.CommandList.Get(), m_SwapChain.Width,
                                  m_SwapChain.Height);
 
-  // Render to backbuffer
+  // sRGB correction
+  fd.CommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+
   D3D12_RESOURCE_BARRIER rtToShaderResourceBarrier{
       .Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION,
       .Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE,
@@ -832,22 +851,6 @@ void RenderingSystem::try_resize(unsigned int w, unsigned int h) {
     ASSERT(backbufferDescI.Height == m_SwapChain.Height);
   }
 #endif // !NO_ASSERTS
-}
-
-void RenderingSystem::set_shader(Asset_Shader shader,
-                                 ID3D12GraphicsCommandList10 *pCommandList) {
-  if (m_CurrentShader.PipelineState != shader.PipelineState &&
-      shader.PipelineState) {
-    pCommandList->SetPipelineState(shader.PipelineState);
-    pCommandList->SetGraphicsRootSignature(shader.RootSignature);
-  }
-
-  if (m_CurrentShader.RootSignature != shader.RootSignature &&
-      shader.RootSignature) {
-    pCommandList->SetGraphicsRootSignature(shader.RootSignature);
-  }
-
-  m_CurrentShader = shader;
 }
 
 void RenderingSystem::wait_idle() {

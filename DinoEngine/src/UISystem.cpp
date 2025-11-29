@@ -45,28 +45,9 @@ void UISystem::add_render_commands(ID3D12GraphicsCommandList10 *pCommandList,
   pPanel->Dimensions[0] = k_UIReferenceHeight * m_InvScreenRatio;
   pPanel->Dimensions[1] = k_UIReferenceHeight;
 
-  D3D12_VIEWPORT viewport{
-      .TopLeftX = 0,
-      .TopLeftY = 0,
-      .Width = (FLOAT)w,
-      .Height = (FLOAT)h,
-      .MinDepth = 0,
-      .MaxDepth = 1,
-  };
-  D3D12_RECT scissor{
-      .left = 0,
-      .top = 0,
-      .right = (LONG)w,
-      .bottom = (LONG)h,
-  };
-  pCommandList->RSSetViewports(1, &viewport);
-  pCommandList->RSSetScissorRects(1, &scissor);
-
   pCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
   render_recursive(pPanel, pCommandList, -1, -1, 0, 0);
-
-  g_RenderingSystem.set_shader(Asset_Shader{}, pCommandList);
 }
 
 void UISystem::render_recursive(UI_Panel *pPanel,

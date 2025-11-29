@@ -7,7 +7,8 @@
 
 void UI_Image::add_render_commands(ID3D12GraphicsCommandList10 *pCommandList,
                                    float x, float y, float w, float h) {
-  g_RenderingSystem.set_shader(g_UIImageShader, pCommandList);
+  pCommandList->SetPipelineState(g_UIImageShader.PipelineState);
+  pCommandList->SetGraphicsRootSignature(g_UIImageShader.RootSignature);
 
   mat4_t matrix = mat4_create(x, y, 0, w, h);
 

@@ -4,8 +4,8 @@
 #include "asset_types.h"
 
 constexpr UINT k_FramesInFlight = 2;
-constexpr UINT k_MapWidth = 2048;
-constexpr UINT k_MapHeight = 256;
+constexpr UINT k_MapWidth = 3;
+constexpr UINT k_MapHeight = 3;
 
 class RenderingSystem : public IRenderingSystem {
 public:
@@ -26,8 +26,6 @@ public:
                            D3D12_CPU_DESCRIPTOR_HANDLE *cpuHandle,
                            D3D12_GPU_DESCRIPTOR_HANDLE *gpuHandle);
 
-  virtual void set_shader(Asset_Shader shader,
-                          ID3D12GraphicsCommandList10 *pCommandList) override;
   virtual ID3D12DescriptorHeap *get_static_descriptor_heap() override;
 
   virtual Asset_Shader compile_transparent_quad_shader(
@@ -36,8 +34,6 @@ public:
       DXGI_FORMAT rtvFormat = DXGI_FORMAT_R32G32B32A32_FLOAT) const override;
 
 private:
-  Asset_Shader m_CurrentShader{};
-
   ComPtr<ID3D12Device9> m_Device{};
 
   ComPtr<ID3D12Fence1> m_GPUStallFence{};
