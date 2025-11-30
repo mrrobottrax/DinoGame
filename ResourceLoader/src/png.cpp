@@ -38,6 +38,8 @@
 #define PNG_CONVERT_UNSUPPORTED_FORMAT MAKE_ERROR(08, 00, 00)
 #define PNG_CONVERT_UNSUPPORTED_INTERLACE MAKE_ERROR(08, 00, 01)
 
+#define PNG_tRNS_INVALID_COLOR_TYPE MAKE_ERROR(04, 00, 00)
+
 static uint32_t s_CrcTable[256];
 static bool s_CrcTableComputed;
 
@@ -54,6 +56,7 @@ struct State {
 
   uint8_t *Data;
   const uint8_t *Palette;
+  const uint8_t *AlphaPalette;
   size_t Size;
   ResourceLoader_arena_t Arena;
   uint32_t Width;
@@ -203,7 +206,7 @@ static int allocate_decompression_buffer(PngInfo *pOut, State &state) {
 
   size_t paletteSize = 0;
   if (state.ColorType == 3) {
-    paletteSize = (size_t)state.PaletteCount * 3;
+    paletteSize = (size_t)state.PaletteCount * 4;
     requiredSpace += paletteSize;
   }
 
@@ -328,6 +331,26 @@ static int chunk_PLTE(const uint8_t *data, size_t len, PngInfo *pOut,
   ASSERT_RETURN(pOut->Palette, PNG_OUT_OF_MEMORY);
   ASSERT_RETURN(state.Palette, PNG_OUT_OF_MEMORY);
   memcpy(pOut->Palette, state.Palette, len);
+
+  return 0;
+}
+
+static int chunk_tRNS(const uint8_t *data, size_t len, PngInfo *pOut,
+                      State &state) {
+  ASSERT_CHUNK_ORDER(STAGE_READ_PALETTE, STAGE_READ_DATA);
+
+  ASSERT_RETURN(state.ColorType == 0 || state.ColorType == 3 ||
+                    state.ColorType == 2,
+                PNG_tRNS_INVALID_COLOR_TYPE);
+
+  if (state.ColorType == 3) {
+    state.AlphaPalette = data;
+    pOut->AlphaPalette = pOut->Palette + pOut->PaletteCount * 3;
+
+    ASSERT_RETURN(state.AlphaPalette, PNG_OUT_OF_MEMORY);
+    ASSERT_RETURN(pOut->AlphaPalette, PNG_OUT_OF_MEMORY);
+    memcpy(pOut->AlphaPalette, state.AlphaPalette, len);
+  }
 
   return 0;
 }
@@ -519,12 +542,15 @@ ResourceLoader_decompress_png(const void *pFile, size_t fileSize, PngInfo *pOut,
     switch (chunkId) {
       SWITCH_CHUNK(IHDR, pData, dataLen, pOut, state);
       SWITCH_CHUNK(PLTE, pData, dataLen, pOut, state);
+      SWITCH_CHUNK(tRNS, pData, dataLen, pOut, state);
       SWITCH_CHUNK(IDAT, pData, dataLen, state);
       SWITCH_CHUNK(IEND, state);
 
     default:
-      if (ancillary)
+      if (ancillary) {
+        console_log_debug("Unrecognized ancillary chunk: %s", chunk);
         break;
+      }
 
       console_log_debug("Unrecognized required chunk: %s", chunk);
 
@@ -686,11 +712,16 @@ ResourceLoader_png_to_rgba8(PngInfo *pPng, ResourceLoader_arena_t arena) {
       uint8_t r = pPng->Palette[index * 3 + 0];
       uint8_t g = pPng->Palette[index * 3 + 1];
       uint8_t b = pPng->Palette[index * 3 + 2];
+      uint8_t a = 255;
+
+      if (pPng->AlphaPalette) {
+        a = pPng->Palette[pPng->PaletteCount * 3 + index];
+      }
 
       pData[outX + 0] = r;
       pData[outX + 1] = g;
       pData[outX + 2] = b;
-      pData[outX + 3] = 255;
+      pData[outX + 3] = a;
     }
   } else if (pPng->ColorType == 0 && pPng->BitDepth <= 8) {
     uint8_t mask = 0;

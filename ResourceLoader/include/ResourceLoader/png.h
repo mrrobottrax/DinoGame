@@ -5,6 +5,7 @@
 struct PngInfo {
   uint8_t *Data;
   uint8_t *Palette;
+  uint8_t *AlphaPalette;
   uint32_t Width;
   uint32_t Height;
   uint32_t PaletteCount;
