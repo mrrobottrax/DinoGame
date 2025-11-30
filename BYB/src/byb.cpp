@@ -21,5 +21,5 @@ GAME_API void game_start() {
   logo->Texture = &s_LogoPng;
   logo->set_anchor(0.5f, 0.5f);
   logo->set_pivot(0.5f, 0.5f);
-  logo->set_dimensions(1000, 600);
+  logo->set_dimensions(1000, 1000);
 }
