@@ -18,16 +18,19 @@ ENDIAN_TODO
 
 typedef ResourceLoader_Deflate_State::HuffmanState HuffmanState;
 
+// lengths are entered through the tree
 static int
-calc_tree(const uint16_t *pLengths, uint16_t *pTree, size_t nLengths,
+calc_tree(uint16_t *pTree, size_t nLengths,
           HuffmanState::LengthData pLengthInfo[HuffmanState::k_MaxBits + 1]) {
-  // copy length info onto stack
-  uint16_t *pLengthsNew = (uint16_t *)_malloca(sizeof(uint16_t) * nLengths);
-  malloca_janitor jan(pLengthsNew);
 
-  ASSERT_RETURN(pLengthsNew, DEFLATE_FAILED_ALLOCATION);
-  memcpy(pLengthsNew, pLengths, sizeof(uint16_t) * nLengths);
-  pLengths = pLengthsNew;
+  // copy length info onto stack
+  uint16_t *pLengths = (uint16_t *)_malloca(sizeof(uint16_t) * nLengths);
+  malloca_janitor jan(pLengths);
+
+  ASSERT_RETURN(pLengths, DEFLATE_FAILED_ALLOCATION);
+  memcpy(pLengths, pTree, sizeof(uint16_t) * nLengths);
+
+  // memset(pLengths + nLengths, 0, sizeof(uint16_t) * (nAlphabet - nLengths));
 
   // setup
   for (int i = 0; i <= HuffmanState::k_MaxBits; ++i) {
@@ -74,6 +77,7 @@ calc_tree(const uint16_t *pLengths, uint16_t *pTree, size_t nLengths,
     ASSERT_RETURN(length <= HuffmanState::k_MaxBits,
                   DEFLATE_CORRUPT_DATASTREAM);
     if (length > 0) {
+      ASSERT(next_index[length] < nLengths);
       pTree[next_index[length]] = i;
       ++next_index[length];
     }
@@ -84,25 +88,25 @@ calc_tree(const uint16_t *pLengths, uint16_t *pTree, size_t nLengths,
 
 static void setup_static_lengths(ResourceLoader_Deflate_State *pState) {
   for (uint16_t i = 0; i <= 143; ++i) {
-    pState->Huffman.LiteralLength.Tree[i] = 8;
+    pState->Huffman.LiteralLengthAndDistanceTree[i] = 8;
   }
 
   for (uint16_t i = 144; i <= 255; ++i) {
-    pState->Huffman.LiteralLength.Tree[i] = 9;
+    pState->Huffman.LiteralLengthAndDistanceTree[i] = 9;
   }
 
   for (uint16_t i = 256; i <= 279; ++i) {
-    pState->Huffman.LiteralLength.Tree[i] = 7;
+    pState->Huffman.LiteralLengthAndDistanceTree[i] = 7;
   }
 
   for (uint16_t i = 280; i <= 287; ++i) {
-    pState->Huffman.LiteralLength.Tree[i] = 8;
+    pState->Huffman.LiteralLengthAndDistanceTree[i] = 8;
   }
 
   pState->Huffman.LiteralLength.NumberProvided = 288;
 
   for (uint16_t i = 0; i <= 31; ++i) {
-    pState->Huffman.Distance.Tree[i] = 5;
+    pState->Huffman.LiteralLengthAndDistanceTree[i + 288] = 5;
   }
 
   pState->Huffman.Distance.NumberProvided = 32;
@@ -135,14 +139,13 @@ static int bit_state_machine(ResourceLoader_Deflate_State *pState, bool bit) {
     } else if (pState->CompressionType == 1) {
       pState->Huffman = {};
       setup_static_lengths(pState);
-      PROPAGATE_CODE(calc_tree(pState->Huffman.Distance.Tree,
-                               pState->Huffman.Distance.Tree,
-                               _countof(pState->Huffman.Distance.Tree),
-                               pState->Huffman.Distance.InfoForLength));
-      PROPAGATE_CODE(calc_tree(pState->Huffman.LiteralLength.Tree,
-                               pState->Huffman.LiteralLength.Tree,
-                               _countof(pState->Huffman.LiteralLength.Tree),
+      PROPAGATE_CODE(calc_tree(pState->Huffman.LiteralLengthAndDistanceTree,
+                               pState->Huffman.LiteralLength.NumberProvided,
                                pState->Huffman.LiteralLength.InfoForLength));
+      PROPAGATE_CODE(calc_tree(pState->Huffman.LiteralLengthAndDistanceTree +
+                                   pState->Huffman.LiteralLength.NumberProvided,
+                               pState->Huffman.Distance.NumberProvided,
+                               pState->Huffman.Distance.InfoForLength));
       pState->Stage = RESOURCE_LOADER_DEFLATE_STAGE_HUFFMAN_DECODE;
     } else if (pState->CompressionType == 2) {
       pState->Huffman = {};
@@ -210,8 +213,7 @@ static int bit_state_machine(ResourceLoader_Deflate_State *pState, bool bit) {
 
     if (pState->SubStage >= 5) {
       pState->Huffman.Distance.NumberProvided += 1;
-      ASSERT_RETURN(pState->Huffman.Distance.NumberProvided <=
-                        _countof(pState->Huffman.Distance.Tree),
+      ASSERT_RETURN(pState->Huffman.Distance.NumberProvided <= 32,
                     DEFLATE_CORRUPT_DATASTREAM);
 
       pState->SubStage = 0;
@@ -253,10 +255,7 @@ static int bit_state_machine(ResourceLoader_Deflate_State *pState, bool bit) {
     if (pState->SubStage < pState->Huffman.CodeLength.NumberProvided * 3u)
       break;
 
-    // cheeky use of the same buffer for lengths and tree since we copy
-    // lengths to the stack first
     PROPAGATE_CODE(calc_tree(pState->Huffman.CodeLength.Tree,
-                             pState->Huffman.CodeLength.Tree,
                              _countof(pState->Huffman.CodeLength.Tree),
                              pState->Huffman.CodeLength.InfoForLength));
 
@@ -268,69 +267,89 @@ static int bit_state_machine(ResourceLoader_Deflate_State *pState, bool bit) {
 
   case RESOURCE_LOADER_DEFLATE_STAGE_T2_READING_CODE_LENGTHS_FOR_LITERAL_LENGTH_ALPHABET:
   case RESOURCE_LOADER_DEFLATE_STAGE_T2_READING_CODE_LENGTHS_FOR_DISTANCE_ALPHABET: {
-    pState->Huffman.CurrentCode =
-        (pState->Huffman.CurrentCode << 1) | bit * 0b1u;
-    ++pState->Huffman.CurrentCodeLength;
+    {
+      pState->Huffman.CurrentCode =
+          (pState->Huffman.CurrentCode << 1) | bit * 0b1u;
+      ++pState->Huffman.CurrentCodeLength;
 
-    ASSERT_RETURN(pState->Huffman.CurrentCodeLength <= HuffmanState::k_MaxBits,
-                  DEFLATE_CORRUPT_DATASTREAM);
+      ASSERT_RETURN(pState->Huffman.CurrentCodeLength <=
+                        HuffmanState::k_MaxBits,
+                    DEFLATE_CORRUPT_DATASTREAM);
 
-    HuffmanState::LengthData &lengthData =
-        pState->Huffman.CodeLength
-            .InfoForLength[pState->Huffman.CurrentCodeLength];
+      HuffmanState::LengthData &lengthData =
+          pState->Huffman.CodeLength
+              .InfoForLength[pState->Huffman.CurrentCodeLength];
 
-    uint16_t firstCode = lengthData.FirstCode;
-    uint16_t endCode = firstCode + lengthData.CodeCount;
+      uint16_t firstCode = lengthData.FirstCode;
+      uint16_t endCode = firstCode + lengthData.CodeCount;
 
-    bool inRange = pState->Huffman.CurrentCode >= firstCode &&
-                   pState->Huffman.CurrentCode < endCode;
+      bool inRange = pState->Huffman.CurrentCode >= firstCode &&
+                     pState->Huffman.CurrentCode < endCode;
 
-    if (!inRange)
-      break;
+      if (!inRange)
+        break;
 
-    uint16_t index = lengthData.FirstValueIndex;
-    index += pState->Huffman.CurrentCode - firstCode;
+      uint16_t index = lengthData.FirstValueIndex;
+      index += pState->Huffman.CurrentCode - firstCode;
 
-    ASSERT_RETURN(index < _countof(pState->Huffman.CodeLength.Tree),
-                  DEFLATE_CORRUPT_DATASTREAM);
+      ASSERT_RETURN(index < _countof(pState->Huffman.CodeLength.Tree),
+                    DEFLATE_CORRUPT_DATASTREAM);
 
-    uint16_t value = pState->Huffman.CodeLength.Tree[index];
+      uint16_t decodedLength = pState->Huffman.CodeLength.Tree[index];
 
-    ASSERT_RETURN(value < _countof(pState->Huffman.CodeLength.Tree),
-                  DEFLATE_CORRUPT_DATASTREAM);
+      ASSERT_RETURN(decodedLength < _countof(pState->Huffman.CodeLength.Tree),
+                    DEFLATE_CORRUPT_DATASTREAM);
 
-    uint16_t *tree = 0;
-    uint16_t numProvided = 0;
+      ASSERT(
+          pState->Stage ==
+              RESOURCE_LOADER_DEFLATE_STAGE_T2_READING_CODE_LENGTHS_FOR_LITERAL_LENGTH_ALPHABET ||
+          pState->Stage ==
+              RESOURCE_LOADER_DEFLATE_STAGE_T2_READING_CODE_LENGTHS_FOR_DISTANCE_ALPHABET);
+
+      uint16_t *lengths = 0;
+      if (pState->Stage ==
+          RESOURCE_LOADER_DEFLATE_STAGE_T2_READING_CODE_LENGTHS_FOR_LITERAL_LENGTH_ALPHABET) {
+        lengths = pState->Huffman.LiteralLengthAndDistanceTree;
+      } else if (
+          pState->Stage ==
+          RESOURCE_LOADER_DEFLATE_STAGE_T2_READING_CODE_LENGTHS_FOR_DISTANCE_ALPHABET) {
+        lengths = pState->Huffman.LiteralLengthAndDistanceTree +
+                  pState->Huffman.LiteralLength.NumberProvided;
+      }
+
+      pState->Huffman.CurrentCode = 0;
+      pState->Huffman.CurrentCodeLength = 0;
+      pState->Huffman.CurrentValue0 = decodedLength;
+      pState->Huffman.CurrentValue1 = 0;
+      pState->Huffman.ExtraBitsValue0 = 0;
+      pState->Huffman.ExtraBitsValue1 = 0;
+      pState->Huffman.ReturnStage = pState->Stage;
+
+      if (decodedLength <= 15) {
+        lengths[pState->SubStage] = decodedLength;
+        ++pState->SubStage;
+      } else if (decodedLength == 16) {
+        pState->Stage =
+            RESOURCE_LOADER_DEFLATE_STAGE_T2_READING_COPY_EXTRA_BITS_FOR_CODE_LENGTHS;
+        break;
+      } else if (decodedLength == 17 || decodedLength == 18) {
+        pState->Stage =
+            RESOURCE_LOADER_DEFLATE_STAGE_T2_READING_ZERO_EXTRA_BITS_FOR_CODE_LENGTHS;
+        break;
+      } else {
+        ASSERT(false);
+      }
+    }
+
+  CHECK_IF_DONE_READING_CODE_LENGTHS: {
+    uint16_t numProvided;
     if (pState->Stage ==
         RESOURCE_LOADER_DEFLATE_STAGE_T2_READING_CODE_LENGTHS_FOR_LITERAL_LENGTH_ALPHABET) {
-      tree = pState->Huffman.LiteralLength.Tree;
       numProvided = pState->Huffman.LiteralLength.NumberProvided;
     } else if (
         pState->Stage ==
         RESOURCE_LOADER_DEFLATE_STAGE_T2_READING_CODE_LENGTHS_FOR_DISTANCE_ALPHABET) {
-      tree = pState->Huffman.Distance.Tree;
       numProvided = pState->Huffman.Distance.NumberProvided;
-    } else {
-      ASSERT(false);
-    }
-
-    pState->Huffman.CurrentCode = 0;
-    pState->Huffman.CurrentCodeLength = 0;
-    pState->Huffman.CurrentValue0 = value;
-    pState->Huffman.CurrentValue1 = 0;
-    pState->Huffman.ExtraBitsValue0 = 0;
-    pState->Huffman.ExtraBitsValue1 = 0;
-    pState->Huffman.ReturnStage = pState->Stage;
-
-    if (value <= 15) {
-      tree[pState->SubStage] = value;
-      ++pState->SubStage;
-    } else if (value == 16) {
-      pState->Stage =
-          RESOURCE_LOADER_DEFLATE_STAGE_T2_READING_COPY_EXTRA_BITS_FOR_CODE_LENGTHS;
-    } else if (value == 17 || value == 18) {
-      pState->Stage =
-          RESOURCE_LOADER_DEFLATE_STAGE_T2_READING_ZERO_EXTRA_BITS_FOR_CODE_LENGTHS;
     } else {
       ASSERT(false);
     }
@@ -349,19 +368,19 @@ static int bit_state_machine(ResourceLoader_Deflate_State *pState, bool bit) {
         RESOURCE_LOADER_DEFLATE_STAGE_T2_READING_CODE_LENGTHS_FOR_DISTANCE_ALPHABET) {
       pState->Stage = RESOURCE_LOADER_DEFLATE_STAGE_HUFFMAN_DECODE;
 
-      PROPAGATE_CODE(calc_tree(pState->Huffman.Distance.Tree,
-                               pState->Huffman.Distance.Tree,
-                               _countof(pState->Huffman.Distance.Tree),
-                               pState->Huffman.Distance.InfoForLength));
-      PROPAGATE_CODE(calc_tree(pState->Huffman.LiteralLength.Tree,
-                               pState->Huffman.LiteralLength.Tree,
-                               _countof(pState->Huffman.LiteralLength.Tree),
+      PROPAGATE_CODE(calc_tree(pState->Huffman.LiteralLengthAndDistanceTree,
+                               pState->Huffman.LiteralLength.NumberProvided,
                                pState->Huffman.LiteralLength.InfoForLength));
+      PROPAGATE_CODE(calc_tree(pState->Huffman.LiteralLengthAndDistanceTree +
+                                   pState->Huffman.LiteralLength.NumberProvided,
+                               pState->Huffman.Distance.NumberProvided,
+                               pState->Huffman.Distance.InfoForLength));
     } else {
       ASSERT(false);
     }
+  }
 
-    break;
+  break;
   }
 
   case RESOURCE_LOADER_DEFLATE_STAGE_T2_READING_COPY_EXTRA_BITS_FOR_CODE_LENGTHS: {
@@ -379,13 +398,15 @@ static int bit_state_machine(ResourceLoader_Deflate_State *pState, bool bit) {
     uint16_t size;
     if (pState->Huffman.ReturnStage ==
         RESOURCE_LOADER_DEFLATE_STAGE_T2_READING_CODE_LENGTHS_FOR_LITERAL_LENGTH_ALPHABET) {
-      tree = pState->Huffman.LiteralLength.Tree;
-      size = _countof(pState->Huffman.LiteralLength.Tree);
+      tree = pState->Huffman.LiteralLengthAndDistanceTree;
+      size = HuffmanState::k_LiteralLengthCodes +
+             HuffmanState::k_DistanceCodes; // allowed to cross over
     } else if (
         pState->Huffman.ReturnStage ==
         RESOURCE_LOADER_DEFLATE_STAGE_T2_READING_CODE_LENGTHS_FOR_DISTANCE_ALPHABET) {
-      tree = pState->Huffman.Distance.Tree;
-      size = _countof(pState->Huffman.Distance.Tree);
+      tree = pState->Huffman.LiteralLengthAndDistanceTree +
+             pState->Huffman.LiteralLength.NumberProvided;
+      size = HuffmanState::k_DistanceCodes;
     } else {
       ASSERT(false);
     }
@@ -404,7 +425,7 @@ static int bit_state_machine(ResourceLoader_Deflate_State *pState, bool bit) {
     pState->Huffman.CurrentCodeLength = 0;
     pState->Stage = pState->Huffman.ReturnStage;
 
-    break;
+    goto CHECK_IF_DONE_READING_CODE_LENGTHS;
   }
 
   case RESOURCE_LOADER_DEFLATE_STAGE_T2_READING_ZERO_EXTRA_BITS_FOR_CODE_LENGTHS: {
@@ -435,13 +456,15 @@ static int bit_state_machine(ResourceLoader_Deflate_State *pState, bool bit) {
     uint16_t size;
     if (pState->Huffman.ReturnStage ==
         RESOURCE_LOADER_DEFLATE_STAGE_T2_READING_CODE_LENGTHS_FOR_LITERAL_LENGTH_ALPHABET) {
-      tree = pState->Huffman.LiteralLength.Tree;
-      size = _countof(pState->Huffman.LiteralLength.Tree);
+      tree = pState->Huffman.LiteralLengthAndDistanceTree;
+      size = HuffmanState::k_LiteralLengthCodes +
+             HuffmanState::k_DistanceCodes; // allowed to cross over
     } else if (
         pState->Huffman.ReturnStage ==
         RESOURCE_LOADER_DEFLATE_STAGE_T2_READING_CODE_LENGTHS_FOR_DISTANCE_ALPHABET) {
-      tree = pState->Huffman.Distance.Tree;
-      size = _countof(pState->Huffman.Distance.Tree);
+      tree = pState->Huffman.LiteralLengthAndDistanceTree +
+             pState->Huffman.LiteralLength.NumberProvided;
+      size = HuffmanState::k_DistanceCodes;
     } else {
       ASSERT(false);
     }
@@ -457,7 +480,7 @@ static int bit_state_machine(ResourceLoader_Deflate_State *pState, bool bit) {
     pState->Huffman.CurrentCodeLength = 0;
     pState->Stage = pState->Huffman.ReturnStage;
 
-    break;
+    goto CHECK_IF_DONE_READING_CODE_LENGTHS;
   }
 
   case RESOURCE_LOADER_DEFLATE_STAGE_HUFFMAN_DECODE: {
@@ -486,10 +509,10 @@ static int bit_state_machine(ResourceLoader_Deflate_State *pState, bool bit) {
     uint16_t index =
         lengthInfo.FirstValueIndex + pState->Huffman.CurrentCode - firstCode;
 
-    ASSERT_RETURN(index < _countof(pState->Huffman.LiteralLength.Tree),
+    ASSERT_RETURN(index < HuffmanState::k_LiteralLengthCodes,
                   DEFLATE_CORRUPT_DATASTREAM);
 
-    uint16_t value = pState->Huffman.LiteralLength.Tree[index];
+    uint16_t value = pState->Huffman.LiteralLengthAndDistanceTree[index];
 
     ASSERT_RETURN(value <= 285, DEFLATE_CORRUPT_DATASTREAM);
 
@@ -564,7 +587,8 @@ static int bit_state_machine(ResourceLoader_Deflate_State *pState, bool bit) {
 
     uint16_t index =
         lengthInfo.FirstValueIndex + pState->Huffman.CurrentCode - firstCode;
-    uint16_t value = pState->Huffman.Distance.Tree[index];
+    uint16_t value = pState->Huffman.LiteralLengthAndDistanceTree
+                         [index + pState->Huffman.LiteralLength.NumberProvided];
 
     ASSERT_RETURN(value <= 29, DEFLATE_CORRUPT_DATASTREAM);
 

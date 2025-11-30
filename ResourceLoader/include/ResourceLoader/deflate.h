@@ -38,6 +38,11 @@ enum EResourceLoader_Deflate_Stage {
 struct ResourceLoader_Deflate_State {
   struct HuffmanState {
     static const size_t k_MaxBits = 15;
+    static const size_t k_LiteralLengthCodes = 288;
+    static const size_t k_DistanceCodes = 32;
+
+    uint16_t
+        LiteralLengthAndDistanceTree[k_LiteralLengthCodes + k_DistanceCodes];
 
     struct LengthData {
       uint16_t FirstCode;
@@ -54,13 +59,11 @@ struct ResourceLoader_Deflate_State {
     struct {
       LengthData InfoForLength[k_MaxBits + 1];
       uint16_t NumberProvided;
-      uint16_t Tree[288];
     } LiteralLength;
 
     struct {
       LengthData InfoForLength[k_MaxBits + 1];
       uint16_t NumberProvided;
-      uint16_t Tree[32];
     } Distance;
 
     EResourceLoader_Deflate_Stage ReturnStage;
